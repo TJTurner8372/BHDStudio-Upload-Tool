@@ -151,7 +151,10 @@ def drop_function(event):
             release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Pro Logic II 2.0')
         elif audio_channels_string == '5.1':
             release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Digital 5.1')
-        if 'HDR10' in str(video_track.hdr_format_compatibility):
+        if 'HDR10+' in str(video_track.hdr_format_compatibility):
+            release_notes_scrolled.insert(END, '\n-HDR10+ compatible')
+            release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
+        elif 'HDR10' in str(video_track.hdr_format_compatibility):
             release_notes_scrolled.insert(END, '\n-HDR10 compatible')
             release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
         release_notes_scrolled.config(state=DISABLED)
