@@ -130,7 +130,9 @@ def drop_function(event):
 
         media_info = MediaInfo.parse(pathlib.Path(file_input))
         video_track = media_info.video_tracks[0]
-        update_source_label = f"Format:  {str(video_track.format)}   |   " \
+        calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
+                                                ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+        update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
                               f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
                               f"Frame rate:  {str(video_track.frame_rate)}   |   " \
                               f"Stream size:  {str(video_track.other_stream_size[3])}"
@@ -163,11 +165,15 @@ def drop_function(event):
         else:
             messagebox.showerror(parent=root, title='Error', message='Incorrect audio track format')
             return
-        update_source_label = f"Format:  {str(video_track.format)}   |   " \
+
+        calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
+                                                ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+
+        update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
                               f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
                               f"Frame rate:  {str(video_track.frame_rate)}   |   " \
                               f"Audio:  {str(audio_track.format)}  /  {audio_channels_string}  /  " \
-                              f"{str(audio_track.other_bit_rate[0])}"
+                              f"{str(audio_track.other_bit_rate[0]).replace('kb/s', '').strip().replace(' ', '')} kb/s"
         hdr_string = ''
         if video_track.other_hdr_format:
             hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
@@ -505,6 +511,7 @@ def parse_screen_shots():
             screenshot_scrolledtext.delete('1.0', END)  # SHOW ERROR BOX MESSAGE
             screenshot_scrolledtext.insert(END, 'Error, screenshots cannot be parsed!\nYou '
                                                 'must add an even number of screenshots...')
+            return False
 
 
 # add_screenshots = HoverButton(screenshot_frame, text="Check", command=parse_screen_shots, foreground="white",
@@ -523,7 +530,7 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     parse_screenshots = parse_screen_shots()
     if not parse_screenshots:
         messagebox.showerror(parent=root, title='Error!', message='You must add screenshots before generating nfo')
-    print(parse_screenshots)
+        return
 
 
 generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
