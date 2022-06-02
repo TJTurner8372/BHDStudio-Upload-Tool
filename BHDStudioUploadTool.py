@@ -584,6 +584,9 @@ def torrent_function_window():
             torrent_entry_box.insert(END, pathlib.Path(torrent_file_input).with_suffix('.torrent'))
             torrent_file_path.set(pathlib.Path(torrent_file_input).with_suffix('.torrent'))
             torrent_entry_box.config(state=DISABLED)
+            return True
+        if not torrent_file_input:
+            return False
 
     # torrent set path button
     torrent_button = HoverButton(torrent_path_frame, text="Set", command=torrent_save_output, foreground="white",
@@ -631,18 +634,18 @@ def torrent_function_window():
     # piece size menu
     torrent_piece_choices = {
         "Auto": None,
-        "16 KiB": "16384",
-        "32 KiB": "32768",
-        "64 KiB": "65536",
-        "128 KiB": "131072",
-        "256 KiB": "262144",
-        "512 KiB": "524288",
-        "1 MiB": "1048576",
-        "2 MiB": "2097152",
-        "4 MiB": "4194304",
-        "8 MiB": "8388608",
-        "16 MiB": "16777216",
-        "32 MiB": "33554432"}
+        "16 KiB": 16384,
+        "32 KiB": 32768,
+        "64 KiB": 65536,
+        "128 KiB": 131072,
+        "256 KiB": 262144,
+        "512 KiB": 524288,
+        "1 MiB": 1048576,
+        "2 MiB": 2097152,
+        "4 MiB": 4194304,
+        "8 MiB": 8388608,
+        "16 MiB": 16777216,
+        "32 MiB": 33554432}
     torrent_piece = StringVar()
     torrent_piece.set("Auto")
     torrent_piece_menu = OptionMenu(torrent_piece_frame, torrent_piece, *torrent_piece_choices.keys(),
@@ -705,6 +708,17 @@ def torrent_function_window():
 
     # create torrent
     def create_torrent():
+        if pathlib.Path(torrent_file_path.get()).is_file():
+            check_overwrite = messagebox.askyesno(parent=root, title='File Already Exists',
+                                                  message=f'"{pathlib.Path(torrent_file_path.get()).name}"\n\n'
+                                                          f'File already exists.\n\nWould you like to overwrite the '
+                                                          f'file?')
+            if not check_overwrite:  # if user does not want to overwrite file
+                save_new_file = torrent_save_output()  # call the torrent_save_output() function
+                if not save_new_file:  # if user press cancel in the torrent_save_output() window
+                    return  # exit this function
+
+        error = False  # set temporary error variable
         try:
             build_torrent = Torrent(path=pathlib.Path(encode_file_path.get()),
                                     trackers=str(torrent_tracker_url_entry_box.get()).strip(),
@@ -712,7 +726,16 @@ def torrent_function_window():
                                     piece_size=torrent_piece_choices[torrent_piece.get()])
         except torf.URLError:  # if tracker url is invalid
             messagebox.showerror(parent=torrent_window, title='Error', message='Invalid Tracker URL')
-            return
+            error = True  # set error to true
+        except torf.PathError:  # if path to encoded file is invalid
+            messagebox.showerror(parent=torrent_window, title='Error', message='Path to encoded file is invalid')
+            error = True  # set error to true
+        except torf.PieceSizeError:  # if piece size is incorrect
+            messagebox.showerror(parent=torrent_window, title='Error', message='Piece size is incorrect')
+            error = True  # set error to true
+
+        if error:  # if error is true
+            return  # exit the function
 
         # call back method to read/abort progress
         def torrent_progress(torrent, filepath, pieces_done, pieces_total):
