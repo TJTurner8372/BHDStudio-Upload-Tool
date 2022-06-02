@@ -5,9 +5,10 @@ import threading
 import tkinter.scrolledtext as scrolledtextwidget
 from configparser import ConfigParser
 from ctypes import windll
+from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
-    Button, TclError, font
+    Button, TclError, font, Menu
 
 import torf
 from TkinterDnD2 import *
@@ -420,6 +421,20 @@ fill_borders_var.set('off')
 release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, height=5, bg="#565656", bd=8, fg='white')
 release_notes_scrolled.grid(row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W)
 release_notes_scrolled.config(state=DISABLED)
+Hovertip(release_notes_scrolled, 'Right click to enable manual edits', hover_delay=1000)  # Hover tip tool-tip
+
+
+def popup_auto_e_b_menu(e):  # Function for mouse button 3 (right click) to pop up menu
+    enable_edits_menu.tk_popup(e.x_root, e.y_root)  # This gets the position of 'e'
+
+
+# pop up menu to enable/disable manual edits in release notes
+enable_edits_menu = Menu(release_notes_scrolled, tearoff=False, font=(set_font, set_font_size + 1),
+                         background="#23272A", foreground="white", activebackground="grey")  # Right click menu
+enable_edits_menu.add_command(label='Enable Manual Edits', command=lambda: release_notes_scrolled.config(state=NORMAL))
+enable_edits_menu.add_command(label='Disable Manual Edits',
+                              command=lambda: release_notes_scrolled.config(state=DISABLED))
+release_notes_scrolled.bind('<Button-3>', popup_auto_e_b_menu)  # Uses mouse button 3 (right click) to open
 
 
 def disable_clear_all_checkbuttons():
