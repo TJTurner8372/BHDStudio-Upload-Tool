@@ -142,105 +142,104 @@ encode_file_path = StringVar()
 torrent_file_path = StringVar()
 
 
+def source_input_function(*args):
+    media_info = MediaInfo.parse(pathlib.Path(*args))
+    video_track = media_info.video_tracks[0]
+    calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
+                                            ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+    update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
+                          f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
+                          f"Frame rate:  {str(video_track.frame_rate)}   |   " \
+                          f"Stream size:  {str(video_track.other_stream_size[3])}"
+    hdr_string = ''
+    if video_track.other_hdr_format:
+        hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
+    elif not video_track.other_hdr_format:
+        hdr_string = ''
+
+    source_label.config(text=update_source_label)
+    source_hdr_label.config(text=hdr_string)
+    source_file_path.set(pathlib.Path(*args))
+
+    source_entry_box.config(state=NORMAL)
+    source_entry_box.delete(0, END)
+    source_entry_box.insert(END, pathlib.Path(*args).name)
+    source_entry_box.config(state=DISABLED)
+
+
+def encode_input_function(*args):
+    media_info = MediaInfo.parse(pathlib.Path(*args))
+    video_track = media_info.video_tracks[0]
+    if not media_info.general_tracks[0].count_of_audio_streams:
+        messagebox.showerror(parent=root, title='Error', message='Audio track is missing from encoded file')
+        delete_encode_entry()
+        return
+    audio_track = media_info.audio_tracks[0]
+    if audio_track.channel_s == 1:
+        audio_channels_string = '1.0'
+    elif audio_track.channel_s == 2:
+        audio_channels_string = '2.0'
+    elif audio_track.channel_s == 6:
+        audio_channels_string = '5.1'
+    else:
+        messagebox.showerror(parent=root, title='Error', message='Incorrect audio track format')
+        return
+
+    calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
+                                            ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+
+    update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
+                          f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
+                          f"Frame rate:  {str(video_track.frame_rate)}   |   " \
+                          f"Audio:  {str(audio_track.format)}  /  {audio_channels_string}  /  " \
+                          f"{str(audio_track.other_bit_rate[0]).replace('kb/s', '').strip().replace(' ', '')} kb/s"
+    hdr_string = ''
+    if video_track.other_hdr_format:
+        hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
+    elif not video_track.other_hdr_format:
+        hdr_string = ''
+
+    release_notes_scrolled.config(state=NORMAL)
+    release_notes_scrolled.delete('1.0', END)
+    release_notes_scrolled.insert(END, '-Optimized for PLEX, emby, Jellyfin, and other streaming platforms')
+    if audio_channels_string == '1.0':
+        release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Digital 1.0')
+    elif audio_channels_string == '2.0':
+        release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Pro Logic II 2.0')
+    elif audio_channels_string == '5.1':
+        release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Digital 5.1')
+    if 'HDR10+' in str(video_track.hdr_format_compatibility):
+        release_notes_scrolled.insert(END, '\n-HDR10+ compatible')
+        release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
+    elif 'HDR10' in str(video_track.hdr_format_compatibility):
+        release_notes_scrolled.insert(END, '\n-HDR10 compatible')
+        release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
+    release_notes_scrolled.config(state=DISABLED)
+
+    enable_clear_all_checkbuttons()
+
+    # enable torrent button
+    torrent_file_path.set(pathlib.Path(*args).with_suffix('.torrent'))
+    open_torrent_window_button.config(state=NORMAL)
+
+    encode_label.config(text=update_source_label)
+    encode_hdr_label.config(text=hdr_string)
+    encode_file_path.set(pathlib.Path(*args))
+    encode_entry_box.config(state=NORMAL)
+    encode_entry_box.delete(0, END)
+    encode_entry_box.insert(END, pathlib.Path(*args).name)
+    encode_entry_box.config(state=DISABLED)
+
+
 def drop_function(event):
     file_input = [x for x in root.splitlist(event.data)][0]
     widget_source = str(event.widget.cget('text')).strip()
 
     if widget_source == 'Source':
-
-        media_info = MediaInfo.parse(pathlib.Path(file_input))
-        video_track = media_info.video_tracks[0]
-        calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
-                                                ((float(video_track.duration) / 60000) * 0.0075) / 1000)
-        update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
-                              f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
-                              f"Frame rate:  {str(video_track.frame_rate)}   |   " \
-                              f"Stream size:  {str(video_track.other_stream_size[3])}"
-        hdr_string = ''
-        if video_track.other_hdr_format:
-            hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
-        elif not video_track.other_hdr_format:
-            hdr_string = ''
-
-        entry_box_selection = source_entry_box
-        source_label.config(text=update_source_label)
-        source_hdr_label.config(text=hdr_string)
-        source_file_path.set(pathlib.Path(file_input))
+        source_input_function(file_input)
 
     elif widget_source == 'Encode':
-
-        media_info = MediaInfo.parse(pathlib.Path(file_input))
-        video_track = media_info.video_tracks[0]
-        if not media_info.general_tracks[0].count_of_audio_streams:
-            messagebox.showerror(parent=root, title='Error', message='Audio track is missing from encoded file')
-            delete_encode_entry()
-            return
-        audio_track = media_info.audio_tracks[0]
-        if audio_track.channel_s == 1:
-            audio_channels_string = '1.0'
-        elif audio_track.channel_s == 2:
-            audio_channels_string = '2.0'
-        elif audio_track.channel_s == 6:
-            audio_channels_string = '5.1'
-        else:
-            messagebox.showerror(parent=root, title='Error', message='Incorrect audio track format')
-            return
-
-        calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
-                                                ((float(video_track.duration) / 60000) * 0.0075) / 1000)
-
-        update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
-                              f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
-                              f"Frame rate:  {str(video_track.frame_rate)}   |   " \
-                              f"Audio:  {str(audio_track.format)}  /  {audio_channels_string}  /  " \
-                              f"{str(audio_track.other_bit_rate[0]).replace('kb/s', '').strip().replace(' ', '')} kb/s"
-        hdr_string = ''
-        if video_track.other_hdr_format:
-            hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
-        elif not video_track.other_hdr_format:
-            hdr_string = ''
-
-        entry_box_selection = encode_entry_box
-        encode_label.config(text=update_source_label)
-        encode_hdr_label.config(text=hdr_string)
-        encode_file_path.set(pathlib.Path(file_input))
-
-        # detect resolution
-        encode_resolution = ''
-        # if video_track.width <= 1280 and video_track.height <= 720:
-        #     encode_resolution = '720p'
-        # elif video_track.width <= 1920 and video_track.height <= 1080:
-        #     encode_resolution = '1080p'
-        # elif video_track.width <= 3840 and video_track.height <= 2160:
-        #     encode_resolution = '2160p'
-
-        release_notes_scrolled.config(state=NORMAL)
-        release_notes_scrolled.delete('1.0', END)
-        release_notes_scrolled.insert(END, '-Optimized for PLEX, emby, Jellyfin, and other streaming platforms')
-        if audio_channels_string == '1.0':
-            release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Digital 1.0')
-        elif audio_channels_string == '2.0':
-            release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Pro Logic II 2.0')
-        elif audio_channels_string == '5.1':
-            release_notes_scrolled.insert(END, '\n-Downmixed Lossless audio track to Dolby Digital 5.1')
-        if 'HDR10+' in str(video_track.hdr_format_compatibility):
-            release_notes_scrolled.insert(END, '\n-HDR10+ compatible')
-            release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
-        elif 'HDR10' in str(video_track.hdr_format_compatibility):
-            release_notes_scrolled.insert(END, '\n-HDR10 compatible')
-            release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
-        release_notes_scrolled.config(state=DISABLED)
-
-        enable_clear_all_checkbuttons()
-
-        # enable torrent button
-        torrent_file_path.set(pathlib.Path(file_input).with_suffix('.torrent'))
-        open_torrent_window_button.config(state=NORMAL)
-
-    entry_box_selection.config(state=NORMAL)
-    entry_box_selection.delete(0, END)
-    entry_box_selection.insert(END, pathlib.Path(file_input).name)
-    entry_box_selection.config(state=DISABLED)
+        encode_input_function(file_input)
 
 
 # source --------------------------------------------------------------------------------------------------------------
@@ -262,8 +261,7 @@ def manual_source_input():
     source_file_input = filedialog.askopenfilename(parent=root, title='Select Source', initialdir='/',
                                                    filetypes=[("Media Files", "*.*")])
     if source_file_input:
-        source_entry_box.delete(0, END)
-        source_entry_box.insert(END, pathlib.Path(source_file_input).name)
+        source_input_function(source_file_input)
 
 
 source_button = HoverButton(source_frame, text="Open", command=manual_source_input, foreground="white",
@@ -320,8 +318,7 @@ def manual_encode_input():
     encode_file_input = filedialog.askopenfilename(parent=root, title='Select Source', initialdir='/',
                                                    filetypes=[("Media Files", "*.*")])
     if encode_file_input:
-        encode_entry_box.delete(0, END)
-        encode_entry_box.insert(END, pathlib.Path(encode_file_input).name)
+        encode_input_function(encode_file_input)
 
 
 encode_button = HoverButton(encode_frame, text="Open", command=manual_encode_input, foreground="white",
