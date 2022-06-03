@@ -8,8 +8,8 @@ from ctypes import windll
 from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
-    Button, TclError, font, Menu
-
+    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, RIGHT, Y, BOTTOM, X, VERTICAL
+import base64
 import torf
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
@@ -532,6 +532,291 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
         messagebox.showerror(parent=root, title='Error!', message='You must add screenshots before generating nfo')
         return
 
+    ##
+    nfo_pad = Toplevel()
+    nfo_pad.title('BHDStudioUploadTool - NFO Pad')
+    nfo_pad_window_height = 600
+    nfo_pad_window_width = 1000
+    nfo_screen_width = nfo_pad.winfo_screenwidth()
+    nfo_screen_height = nfo_pad.winfo_screenheight()
+    nfo_x_coordinate = int((nfo_screen_width / 2) - (nfo_pad_window_width / 2))
+    nfo_y_coordinate = int((nfo_screen_height / 2) - (nfo_pad_window_height / 2))
+    nfo_pad.geometry(f"{nfo_pad_window_width}x{nfo_pad_window_height}+{nfo_x_coordinate}+{nfo_y_coordinate}")
+    nfo_pad.grid_columnconfigure(0, weight=1)
+    nfo_pad.grid_rowconfigure(0, weight=1000)
+    nfo_pad.grid_rowconfigure(1, weight=1)
+
+    # Set variable for open file name
+    global open_status_name
+    open_status_name = False
+
+    global selected
+    selected = False
+
+    # Create New File Function
+    def new_file():
+        # Delete previous text
+        nfo_pad_text_box.delete("1.0", END)
+        # Update status bars
+        nfo_pad.title('New File - TextPad!')
+        status_bar.config(text="New File")
+
+        global open_status_name
+        open_status_name = False
+
+    # Open Files
+    def open_file():
+        # Delete previous text
+        nfo_pad_text_box.delete("1.0", END)
+
+        # Grab Filename
+        text_file = filedialog.askopenfilename(parent=nfo_pad, initialdir="/", title="Open File",
+                                               filetypes=[("Text Files, NFO Files", ".txt .nfo")])
+
+        # Check to see if there is a file name
+        if text_file:
+            # Make filename global so we can access it later
+            global open_status_name
+            open_status_name = text_file
+
+        # Update Status bars
+        name = text_file
+        status_bar.config(text=f'{name}')
+        nfo_pad.title(f'{name} - NFO Pad!')
+
+        # Open the file
+        text_file = open(text_file, 'r')
+        stuff = text_file.read()
+        # Add file to textbox
+        nfo_pad_text_box.insert(END, stuff)
+        # Close the opened file
+        text_file.close()
+
+    # Save As File
+    def save_as_file():
+        text_file = filedialog.asksaveasfilename(parent=nfo_pad, defaultextension=".nfo", initialdir="/",
+                                                 title="Save File", filetypes=[("NFO File", "*.nfo")])
+        if text_file:
+            # Update Status Bars
+            name = text_file
+            status_bar.config(text=f'Saved: {name}')
+            nfo_pad.title(f'{name} - NFO Pad')
+
+            # Save the file
+            text_file = open(text_file, 'w')
+            text_file.write(nfo_pad_text_box.get(1.0, END))
+            # Close the file
+            text_file.close()
+
+    # Save File
+    def save_file():
+        global open_status_name
+        if open_status_name:
+            # Save the file
+            text_file = open(open_status_name, 'w')
+            text_file.write(nfo_pad_text_box.get(1.0, END))
+            # Close the file
+            text_file.close()
+            # Put status update or popup code
+            status_bar.config(text=f'Saved: {open_status_name}        ')
+            name = open_status_name
+            nfo_pad.title(f'{name} - NFO Pad')
+        else:
+            save_as_file()
+
+    # Cut Text
+    def cut_text(e):
+        global selected
+        # Check to see if keyboard shortcut used
+        if e:
+            selected = nfo_pad.clipboard_get()
+        else:
+            if nfo_pad_text_box.selection_get():
+                # Grab selected text from text box
+                selected = nfo_pad_text_box.selection_get()
+                # Delete Selected Text from text box
+                nfo_pad_text_box.delete("sel.first", "sel.last")
+                # Clear the clipboard then append
+                nfo_pad.clipboard_clear()
+                nfo_pad.clipboard_append(selected)
+
+    # Copy Text
+    def copy_text(e):
+        global selected
+        # check to see if we used keyboard shortcuts
+        if e:
+            selected = nfo_pad.clipboard_get()
+
+        if nfo_pad_text_box.selection_get():
+            # Grab selected text from text box
+            selected = nfo_pad_text_box.selection_get()
+            # Clear the clipboard then append
+            nfo_pad.clipboard_clear()
+            nfo_pad.clipboard_append(selected)
+
+    # Paste Text
+    def paste_text(e):
+        global selected
+        # Check to see if keyboard shortcut used
+        if e:
+            selected = nfo_pad.clipboard_get()
+        else:
+            if selected:
+                position = nfo_pad_text_box.index(INSERT)
+                nfo_pad_text_box.insert(position, selected)
+
+
+    # Change bg color
+    def bg_color():
+        my_color = colorchooser.askcolor(parent=nfo_pad)[1]
+        if my_color:
+            nfo_pad_text_box.config(bg=my_color)
+
+    # Change ALL Text Color
+    def all_text_color():
+        my_color = colorchooser.askcolor(parent=nfo_pad)[1]
+        if my_color:
+            nfo_pad_text_box.config(fg=my_color)
+
+    # Select all Text
+    def select_all(e):
+        # Add sel tag to select all text
+        nfo_pad_text_box.tag_add('sel', '1.0', 'end')
+
+    # Clear All Text
+    def clear_all():
+        nfo_pad_text_box.delete(1.0, END)
+
+
+    # # Create a toolbar frame
+    # toolbar_frame = Frame(nfo_pad)
+    # toolbar_frame.grid(column=0, row=0, sticky=N + S + E + W)
+
+    # Create Main Frame
+    my_frame = Frame(nfo_pad)
+    my_frame.grid(column=0, row=0, sticky=N + S + E + W)
+    my_frame.grid_columnconfigure(0, weight=1)
+    my_frame.grid_rowconfigure(0, weight=1)
+
+    # scroll bars
+    right_scrollbar = Scrollbar(my_frame, orient=VERTICAL)  # Scrollbars
+    bottom_scrollbar = Scrollbar(my_frame, orient=HORIZONTAL)
+
+    # Create Text Box
+    nfo_pad_text_box = Text(my_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
+                   xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
+    nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
+
+    # add scrollbars to the textbox
+    right_scrollbar.config(command=nfo_pad_text_box.yview)
+    right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
+    bottom_scrollbar.config(command=nfo_pad_text_box.xview)
+    bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+    # Create Menu
+    my_menu = Menu(nfo_pad)
+    nfo_pad.config(menu=my_menu)
+
+    # Add File Menu
+    file_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="New", command=new_file)
+    file_menu.add_command(label="Open", command=open_file)
+    file_menu.add_command(label="Save", command=save_file)
+    file_menu.add_command(label="Save As...", command=save_as_file)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", command=nfo_pad.quit)
+
+    # Add Edit Menu
+    edit_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="Edit", menu=edit_menu)
+    edit_menu.add_command(label="Cut", command=lambda: cut_text(False), accelerator="(Ctrl+x)")
+    edit_menu.add_command(label="Copy", command=lambda: copy_text(False), accelerator="(Ctrl+c)")
+    edit_menu.add_command(label="Paste             ", command=lambda: paste_text(False), accelerator="(Ctrl+v)")
+    edit_menu.add_separator()
+    edit_menu.add_command(label="Undo", command=nfo_pad_text_box.edit_undo, accelerator="(Ctrl+z)")
+    edit_menu.add_command(label="Redo", command=nfo_pad_text_box.edit_redo, accelerator="(Ctrl+y)")
+    edit_menu.add_separator()
+    edit_menu.add_command(label="Select All", command=lambda: select_all(True), accelerator="(Ctrl+a)")
+    edit_menu.add_command(label="Clear", command=clear_all)
+
+    # Add Color Menu
+    color_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="Colors", menu=color_menu)
+    color_menu.add_command(label="Text Color", command=all_text_color)
+    color_menu.add_command(label="Background", command=bg_color)
+
+    # # Add Options Menu
+    # options_menu = Menu(my_menu, tearoff=False)
+    # my_menu.add_cascade(label="Options", menu=options_menu)
+    # options_menu.add_command(label="Night Mode On", command=night_on)
+    # options_menu.add_command(label="Night Mode Off", command=night_off)
+
+    # Add Status Bar To Bottom Of App
+    status_bar = Label(nfo_pad, text='Ready', anchor=E)
+    status_bar.grid(column=0, row=1, sticky=E + W)
+
+    # Edit Bindings
+    nfo_pad.bind('<Control-Key-x>', cut_text)
+    nfo_pad.bind('<Control-Key-c>', copy_text)
+    nfo_pad.bind('<Control-Key-v>', paste_text)
+    # Select Binding
+    nfo_pad.bind('<Control-A>', select_all)
+    nfo_pad.bind('<Control-a>', select_all)
+
+
+
+    ##
+
+    ###
+    # nfo_b64 = 'W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0KClNvdXJjZSAgICAgICAgICAgICAgICAgIDoge3NyY30gKFRoYW5rcyEpCkNoYXB0ZX\
+    #         JzICAgICAgICAgICAgICAgIDoge2NocHR9CkZpbGUgU2l6ZSAgICAgICAgICAgICAgIDoge2ZzfQpEdXJhdGlvbiAgICAgICAgICAgICAgICA6IHtkdXJ9ClZ\
+    #         pZGVvICAgICAgICAgICAgICAgICAgIDogTVBFRy00IEFWQyBWaWRlbyAvIHticn0ga2JwcyAvIHtmcn0gLyBIaWdoIFByb2ZpbGUgNC4xClJlc29sdXRpb24g\
+    #         ICAgICAgICAgICAgIDoge3d9IHgge2h9ICh7YXJ9KQpBdWRpbyAgICAgICAgICAgICAgICAgICA6IHthX2xhbn0vIHthX2NvbW19IEF1ZGlvIC8ge2FfY2hhb\
+    #         n0gLyB7c2FtcF9mfSAvIHthX2JyfWticHMKRW5jb2RlciAgICAgICAgICAgICAgICAgOiBbY29sb3I9I2Y1YzcwYV10aGVzYjNbL2NvbG9yXQoKW2NvbG9yPS\
+    #         NmNWM3MGFdUkVMRUFTRSBOT1RFU1svY29sb3JdCgp7bnRzfQotT3B0aW1pemVkIGZvciBQTEVYLCBlbWJ5LCBKZWxseWZpbiwgYW5kIG90aGVyIHN0cmVhbWl\
+    #         uZyBwbGF0Zm9ybXMKLURvd25taXhlZCBMb3NzbGVzcyBhdWRpbyB0cmFjayB0byB7YV9jb21tfSB7YV9jaGFufQoKW2NvbG9yPSNmNWM3MGFdU0NSRUVOU0hP\
+    #         VFNbL2NvbG9yXQpbY2VudGVyXQpbY29sb3I9I2Y1YzcwYV1TT1VSQ0VbL2NvbG9yXTw8PDw8PDw8PDw8PDw8PDw8LS0tLS0tLS0tLS0tLS0tLS0tLVtjb2xvc\
+    #         j0jZjVjNzBhXVZTWy9jb2xvcl0tLS0tLS0tLS0tLS0tLS0tLS0tPj4+Pj4+Pj4+Pj4+Pj4+Pj5bY29sb3I9I2Y1YzcwYV1FTkNPREVbL2NvbG9yXQp7c2NyfQ\
+    #         pbL2NlbnRlcl0KW2NvbG9yPSNmNWM3MGFdR1JFRVRaWy9jb2xvcl0KCkFsbCB0aG9zZSB3aG8gc3VwcG9ydCBvdXIgZ3JvdXAsIG91ciBlbmNvZGVycywgYW5\
+    #         kIG91ciBjb21tdW5pdHkuIAoKW2NvbG9yPSNmNWM3MGFdR1JPVVAgTk9URVNbL2NvbG9yXQoKRW5qb3khCgpXZSBhcmUgY3VycmVudGx5IGxvb2tpbmcgZm9y\
+    #         IG5vdGhpbmcgaW4gcGFydGljdWxhci4gSWYgeW91IGZlZWwgeW91IGhhdmUgc29tZXRoaW5nIHRvIG9mZmVyLCBjb250YWN0IHVzIQoKW2NlbnRlcl1baW1nX\
+    #         Wh0dHBzOi8vYmV5b25kaGQuY28vaW1hZ2VzLzIwMjEvMDMvMzAvNjJiY2E4ZDU4N2I3MTczMTIxMDA4ODg3ZWJlMDVhNDIucG5nWy9pbWddWy9jZW50ZXJdCg\
+    #         o='
+    #
+    # nfo = base64.b64decode(nfo_b64).decode("ascii")
+    # nfo = nfo.format(src=pathlib.Path(source_file_path.get()).stem, scr=parse_screenshots)
+
+    # nfo = nfo.format(src=source, chpt=chp, fs=size, dur=duration, br=bps,
+    #                  fr=frame_r, w=width, h=height, ar=aspect_r, a_lan=lan, a_comm=comm,
+    #                  a_chan=chan, samp_f=freq, a_br=a_br, nts=notes, scr=screens)
+
+    # collect nfo information from encode file
+    # src = pathlib.Path(source_file_path.get()).stem
+    # chpt = 'chapter'
+    # fs = 'file_size'
+    # dur = 'duration'
+    # br = 'bitrate'
+    # fr = 'fps'
+    # w = 'width'
+    # h = 'height'
+    # a_lan = 'language'
+    # a_comm = 'dolby digital'
+    # a_chan = 'audio channel'
+    # samp_f = 'freq'
+    # a_br = 'audio bitrate'
+    # nts = 'notes'
+    # scr = parse_screenshots
+    #
+
+    # nfo = nfo.format(src=pathlib.Path(source_file_path.get()).stem, chpt='chapter', fs='file_size', dur='duration', br='bitrate',
+    #                  fr='frame rate', w='blag', h='blah', ar='eat', a_lan='lang', a_comm='eat it ho',
+    #                  a_chan='audio channel', samp_f='freq', a_br='poop', nts='nope', scr=parse_screenshots)
+
+    # nfo_pad_text_box.insert(END, nfo)
+    ###
+
+# open_nfo_viewer()
 
 generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activebackground='grey', width=1)
