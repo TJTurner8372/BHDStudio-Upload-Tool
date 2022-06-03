@@ -1,6 +1,8 @@
+import base64
 import math
 import os
 import pathlib
+import re
 import threading
 import tkinter.scrolledtext as scrolledtextwidget
 from configparser import ConfigParser
@@ -8,8 +10,8 @@ from ctypes import windll
 from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
-    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, RIGHT, Y, BOTTOM, X, VERTICAL
-import base64
+    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, VERTICAL
+
 import torf
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
@@ -26,17 +28,35 @@ if not config.has_section('torrent_settings'):
     config.add_section('torrent_settings')
 if not config.has_option('torrent_settings', 'tracker_url'):
     config.set('torrent_settings', 'tracker_url', '')
+if not config.has_section('encoder_name'):
+    config.add_section('encoder_name')
+if not config.has_option('encoder_name', 'name'):
+    config.set('encoder_name', 'name', '')
 with open(config_file, 'w') as configfile:
     config.write(configfile)
 
+
 # root
+def root_exit_function():
+    root_exit_parser = ConfigParser()
+    root_exit_parser.read(config_file)
+    if root_exit_parser['encoder_name']['name'] != encoded_by_entry_box.get().strip():
+        root_exit_parser.set('encoder_name', 'name', encoded_by_entry_box.get().strip())
+        with open(config_file, 'w') as configfile:
+            root_exit_parser.write(configfile)
+
+    # gotta do more stuff soon!
+
+    root.destroy()
+
+
 root = TkinterDnD.Tk()
 root.title('BHDStudio Upload Tool')
 # root.iconphoto(True, PhotoImage(data=gui_icon))
 root.configure(background="#363636")
 # if config['save_window_locations']['ffmpeg audio encoder position'] == '' or \
 #         config['save_window_locations']['ffmpeg audio encoder'] == 'no':
-root_window_height = 650
+root_window_height = 700
 root_window_width = 720
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
@@ -47,7 +67,7 @@ root.geometry(f"{root_window_width}x{root_window_height}+{x_coordinate}+{y_coord
 #         config['save_window_locations']['ffmpeg audio encoder'] == 'yes':
 #     root.geometry(config['save_window_locations']['ffmpeg audio encoder position'])\
 
-# root.protocol('WM_DELETE_WINDOW', root_exit_function)
+root.protocol('WM_DELETE_WINDOW', root_exit_function)
 # root_pid = os.getpid()  # Get root process ID
 
 # Block of code to fix DPI awareness issues on Windows 7 or higher
@@ -252,7 +272,7 @@ source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N 
 
 source_entry_box = Entry(source_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
                          disabledforeground='white', disabledbackground="#565656")
-source_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(5, 0), sticky=N + S + E + W)
+source_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(5, 0), sticky=E + W)
 
 source_info_frame = LabelFrame(source_frame, text='Info:', bd=0, bg="#363636", fg="#3498db",
                                font=(set_font, set_font_size))
@@ -310,7 +330,7 @@ encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=N + S +
 
 encode_entry_box = Entry(encode_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
                          disabledforeground='white', disabledbackground="#565656")
-encode_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky=N + S + E + W)
+encode_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky=E + W)
 
 encode_info_frame = LabelFrame(encode_frame, text='Info:', bd=0, bg="#363636", fg="#3498db",
                                font=(set_font, set_font_size))
@@ -347,9 +367,22 @@ reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_e
                                  background="#23272A", borderwidth="3", activebackground='grey')
 reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
+# encoded by frame
+encoded_by_frame = LabelFrame(root, text=' Encoder Name ', labelanchor="nw")
+encoded_by_frame.grid(column=0, row=2, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S)
+encoded_by_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+encoded_by_frame.grid_columnconfigure(0, weight=1)
+encoded_by_frame.grid_rowconfigure(0, weight=1)
+
+encoded_by_entry_box = Entry(encoded_by_frame, borderwidth=4, bg="#565656", fg='white',
+                             disabledforeground='white', disabledbackground="#565656")
+encoded_by_entry_box.grid(row=0, column=0, columnspan=9, padx=5, pady=(5, 5), sticky=E + W)
+if config['encoder_name']['name'].strip() != '':
+    encoded_by_entry_box.insert(END, config['encoder_name']['name'].strip())
+
 # release notes -------------------------------------------------------------------------------------------------------
 release_notes_frame = LabelFrame(root, text=' Release Notes ', labelanchor="nw")
-release_notes_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+release_notes_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 release_notes_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 
 for rl_row in range(3):
@@ -466,7 +499,7 @@ def enable_clear_all_checkbuttons():
 
 # screenshots ---------------------------------------------------------------------------------------------------------
 screenshot_frame = LabelFrame(root, text=' Sreenshots ', labelanchor="nw")
-screenshot_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+screenshot_frame.grid(column=0, row=4, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 screenshot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 screenshot_frame.grid_rowconfigure(0, weight=1)
 screenshot_frame.grid_columnconfigure(0, weight=20)
@@ -483,6 +516,63 @@ reset_screenshot_box = HoverButton(screenshot_frame, text="X",
                                    command=lambda: screenshot_scrolledtext.delete('1.0', END), foreground="white",
                                    background="#23272A", borderwidth="3", activebackground='grey', width=4)
 reset_screenshot_box.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W)
+
+
+def popup_auto_e_b_menu(e):  # Function for mouse button 3 (right click) to pop up menu
+    screen_shot_right_click_menu.tk_popup(e.x_root, e.y_root)  # This gets the position of 'e'
+
+
+# pop up menu to enable/disable manual edits in release notes
+screen_shot_right_click_menu = Menu(release_notes_scrolled, tearoff=False, font=(set_font, set_font_size + 1),
+                                    background="#23272A", foreground="white",
+                                    activebackground="grey")  # Right click menu
+
+
+# right click menu cut
+def text_cut():
+    if screenshot_scrolledtext.selection_get():
+        # Grab selected text from text box
+        selected_text_cut = screenshot_scrolledtext.selection_get()
+        # Delete Selected Text from text box
+        screenshot_scrolledtext.delete("sel.first", "sel.last")
+        # Clear the clipboard then append
+        screenshot_scrolledtext.clipboard_clear()
+        screenshot_scrolledtext.clipboard_append(selected_text_cut)
+
+
+screen_shot_right_click_menu.add_command(label='Cut', command=text_cut)
+
+
+# right click menu copy
+def text_copy():
+    if screenshot_scrolledtext.selection_get():
+        # Grab selected text from text box
+        selected_text_copy = screenshot_scrolledtext.selection_get()
+        # Clear the clipboard then append
+        screenshot_scrolledtext.clipboard_clear()
+        screenshot_scrolledtext.clipboard_append(selected_text_copy)
+
+
+screen_shot_right_click_menu.add_command(label='Copy', command=text_copy)
+
+
+# right click menu paste
+def text_paste():
+    screenshot_scrolledtext.delete("1.0", END)
+    screenshot_scrolledtext.insert(END, screenshot_scrolledtext.clipboard_get())
+
+
+screen_shot_right_click_menu.add_command(label='Paste', command=text_paste)
+
+
+# right click menu clear
+def text_delete():
+    screenshot_scrolledtext.delete("1.0", END)
+
+
+screen_shot_right_click_menu.add_command(label='Clear', command=text_delete)
+
+screenshot_scrolledtext.bind('<Button-3>', popup_auto_e_b_menu)  # Uses mouse button 3 (right click) to open
 
 
 # check/return screenshots
@@ -503,24 +593,14 @@ def parse_screen_shots():
                 sorted_screenshots += str(next(iterate_list)) + '[/url]'
                 sorted_screenshots += "\n"
                 sorted_screenshots += "\n"
-
-            screenshot_scrolledtext.delete('1.0', END)  # DELETE
-            screenshot_scrolledtext.insert(END, 'Screenshots successfully parsed!')
             return sorted_screenshots
         else:
-            screenshot_scrolledtext.delete('1.0', END)  # SHOW ERROR BOX MESSAGE
-            screenshot_scrolledtext.insert(END, 'Error, screenshots cannot be parsed!\nYou '
-                                                'must add an even number of screenshots...')
             return False
-
-
-# add_screenshots = HoverButton(screenshot_frame, text="Check", command=parse_screen_shots, foreground="white",
-#                               background="#23272A", borderwidth="3", activebackground='grey', width=6)
-# add_screenshots.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=S + E + W)
 
 
 # generate nfo
 def open_nfo_viewer():  # !!WORK IN PROGRESS!!
+    global nfo_pad, nfo_pad_text_box, nfo
     if not pathlib.Path(source_file_path.get()).is_file():
         messagebox.showerror(parent=root, title='Error!', message='Source file is missing!')
         return
@@ -529,10 +609,163 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
         return
     parse_screenshots = parse_screen_shots()
     if not parse_screenshots:
-        messagebox.showerror(parent=root, title='Error!', message='You must add screenshots before generating nfo')
+        messagebox.showerror(parent=root, title='Error!', message='Missing or incorrectly formatted screenshots\n\n'
+                                                                  'Screen shots need to be in multiples of 2')
         return
 
-    ##
+    # nfo formatter
+    def run_nfo_formatter():
+        nfo_b64 = """
+           W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0NCg0KU291cmNlICAgICAgICAgICAg
+           ICAgICAgOiB7Ymx1cmF5X3NvdXJjZX0gKFRoYW5rcyEpDQpDaGFwdGVycyAgICAgICAgICAgICAg
+           ICA6IHtjaGFwdGVyX3R5cGV9DQpGaWxlIFNpemUgICAgICAgICAgICAgICA6IHtlbmNvZGVfZmls
+           ZV9zaXplfQ0KRHVyYXRpb24gICAgICAgICAgICAgICAgOiB7ZW5jb2RlX2ZpbGVfZHVyYXRpb259
+           DQpWaWRlbyAgICAgICAgICAgICAgICAgICA6IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30g
+           VmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWxlfQ0K
+           UmVzb2x1dGlvbiAgICAgICAgICAgICAgOiB7dl93aWR0aH0geCB7dl9oZWlnaHR9ICh7dl9hc3Bl
+           Y3RfcmF0aW99KQ0KQXVkaW8gICAgICAgICAgICAgICAgICAgOiB7YV9sbmd9IC8ge2FfY29tbWVy
+           Y2lhbH0gQXVkaW8gLyB7YV9jaG5sX3N9IC8ge2FfZnJlcX0gLyB7YV9iaXRyYXRlfSBrYnBzDQpF
+           bmNvZGVyICAgICAgICAgICAgICAgICA6IFtjb2xvcj0jZjVjNzBhXXtlbmNvZGVkX2J5fVsvY29s
+           b3JdDQoNCltjb2xvcj0jZjVjNzBhXVJFTEVBU0UgTk9URVNbL2NvbG9yXQ0KDQp7bmZvX3JlbGVh
+           c2Vfbm90ZXN9DQoNCltjb2xvcj0jZjVjNzBhXVNDUkVFTlNIT1RTWy9jb2xvcl0NCltjZW50ZXJd
+           DQpbY29sb3I9I2Y1YzcwYV1TT1VSQ0VbL2NvbG9yXTw8PDw8PDw8PDw8PDw8PDw8LS0tLS0tLS0t
+           LS0tLS0tLS0tLVtjb2xvcj0jZjVjNzBhXVZTWy9jb2xvcl0tLS0tLS0tLS0tLS0tLS0tLS0tPj4+
+           Pj4+Pj4+Pj4+Pj4+Pj5bY29sb3I9I2Y1YzcwYV1FTkNPREVbL2NvbG9yXQ0Ke25mb19zY3JlZW5f
+           c2hvdHN9DQpbL2NlbnRlcl0NCltjb2xvcj0jZjVjNzBhXUdSRUVUWlsvY29sb3JdDQoNCkFsbCB0
+           aG9zZSB3aG8gc3VwcG9ydCBvdXIgZ3JvdXAsIG91ciBlbmNvZGVycywgYW5kIG91ciBjb21tdW5p
+           dHkuIA0KDQpbY29sb3I9I2Y1YzcwYV1HUk9VUCBOT1RFU1svY29sb3JdDQoNCkVuam95IQ0KDQpX
+           ZSBhcmUgY3VycmVudGx5IGxvb2tpbmcgZm9yIG5vdGhpbmcgaW4gcGFydGljdWxhci4gSWYgeW91
+           IGZlZWwgeW91IGhhdmUgc29tZXRoaW5nIHRvIG9mZmVyLCBjb250YWN0IHVzIQ0KDQpbY2VudGVy
+           XVtpbWddaHR0cHM6Ly9iZXlvbmRoZC5jby9pbWFnZXMvMjAyMS8wMy8zMC82MmJjYThkNTg3Yjcx
+           NzMxMjEwMDg4ODdlYmUwNWE0Mi5wbmdbL2ltZ11bL2NlbnRlcl0NCg0K
+           """
+
+        decoded_nfo = base64.b64decode(nfo_b64).decode("ascii")
+
+        # parse encoded file
+        media_info_encode = MediaInfo.parse(pathlib.Path(encode_file_path.get()))
+        encode_general_track = media_info_encode.general_tracks[0]
+        encode_chapter = media_info_encode.menu_tracks[0].to_data()
+        encode_video_track = media_info_encode.video_tracks[0]
+        encode_audio_track = media_info_encode.audio_tracks[0]
+
+        # bluray source
+        bluray_source = pathlib.Path(source_file_path.get()).stem
+
+        # chapter information
+        chapter_type = ''
+        try:
+            chapters_start_numbered = re.search(r"chapter\s*(\d+)", str(list(encode_chapter.values())),
+                                                re.IGNORECASE).group(1)
+            chapters_end_numbered = re.search(r"chapter\s*(\d+)", str(list(reversed(encode_chapter.values()))),
+                                              re.IGNORECASE).group(1)
+            chapter_type = f'Numbered ({chapters_start_numbered.lstrip("0")}-{chapters_end_numbered.lstrip("0")})'
+        except AttributeError:
+            chapter_type = 'Named'
+
+        # file size
+        encode_file_size = encode_general_track.other_file_size[0]
+
+        # duration
+        encode_file_duration = encode_video_track.other_duration[0]
+
+        # video container format
+        container_format = encode_general_track.commercial_name
+
+        # video codec
+        v_codec = encode_video_track.commercial_name
+
+        # video bitrate
+        v_bitrate = round((float(encode_video_track.stream_size) / 1000) /
+                          ((float(encode_video_track.duration) / 60000) * 0.0075) / 1000)
+
+        # video fps
+        v_fps = f'{encode_video_track.frame_rate} fps'
+
+        # video format profile
+        v_format_profile = ''
+        if encode_video_track.format_profile == 'High@L4.1':
+            v_format_profile = 'High Profile 4.1'
+        elif encode_video_track.format_profile == 'Main 10@L5.1@Main':
+            hdr_type = str(encode_video_track.hdr_format_compatibility)
+            if 'HDR10+' in hdr_type:
+                hdr_string = ' / HDR10+'
+            elif 'HDR10' in hdr_type:
+                hdr_string = ' / HDR10'
+            else:
+                hdr_string = ''
+            v_format_profile = f'Main 10 @ Level 5.1 @ Main / 4:2:0{hdr_string}'
+
+        # video width
+        v_width = encode_video_track.width
+
+        # video height
+        v_height = encode_video_track.height
+
+        # video aspect ratio
+        v_aspect_ratio = encode_video_track.other_display_aspect_ratio[0]
+
+        # audio language
+        a_lng = ''
+        check_audio_language = encode_audio_track.other_language
+        if check_audio_language:
+            a_lng = encode_audio_track.other_language[0]
+        if not check_audio_language:
+            a_lng = 'English'
+
+        # audio commercial name
+        a_commercial = encode_audio_track.commercial_name
+
+        # audio channels
+        a_chnl_s = ''
+        if encode_audio_track.channel_s == 1:
+            a_chnl_s = '1.0'
+        elif encode_audio_track.channel_s == 2:
+            a_chnl_s = '2.0'
+        elif encode_audio_track.channel_s == 6:
+            a_chnl_s = '5.1'
+        else:
+            a_chnl_s = encode_audio_track.channel_s
+
+        # audio frequency
+        a_freq = encode_audio_track.other_sampling_rate[0]
+
+        # audio bitrate
+        a_bitrate = str(encode_audio_track.other_bit_rate[0]).replace('kb/s', '').strip()
+
+        # encoder name
+        encoded_by = ''
+        encoder_sig = encoded_by_entry_box.get().strip()
+        if encoder_sig == '':
+            encoded_by = 'Anonymous'
+        elif encoder_sig != '':
+            encoded_by = encoded_by_entry_box.get().strip()
+
+        # release notes
+        nfo_release_notes = release_notes_scrolled.get("1.0", END).strip()
+
+        # screen shots
+        nfo_screen_shots = parse_screenshots
+
+        formatted_nfo = decoded_nfo.format(bluray_source=bluray_source, chapter_type=chapter_type,
+                                           encode_file_size=encode_file_size, encode_file_duration=encode_file_duration,
+                                           container_format=container_format, v_codec=v_codec, v_bitrate=v_bitrate,
+                                           v_fps=v_fps, v_format_profile=v_format_profile, v_width=v_width,
+                                           v_height=v_height, v_aspect_ratio=v_aspect_ratio, a_lng=a_lng,
+                                           a_commercial=a_commercial, a_chnl_s=a_chnl_s, a_freq=a_freq,
+                                           a_bitrate=a_bitrate, encoded_by=encoded_by,
+                                           nfo_release_notes=nfo_release_notes, nfo_screen_shots=nfo_screen_shots)
+        return formatted_nfo
+
+    try:  # if window is already opened
+        if nfo_pad.winfo_exists():
+            nfo = run_nfo_formatter()
+            nfo_pad_text_box.delete("1.0", END)
+            nfo_pad_text_box.insert(END, nfo)
+            return
+    except NameError:  # if window is not opened
+        pass
+
     nfo_pad = Toplevel()
     nfo_pad.title('BHDStudioUploadTool - NFO Pad')
     nfo_pad_window_height = 600
@@ -665,7 +898,6 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
                 position = nfo_pad_text_box.index(INSERT)
                 nfo_pad_text_box.insert(position, selected)
 
-
     # Change bg color
     def bg_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
@@ -687,11 +919,6 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     def clear_all():
         nfo_pad_text_box.delete(1.0, END)
 
-
-    # # Create a toolbar frame
-    # toolbar_frame = Frame(nfo_pad)
-    # toolbar_frame.grid(column=0, row=0, sticky=N + S + E + W)
-
     # Create Main Frame
     my_frame = Frame(nfo_pad)
     my_frame.grid(column=0, row=0, sticky=N + S + E + W)
@@ -704,7 +931,7 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
 
     # Create Text Box
     nfo_pad_text_box = Text(my_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
-                   xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
+                            xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
     nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
 
     # add scrollbars to the textbox
@@ -746,12 +973,6 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     color_menu.add_command(label="Text Color", command=all_text_color)
     color_menu.add_command(label="Background", command=bg_color)
 
-    # # Add Options Menu
-    # options_menu = Menu(my_menu, tearoff=False)
-    # my_menu.add_cascade(label="Options", menu=options_menu)
-    # options_menu.add_command(label="Night Mode On", command=night_on)
-    # options_menu.add_command(label="Night Mode Off", command=night_off)
-
     # Add Status Bar To Bottom Of App
     status_bar = Label(nfo_pad, text='Ready', anchor=E)
     status_bar.grid(column=0, row=1, sticky=E + W)
@@ -764,73 +985,15 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     nfo_pad.bind('<Control-A>', select_all)
     nfo_pad.bind('<Control-a>', select_all)
 
+    nfo = run_nfo_formatter()
 
+    nfo_pad_text_box.delete("1.0", END)
+    nfo_pad_text_box.insert(END, nfo)
 
-    ##
-
-    ###
-    # nfo_b64 = """
-    # W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0NCg0KU291cmNlICAgICAgICAgICAg
-    # ICAgICAgOiB7Ymx1cmF5X3NvdXJjZX0gKFRoYW5rcyEpDQpDaGFwdGVycyAgICAgICAgICAgICAg
-    # ICA6IHtjaGFwdGVyX3R5cGV9DQpGaWxlIFNpemUgICAgICAgICAgICAgICA6IHtlbmNvZGVfZmls
-    # ZV9zaXplfQ0KRHVyYXRpb24gICAgICAgICAgICAgICAgOiB7ZW5jb2RlX2ZpbGVfZHVyYXRpb259
-    # DQpWaWRlbyAgICAgICAgICAgICAgICAgICA6IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30g
-    # VmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWxlfQ0K
-    # UmVzb2x1dGlvbiAgICAgICAgICAgICAgOiB7dl93aWR0aH0geCB7dl9oZWlnaHR9ICh7dl9hc3Bl
-    # Y3RfcmF0aW99KQ0KQXVkaW8gICAgICAgICAgICAgICAgICAgOiB7YV9sbmd9IC8ge2FfY29tbWVy
-    # Y2lhbH0gQXVkaW8gLyB7YV9jaG5sX3N9IC8ge2FfZnJlcX0gLyB7YV9iaXRyYXRlfSBrYnBzDQpF
-    # bmNvZGVyICAgICAgICAgICAgICAgICA6IFtjb2xvcj0jZjVjNzBhXXtlbmNvZGVkX2J5fVsvY29s
-    # b3JdDQoNCltjb2xvcj0jZjVjNzBhXVJFTEVBU0UgTk9URVNbL2NvbG9yXQ0KDQp7bmZvX3JlbGVh
-    # c2Vfbm90ZXN9DQoNCltjb2xvcj0jZjVjNzBhXVNDUkVFTlNIT1RTWy9jb2xvcl0NCltjZW50ZXJd
-    # DQpbY29sb3I9I2Y1YzcwYV1TT1VSQ0VbL2NvbG9yXTw8PDw8PDw8PDw8PDw8PDw8LS0tLS0tLS0t
-    # LS0tLS0tLS0tLVtjb2xvcj0jZjVjNzBhXVZTWy9jb2xvcl0tLS0tLS0tLS0tLS0tLS0tLS0tPj4+
-    # Pj4+Pj4+Pj4+Pj4+Pj5bY29sb3I9I2Y1YzcwYV1FTkNPREVbL2NvbG9yXQ0Ke25mb19zY3JlZW5f
-    # c2hvdHN9DQpbL2NlbnRlcl0NCltjb2xvcj0jZjVjNzBhXUdSRUVUWlsvY29sb3JdDQoNCkFsbCB0
-    # aG9zZSB3aG8gc3VwcG9ydCBvdXIgZ3JvdXAsIG91ciBlbmNvZGVycywgYW5kIG91ciBjb21tdW5p
-    # dHkuIA0KDQpbY29sb3I9I2Y1YzcwYV1HUk9VUCBOT1RFU1svY29sb3JdDQoNCkVuam95IQ0KDQpX
-    # ZSBhcmUgY3VycmVudGx5IGxvb2tpbmcgZm9yIG5vdGhpbmcgaW4gcGFydGljdWxhci4gSWYgeW91
-    # IGZlZWwgeW91IGhhdmUgc29tZXRoaW5nIHRvIG9mZmVyLCBjb250YWN0IHVzIQ0KDQpbY2VudGVy
-    # XVtpbWddaHR0cHM6Ly9iZXlvbmRoZC5jby9pbWFnZXMvMjAyMS8wMy8zMC82MmJjYThkNTg3Yjcx
-    # NzMxMjEwMDg4ODdlYmUwNWE0Mi5wbmdbL2ltZ11bL2NlbnRlcl0NCg0K
-    # """
-    #
-    # nfo = base64.b64decode(nfo_b64).decode("ascii")
-    # nfo = nfo.format(src=pathlib.Path(source_file_path.get()).stem, scr=parse_screenshots)
-
-    # nfo = nfo.format(src=source, chpt=chp, fs=size, dur=duration, br=bps,
-    #                  fr=frame_r, w=width, h=height, ar=aspect_r, a_lan=lan, a_comm=comm,
-    #                  a_chan=chan, samp_f=freq, a_br=a_br, nts=notes, scr=screens)
-
-    # collect nfo information from encode file
-    # src = pathlib.Path(source_file_path.get()).stem
-    # chpt = 'chapter'
-    # fs = 'file_size'
-    # dur = 'duration'
-    # br = 'bitrate'
-    # fr = 'fps'
-    # w = 'width'
-    # h = 'height'
-    # a_lan = 'language'
-    # a_comm = 'dolby digital'
-    # a_chan = 'audio channel'
-    # samp_f = 'freq'
-    # a_br = 'audio bitrate'
-    # nts = 'notes'
-    # scr = parse_screenshots
-    #
-
-    # nfo = nfo.format(src=pathlib.Path(source_file_path.get()).stem, chpt='chapter', fs='file_size', dur='duration', br='bitrate',
-    #                  fr='frame rate', w='blag', h='blah', ar='eat', a_lan='lang', a_comm='eat it ho',
-    #                  a_chan='audio channel', samp_f='freq', a_br='poop', nts='nope', scr=parse_screenshots)
-
-    # nfo_pad_text_box.insert(END, nfo)
-    ###
-
-# open_nfo_viewer()
 
 generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activebackground='grey', width=1)
-generate_nfo_button.grid(row=4, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+generate_nfo_button.grid(row=5, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
 def generate_button_checker():
@@ -1099,7 +1262,7 @@ def torrent_function_window():
 open_torrent_window_button = HoverButton(root, text="Create Torrent", command=torrent_function_window,
                                          foreground="white", background="#23272A", borderwidth="3",
                                          activebackground='grey', width=1, state=DISABLED)
-open_torrent_window_button.grid(row=4, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+open_torrent_window_button.grid(row=5, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
 # Hide/Open all top level window function -----------------------------------------------------------------------------
