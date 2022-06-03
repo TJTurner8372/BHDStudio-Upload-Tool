@@ -3,8 +3,10 @@ import math
 import os
 import pathlib
 import re
+import sys
 import threading
 import tkinter.scrolledtext as scrolledtextwidget
+import webbrowser
 from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
@@ -12,10 +14,17 @@ from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N,
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
     Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, VERTICAL
 
+import pyperclip
 import torf
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
 from torf import Torrent
+
+# Set variable to True if you want errors to pop up in window + log to file + console, False for console only
+enable_error_logger = True  # Change this to false if you don't want to log errors to file + pop up window
+
+# Set main window title variable
+main_root_title = "BHDStudio Upload Tool v1.0"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -51,7 +60,7 @@ def root_exit_function():
 
 
 root = TkinterDnD.Tk()
-root.title('BHDStudio Upload Tool')
+root.title(main_root_title)
 # root.iconphoto(True, PhotoImage(data=gui_icon))
 root.configure(background="#363636")
 # if config['save_window_locations']['ffmpeg audio encoder position'] == '' or \
@@ -68,7 +77,89 @@ root.geometry(f"{root_window_width}x{root_window_height}+{x_coordinate}+{y_coord
 #     root.geometry(config['save_window_locations']['ffmpeg audio encoder position'])\
 
 root.protocol('WM_DELETE_WINDOW', root_exit_function)
+
+
 # root_pid = os.getpid()  # Get root process ID
+
+# Open GitHub tracker for program -------------------------------------------------------------------------------------
+def open_github_error_tracker():
+    webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool/issues')
+
+
+# ------------------------------------------------------------------------------------- Open github tracker for program
+
+# Logger class, handles all traceback/stdout errors for program, writes to file and to window -------------------------
+class Logger(object):  # Logger class, this class puts stderr errors into a window and file at the same time
+    def __init__(self):
+        self.terminal = sys.stderr  # Redirects sys.stderr
+
+    def write(self, message):
+        global info_scrolled
+        self.terminal.write(message)
+        try:
+            info_scrolled.config(state=NORMAL)
+            if str(message).rstrip():
+                info_scrolled.insert(END, str(message).strip())
+            if not str(message).rstrip():
+                info_scrolled.insert(END, f'{str(message)}\n')
+            info_scrolled.see(END)
+            info_scrolled.config(state=DISABLED)
+        except (NameError, TclError):
+            error_window = Toplevel()
+            error_window.title('Traceback Error(s)')
+            error_window.configure(background="#434547")
+            window_height = 400
+            window_width = 600
+            log_screen_width = error_window.winfo_screenwidth()
+            log_screen_height = error_window.winfo_screenheight()
+            error_window.geometry(f'{window_width}x{window_height}+{root.geometry().split("+")[1]}+'
+                                  f'{root.geometry().split("+")[2]}')
+            for e_w in range(4):
+                error_window.grid_columnconfigure(e_w, weight=1)
+            error_window.grid_rowconfigure(0, weight=1)
+            info_scrolled = scrolledtextwidget.ScrolledText(error_window, tabs=10, spacing2=3, spacing1=2,
+                                                            spacing3=3)
+            info_scrolled.grid(row=0, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S)
+            info_scrolled.configure(bg='black', fg='#CFD2D1', bd=8)
+            info_scrolled.insert(END, message)
+            info_scrolled.see(END)
+            info_scrolled.config(state=DISABLED)
+
+            report_error = HoverButton(error_window, text='Report Error', command=open_github_error_tracker,
+                                       foreground='white', background='#23272A', borderwidth='3',
+                                       activebackground='grey')
+            report_error.grid(row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N)
+
+            force_close_root = HoverButton(error_window, text='Force Close Program', command=root.destroy,
+                                           foreground='white', background='#23272A', borderwidth='3',
+                                           activebackground='grey')
+            force_close_root.grid(row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N)
+
+            def right_click_menu_func(x_y_pos):  # Function for mouse button 3 (right click) to pop up menu
+                right_click_menu.tk_popup(x_y_pos.x_root, x_y_pos.y_root)  # This gets the position of cursor
+
+            right_click_menu = Menu(info_scrolled, tearoff=False)  # This is the right click menu
+            right_click_menu.add_command(label='Copy to clipboard', command=lambda: pyperclip.copy(
+                info_scrolled.get(1.0, END).strip()))
+            info_scrolled.bind('<Button-3>', right_click_menu_func)  # Uses mouse button 3 to open the menu
+            Hovertip(info_scrolled, 'Right click to copy', hover_delay=1200)  # Hover tip tool-tip
+            error_window.grab_set()  # Brings attention to this window until it's closed
+            root.bell()  # Error bell sound
+
+    def flush(self):
+        pass
+
+    def __exit__(self):  # Class exit function
+        sys.stderr = sys.__stderr__  # Redirect stderr back to original stderr
+        # self.error_log_file.close()  # Close file
+
+
+def start_logger():
+    if enable_error_logger:  # If True
+        sys.stderr = Logger()  # Start the Logger() class to write to console and file
+
+
+threading.Thread(target=start_logger).start()
 
 # Block of code to fix DPI awareness issues on Windows 7 or higher
 try:
@@ -1287,6 +1378,5 @@ def advanced_root_deiconify():
 
 
 # ------------------------------------------------------ function to check state of root, then deiconify it accordingly
-
 
 root.mainloop()
