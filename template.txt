@@ -1,0 +1,32 @@
+[color=#f5c70a]RELEASE INFO[/color]
+
+Source                  : {bluray_source} (Thanks!)
+Chapters                : {chapter_type}
+File Size               : {encode_file_size}
+Duration                : {encode_file_duration}
+Video                   : {container_format} {v_codec} Video / {v_bitrate} kbps / {v_fps} / {v_format_profile}
+Resolution              : {v_width} x {v_height} ({v_aspect_ratio})
+Audio                   : {a_lng} / {a_commercial} Audio / {a_chnl_s} / {a_freq} / {a_bitrate} kbps
+Encoder                 : [color=#f5c70a]{encoded_by}[/color]
+
+[color=#f5c70a]RELEASE NOTES[/color]
+
+{nfo_release_notes}
+
+[color=#f5c70a]SCREENSHOTS[/color]
+[center]
+[color=#f5c70a]SOURCE[/color]<<<<<<<<<<<<<<<<<-------------------[color=#f5c70a]VS[/color]------------------->>>>>>>>>>>>>>>>>[color=#f5c70a]ENCODE[/color]
+{nfo_screen_shots}
+[/center]
+[color=#f5c70a]GREETZ[/color]
+
+All those who support our group, our encoders, and our community. 
+
+[color=#f5c70a]GROUP NOTES[/color]
+
+Enjoy!
+
+We are currently looking for nothing in particular. If you feel you have something to offer, contact us!
+
+[center][img]https://beyondhd.co/images/2021/03/30/62bca8d587b7173121008887ebe05a42.png[/img][/center]
+
