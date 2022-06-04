@@ -12,13 +12,16 @@ from ctypes import windll
 from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
-    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, VERTICAL
+    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage
 
 import pyperclip
 import torf
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
 from torf import Torrent
+
+from Packages.About import openaboutwindow
+from Packages.icon import base_64_icon
 
 # Set variable to True if you want errors to pop up in window + log to file + console, False for console only
 enable_error_logger = True  # Change this to false if you don't want to log errors to file + pop up window
@@ -33,6 +36,8 @@ pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
 config_file = 'Runtime/config.ini'  # Creates (if doesn't exist) and defines location of config.ini
 config = ConfigParser()
 config.read(config_file)
+
+# general settings
 if not config.has_section('torrent_settings'):
     config.add_section('torrent_settings')
 if not config.has_option('torrent_settings', 'tracker_url'):
@@ -41,52 +46,78 @@ if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
 if not config.has_option('encoder_name', 'name'):
     config.set('encoder_name', 'name', '')
+
+# window location settings
+if not config.has_section('save_window_locations'):
+    config.add_section('save_window_locations')
+if not config.has_option('save_window_locations', 'bhdstudiotool'):
+    config.set('save_window_locations', 'bhdstudiotool', '')
+if not config.has_option('save_window_locations', 'torrent_window'):
+    config.set('save_window_locations', 'torrent_window', '')
+if not config.has_option('save_window_locations', 'nfo_pad'):
+    config.set('save_window_locations', 'nfo_pad', '')
+if not config.has_option('save_window_locations', 'about_window'):
+    config.set('save_window_locations', 'about_window', '')
+
 with open(config_file, 'w') as configfile:
     config.write(configfile)
 
 
 # root
 def root_exit_function():
-    root_exit_parser = ConfigParser()
-    root_exit_parser.read(config_file)
-    if root_exit_parser['encoder_name']['name'] != encoded_by_entry_box.get().strip():
-        root_exit_parser.set('encoder_name', 'name', encoded_by_entry_box.get().strip())
-        with open(config_file, 'w') as configfile:
-            root_exit_parser.write(configfile)
+    def save_config_information_root():
+        # root exit parser
+        root_exit_parser = ConfigParser()
+        root_exit_parser.read(config_file)
 
-    # gotta do more stuff soon!
+        # save encoder name if different
+        if root_exit_parser['encoder_name']['name'] != encoded_by_entry_box.get().strip():
+            root_exit_parser.set('encoder_name', 'name', encoded_by_entry_box.get().strip())
+            with open(config_file, 'w') as root_exit_config_file:
+                root_exit_parser.write(root_exit_config_file)
 
-    root.destroy()
+        # save main gui window position/geometry
+        if root.wm_state() == 'Normal':
+            if root_exit_parser['save_window_locations']['bhdstudiotool'] != root.geometry():
+                root_exit_parser.set('save_window_locations', 'bhdstudiotool', root.geometry())
+                with open(config_file, 'w') as root_exit_config_file:
+                    root_exit_parser.write(root_exit_config_file)
+
+    # check for opened windows before closing
+    open_tops = False  # Set variable for open toplevel windows
+    for widget in root.winfo_children():  # Loop through roots children
+        if isinstance(widget, Toplevel):  # If any of roots children is a TopLevel window
+            open_tops = True  # Set variable for open tops to True
+    if open_tops:  # If open_tops is True
+        confirm_exit = messagebox.askyesno(title='Prompt', message="Are you sure you want to exit the program?\n\n"
+                                                                   "Warning: This will close all windows", parent=root)
+        if confirm_exit:  # If user wants to exit, kill app and all of it's children
+            save_config_information_root()
+            root.destroy()  # root destroy
+    if not open_tops:  # If no top levels are found, exit the program without prompt
+        save_config_information_root()
+        root.destroy()  # root destroy
 
 
 root = TkinterDnD.Tk()
 root.title(main_root_title)
-# root.iconphoto(True, PhotoImage(data=gui_icon))
+root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
-# if config['save_window_locations']['ffmpeg audio encoder position'] == '' or \
-#         config['save_window_locations']['ffmpeg audio encoder'] == 'no':
-root_window_height = 700
-root_window_width = 720
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-x_coordinate = int((screen_width / 2) - (root_window_width / 2))
-y_coordinate = int((screen_height / 2) - (root_window_height / 2))
-root.geometry(f"{root_window_width}x{root_window_height}+{x_coordinate}+{y_coordinate}")
-# elif config['save_window_locations']['ffmpeg audio encoder position'] != '' and \
-#         config['save_window_locations']['ffmpeg audio encoder'] == 'yes':
-#     root.geometry(config['save_window_locations']['ffmpeg audio encoder position'])\
-
+if config['save_window_locations']['bhdstudiotool'] == '':
+    root_window_height = 700
+    root_window_width = 720
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x_coordinate = int((screen_width / 2) - (root_window_width / 2))
+    y_coordinate = int((screen_height / 2) - (root_window_height / 2))
+    root.geometry(f"{root_window_width}x{root_window_height}+{x_coordinate}+{y_coordinate}")
+elif config['save_window_locations']['bhdstudiotool'] != '':
+    root.geometry(config['save_window_locations']['bhdstudiotool'])
 root.protocol('WM_DELETE_WINDOW', root_exit_function)
 
 
 # root_pid = os.getpid()  # Get root process ID
 
-# Open GitHub tracker for program -------------------------------------------------------------------------------------
-def open_github_error_tracker():
-    webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool/issues')
-
-
-# ------------------------------------------------------------------------------------- Open github tracker for program
 
 # Logger class, handles all traceback/stdout errors for program, writes to file and to window -------------------------
 class Logger(object):  # Logger class, this class puts stderr errors into a window and file at the same time
@@ -110,8 +141,6 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
             error_window.configure(background="#434547")
             window_height = 400
             window_width = 600
-            log_screen_width = error_window.winfo_screenwidth()
-            log_screen_height = error_window.winfo_screenheight()
             error_window.geometry(f'{window_width}x{window_height}+{root.geometry().split("+")[1]}+'
                                   f'{root.geometry().split("+")[2]}')
             for e_w in range(4):
@@ -125,7 +154,10 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
             info_scrolled.see(END)
             info_scrolled.config(state=DISABLED)
 
-            report_error = HoverButton(error_window, text='Report Error', command=open_github_error_tracker,
+            report_error = HoverButton(error_window, text='Report Error',
+                                       command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-'
+                                                                       'Tool/issues/new?assignees=jlw4049&labels=bug'
+                                                                       '&template=bug_report.md&title='),
                                        foreground='white', background='#23272A', borderwidth='3',
                                        activebackground='grey')
             report_error.grid(row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N)
@@ -250,7 +282,7 @@ def source_input_function(*args):
 
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
-    source_file_path.set(pathlib.Path(*args))
+    source_file_path.set(str(pathlib.Path(*args)))
 
     source_entry_box.config(state=NORMAL)
     source_entry_box.delete(0, END)
@@ -310,12 +342,12 @@ def encode_input_function(*args):
     enable_clear_all_checkbuttons()
 
     # enable torrent button
-    torrent_file_path.set(pathlib.Path(*args).with_suffix('.torrent'))
+    torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
     open_torrent_window_button.config(state=NORMAL)
 
     encode_label.config(text=update_source_label)
     encode_hdr_label.config(text=hdr_string)
-    encode_file_path.set(pathlib.Path(*args))
+    encode_file_path.set(str(pathlib.Path(*args)))
     encode_entry_box.config(state=NORMAL)
     encode_entry_box.delete(0, END)
     encode_entry_box.insert(END, pathlib.Path(*args).name)
@@ -406,7 +438,7 @@ encode_frame.dnd_bind('<<Drop>>', drop_function)
 
 
 def manual_encode_input():
-    encode_file_input = filedialog.askopenfilename(parent=root, title='Select Source', initialdir='/',
+    encode_file_input = filedialog.askopenfilename(parent=root, title='Select Encode', initialdir='/',
                                                    filetypes=[("Media Files", "*.*")])
     if encode_file_input:
         encode_input_function(encode_file_input)
@@ -687,8 +719,13 @@ def parse_screen_shots():
 
 
 # generate nfo
-def open_nfo_viewer():  # !!WORK IN PROGRESS!!
+def open_nfo_viewer():
     global nfo_pad, nfo_pad_text_box, nfo
+
+    # nfo pad parser
+    nfo_pad_parser = ConfigParser()
+    nfo_pad_parser.read(config_file)
+
     if not pathlib.Path(source_file_path.get()).is_file():
         messagebox.showerror(parent=root, title='Error!', message='Source file is missing!')
         return
@@ -741,7 +778,6 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
         bluray_source = pathlib.Path(source_file_path.get()).stem
 
         # chapter information
-        chapter_type = ''
         try:
             chapters_start_numbered = re.search(r"chapter\s*(\d+)", str(list(encode_chapter.values())),
                                                 re.IGNORECASE).group(1)
@@ -805,7 +841,6 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
         a_commercial = encode_audio_track.commercial_name
 
         # audio channels
-        a_chnl_s = ''
         if encode_audio_track.channel_s == 1:
             a_chnl_s = '1.0'
         elif encode_audio_track.channel_s == 2:
@@ -854,15 +889,34 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     except NameError:  # if window is not opened
         pass
 
+    def nfo_pad_exit_function():
+        # nfo pad exit parser
+        nfo_pad_exit_parser = ConfigParser()
+        nfo_pad_exit_parser.read(config_file)
+
+        # save nfo pad position if different
+        if nfo_pad.wm_state() == 'Normal':
+            if nfo_pad_exit_parser['save_window_locations']['nfo_pad'] != nfo_pad.geometry():
+                nfo_pad_exit_parser.set('save_window_locations', 'nfo_pad', nfo_pad.geometry())
+                with open(config_file, 'w') as nfo_configfile:
+                    nfo_pad_exit_parser.write(nfo_configfile)
+
+        nfo_pad.destroy()
+
     nfo_pad = Toplevel()
     nfo_pad.title('BHDStudioUploadTool - NFO Pad')
-    nfo_pad_window_height = 600
-    nfo_pad_window_width = 1000
-    nfo_screen_width = nfo_pad.winfo_screenwidth()
-    nfo_screen_height = nfo_pad.winfo_screenheight()
-    nfo_x_coordinate = int((nfo_screen_width / 2) - (nfo_pad_window_width / 2))
-    nfo_y_coordinate = int((nfo_screen_height / 2) - (nfo_pad_window_height / 2))
-    nfo_pad.geometry(f"{nfo_pad_window_width}x{nfo_pad_window_height}+{nfo_x_coordinate}+{nfo_y_coordinate}")
+    if nfo_pad_parser['save_window_locations']['nfo_pad'] == '':
+        nfo_pad_window_height = 600
+        nfo_pad_window_width = 1000
+        nfo_screen_width = nfo_pad.winfo_screenwidth()
+        nfo_screen_height = nfo_pad.winfo_screenheight()
+        nfo_x_coordinate = int((nfo_screen_width / 2) - (nfo_pad_window_width / 2))
+        nfo_y_coordinate = int((nfo_screen_height / 2) - (nfo_pad_window_height / 2))
+        nfo_pad.geometry(f"{nfo_pad_window_width}x{nfo_pad_window_height}+{nfo_x_coordinate}+{nfo_y_coordinate}")
+    elif nfo_pad_parser['save_window_locations']['nfo_pad'] != '':
+        nfo_pad.geometry(nfo_pad_parser['save_window_locations']['nfo_pad'])
+    nfo_pad.protocol('WM_DELETE_WINDOW', nfo_pad_exit_function)
+
     nfo_pad.grid_columnconfigure(0, weight=1)
     nfo_pad.grid_rowconfigure(0, weight=1000)
     nfo_pad.grid_rowconfigure(1, weight=1)
@@ -984,7 +1038,7 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
         else:
             if selected:
                 position = nfo_pad_text_box.index(INSERT)
-                nfo_pad_text_box.insert(position, selected)
+                nfo_pad_text_box.insert(position, str(selected))
 
     # Change bg color
     def bg_color():
@@ -1033,14 +1087,14 @@ def open_nfo_viewer():  # !!WORK IN PROGRESS!!
     nfo_pad.config(menu=my_menu)
 
     # Add File Menu
-    file_menu = Menu(my_menu, tearoff=False)
-    my_menu.add_cascade(label="File", menu=file_menu)
-    file_menu.add_command(label="New", command=new_file)
-    file_menu.add_command(label="Open", command=open_file)
-    file_menu.add_command(label="Save", command=save_file)
-    file_menu.add_command(label="Save As...", command=save_as_file)
-    file_menu.add_separator()
-    file_menu.add_command(label="Exit", command=nfo_pad.quit)
+    nfo_menu = Menu(my_menu, tearoff=False)
+    my_menu.add_cascade(label="File", menu=nfo_menu)
+    nfo_menu.add_command(label="New", command=new_file)
+    nfo_menu.add_command(label="Open", command=open_file)
+    nfo_menu.add_command(label="Save", command=save_file)
+    nfo_menu.add_command(label="Save As...", command=save_as_file)
+    nfo_menu.add_separator()
+    nfo_menu.add_command(label="Exit", command=nfo_pad.quit)
 
     # Add Edit Menu
     edit_menu = Menu(my_menu, tearoff=False)
@@ -1097,14 +1151,29 @@ generate_button_checker()
 
 # torrent creation ----------------------------------------------------------------------------------------------------
 def torrent_function_window():
+    # main torrent parser
+    torrent_config = ConfigParser()
+    torrent_config.read(config_file)
+
     # torrent window exit function
     def torrent_window_exit_function():
+        # exit torrent parser
+        torrent_parser = ConfigParser()
+        torrent_parser.read(config_file)
+
+        # save announce url if it's correct
         if '/announce' in torrent_tracker_url_entry_box.get().strip():
-            torrent_parser = ConfigParser()
-            torrent_parser.read(config_file)
             torrent_parser.set('torrent_settings', 'tracker_url', torrent_tracker_url_entry_box.get().strip())
-            with open(config_file, 'w') as configfile:
-                torrent_parser.write(configfile)
+            with open(config_file, 'w') as torrent_configfile:
+                torrent_parser.write(torrent_configfile)
+
+        # save torrent window position/geometry
+        if torrent_window.wm_state() == 'Normal':
+            if torrent_parser['save_window_locations']['torrent_window'] != torrent_window.geometry():
+                torrent_parser.set('save_window_locations', 'torrent_window', torrent_window.geometry())
+                with open(config_file, 'w') as torrent_configfile:
+                    torrent_parser.write(torrent_configfile)
+
         torrent_window.destroy()  # destroy torrent window
         open_all_toplevels()  # open all top levels that was open
         advanced_root_deiconify()  # re-open root
@@ -1115,14 +1184,16 @@ def torrent_function_window():
     # create new toplevel window
     torrent_window = Toplevel()
     torrent_window.configure(background="#363636")  # Set color of torrent_window background
-    torrent_window.title('Torrent Creator')
-    window_height = 330  # win height
-    window_width = 520  # win width
-    # open near the center of root
-    torrent_window.geometry(f'{window_width}x{window_height}+'
-                            f'{str(int(root.geometry().split("+")[1]) + 100)}+'
-                            f'{str(int(root.geometry().split("+")[2]) + 210)}')
-    # torrent_window.resizable(0, 0)  # makes window not resizable
+    torrent_window.title('BHDStudio Torrent Creator')
+    if torrent_config['save_window_locations']['torrent_window'] == '':
+        window_height = 330  # win height
+        window_width = 520  # win width
+        # open near the center of root
+        torrent_window.geometry(f'{window_width}x{window_height}+'
+                                f'{str(int(root.geometry().split("+")[1]) + 100)}+'
+                                f'{str(int(root.geometry().split("+")[2]) + 210)}')
+    elif torrent_config['save_window_locations']['torrent_window'] != '':
+        torrent_window.geometry(torrent_config['save_window_locations']['torrent_window'])
     torrent_window.protocol('WM_DELETE_WINDOW', torrent_window_exit_function)
 
     # row and column configure
@@ -1180,7 +1251,7 @@ def torrent_function_window():
     torrent_piece_frame.grid_rowconfigure(1, weight=1)
 
     # calculate piece size for 'piece_size_info_label2'
-    def set_piece_size(*args):
+    def set_piece_size():
         # get size of file with os.stat()
         file = float(os.stat(pathlib.Path(encode_file_path.get())).st_size)
         # if torrent is auto use torf.Torrent() to generate piece size
@@ -1378,5 +1449,62 @@ def advanced_root_deiconify():
 
 
 # ------------------------------------------------------ function to check state of root, then deiconify it accordingly
+
+# reset gui -----------------------------------------------------------------------------------------------------------
+def reset_gui():
+    delete_source_entry()
+    delete_encode_entry()
+    screenshot_scrolledtext.delete("1.0", END)
+
+
+# ----------------------------------------------------------------------------------------------------------- reset gui
+
+# reset config --------------------------------------------------------------------------------------------------------
+def reset_config():
+    ask_reset_config = messagebox.askyesno(title='Prompt', message='Are you sure you want to reset the config file?\n'
+                                                                   'Note: This will remove all saved settings')
+    if ask_reset_config:
+        try:
+            pathlib.Path(config_file).unlink()
+            messagebox.showinfo(title='Prompt', message='Config is reset, please restart the program')
+        except FileNotFoundError:
+            messagebox.showerror(title='Error!', message='Config is already deleted, please restart the program')
+        root.destroy()
+
+
+# --------------------------------------------------------------------------------------------------------- reset config
+
+# menu Items and Sub-Bars ---------------------------------------------------------------------------------------------
+my_menu_bar = Menu(root, tearoff=0)
+root.config(menu=my_menu_bar)
+
+file_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
+my_menu_bar.add_cascade(label='File', menu=file_menu)
+
+file_menu.add_command(label='Open Source File   [CTRL + O]', command=manual_source_input)
+root.bind("<Control-s>", lambda event: manual_source_input())
+file_menu.add_command(label='Open Encode File   [CTRL + E]', command=manual_encode_input)
+root.bind("<Control-e>", lambda event: manual_encode_input())
+file_menu.add_separator()
+file_menu.add_command(label='Reset GUI              [CTRL + R]', command=reset_gui)
+root.bind("<Control-r>", lambda event: reset_gui())
+file_menu.add_command(label='Exit                        [ALT + F4]', command=root_exit_function)
+
+options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
+my_menu_bar.add_cascade(label='Options', menu=options_menu)
+options_menu.add_command(label='Reset Configuration File', command=reset_config)
+
+help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
+my_menu_bar.add_cascade(label="Help", menu=help_menu)
+help_menu.add_command(label="Documentation                 [F1]",  # Open GitHub wiki
+                      command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool/wiki'))
+root.bind("<F1>", lambda event: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool/wiki'))  # hotkey
+help_menu.add_command(label="Project Page",  # Open GitHub project page
+                      command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool'))
+help_menu.add_command(label="Report Error / Feature Request",  # Open GitHub tracker link
+                      command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool'
+                                                      '/issues/new/choose'))
+help_menu.add_separator()
+help_menu.add_command(label="Info", command=lambda: openaboutwindow(main_root_title))  # Opens about window
 
 root.mainloop()
