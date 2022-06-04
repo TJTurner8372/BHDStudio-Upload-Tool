@@ -23,10 +23,11 @@ def openaboutwindow(main_root_title):
     def about_exit_function():  # Exit function when hitting the 'X' button
         func_parser = ConfigParser()
         func_parser.read(config_file)
-        if func_parser['save_window_locations']['about_window'] != about_window.geometry():
-            func_parser.set('save_window_locations', 'about_window', about_window.geometry())
-            with open(config_file, 'w') as configfile:
-                func_parser.write(configfile)
+        if about_window.wm_state() == 'Normal':
+            if func_parser['save_window_locations']['about_window'] != about_window.geometry():
+                func_parser.set('save_window_locations', 'about_window', about_window.geometry())
+                with open(config_file, 'w') as configfile:
+                    func_parser.write(configfile)
 
         about_window.destroy()  # Close window
 
