@@ -723,29 +723,30 @@ def open_nfo_viewer():
     # nfo formatter
     def run_nfo_formatter():
         nfo_b64 = """
-           W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0NCg0KU291cmNlICAgICAgICAgICAg
-           ICAgICAgOiB7Ymx1cmF5X3NvdXJjZX0gKFRoYW5rcyEpDQpDaGFwdGVycyAgICAgICAgICAgICAg
-           ICA6IHtjaGFwdGVyX3R5cGV9DQpGaWxlIFNpemUgICAgICAgICAgICAgICA6IHtlbmNvZGVfZmls
-           ZV9zaXplfQ0KRHVyYXRpb24gICAgICAgICAgICAgICAgOiB7ZW5jb2RlX2ZpbGVfZHVyYXRpb259
-           DQpWaWRlbyAgICAgICAgICAgICAgICAgICA6IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30g
-           VmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWxlfQ0K
-           UmVzb2x1dGlvbiAgICAgICAgICAgICAgOiB7dl93aWR0aH0geCB7dl9oZWlnaHR9ICh7dl9hc3Bl
-           Y3RfcmF0aW99KQ0KQXVkaW8gICAgICAgICAgICAgICAgICAgOiB7YV9sbmd9IC8ge2FfY29tbWVy
-           Y2lhbH0gQXVkaW8gLyB7YV9jaG5sX3N9IC8ge2FfZnJlcX0gLyB7YV9iaXRyYXRlfSBrYnBzDQpF
-           bmNvZGVyICAgICAgICAgICAgICAgICA6IFtjb2xvcj0jZjVjNzBhXXtlbmNvZGVkX2J5fVsvY29s
-           b3JdDQoNCltjb2xvcj0jZjVjNzBhXVJFTEVBU0UgTk9URVNbL2NvbG9yXQ0KDQp7bmZvX3JlbGVh
-           c2Vfbm90ZXN9DQoNCltjb2xvcj0jZjVjNzBhXVNDUkVFTlNIT1RTWy9jb2xvcl0NCltjZW50ZXJd
-           DQpbY29sb3I9I2Y1YzcwYV1TT1VSQ0VbL2NvbG9yXTw8PDw8PDw8PDw8PDw8PDw8LS0tLS0tLS0t
-           LS0tLS0tLS0tLVtjb2xvcj0jZjVjNzBhXVZTWy9jb2xvcl0tLS0tLS0tLS0tLS0tLS0tLS0tPj4+
-           Pj4+Pj4+Pj4+Pj4+Pj5bY29sb3I9I2Y1YzcwYV1FTkNPREVbL2NvbG9yXQ0Ke25mb19zY3JlZW5f
-           c2hvdHN9DQpbL2NlbnRlcl0NCltjb2xvcj0jZjVjNzBhXUdSRUVUWlsvY29sb3JdDQoNCkFsbCB0
-           aG9zZSB3aG8gc3VwcG9ydCBvdXIgZ3JvdXAsIG91ciBlbmNvZGVycywgYW5kIG91ciBjb21tdW5p
-           dHkuIA0KDQpbY29sb3I9I2Y1YzcwYV1HUk9VUCBOT1RFU1svY29sb3JdDQoNCkVuam95IQ0KDQpX
-           ZSBhcmUgY3VycmVudGx5IGxvb2tpbmcgZm9yIG5vdGhpbmcgaW4gcGFydGljdWxhci4gSWYgeW91
-           IGZlZWwgeW91IGhhdmUgc29tZXRoaW5nIHRvIG9mZmVyLCBjb250YWN0IHVzIQ0KDQpbY2VudGVy
-           XVtpbWddaHR0cHM6Ly9iZXlvbmRoZC5jby9pbWFnZXMvMjAyMS8wMy8zMC82MmJjYThkNTg3Yjcx
-           NzMxMjEwMDg4ODdlYmUwNWE0Mi5wbmdbL2ltZ11bL2NlbnRlcl0NCg0K
-           """
+        W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0NCg0KU291cmNlICAgICAgICAgICAg
+        ICAgICAgOiB7Ymx1cmF5X3NvdXJjZX0gKFRoYW5rcyEpDQpDaGFwdGVycyAgICAgICAgICAgICAg
+        ICA6IHtjaGFwdGVyX3R5cGV9DQpGaWxlIFNpemUgICAgICAgICAgICAgICA6IHtlbmNvZGVfZmls
+        ZV9zaXplfQ0KRHVyYXRpb24gICAgICAgICAgICAgICAgOiB7ZW5jb2RlX2ZpbGVfZHVyYXRpb259
+        DQpWaWRlbyAgICAgICAgICAgICAgICAgICA6IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30g
+        VmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWxlfQ0K
+        UmVzb2x1dGlvbiAgICAgICAgICAgICAgOiB7dl93aWR0aH0geCB7dl9oZWlnaHR9ICh7dl9hc3Bl
+        Y3RfcmF0aW99KQ0KQXVkaW8gICAgICAgICAgICAgICAgICAgOiB7YV9sbmd9IC8ge2FfY29tbWVy
+        Y2lhbH0gQXVkaW8gLyB7YV9jaG5sX3N9IC8ge2FfZnJlcX0gLyB7YV9iaXRyYXRlfSBrYnBzIHtv
+        cHRpb25hbF9zdWJfc3RyaW5nfQ0KRW5jb2RlciAgICAgICAgICAgICAgICAgOiBbY29sb3I9I2Y1
+        YzcwYV17ZW5jb2RlZF9ieX1bL2NvbG9yXQ0KDQpbY29sb3I9I2Y1YzcwYV1SRUxFQVNFIE5PVEVT
+        Wy9jb2xvcl0NCg0Ke25mb19yZWxlYXNlX25vdGVzfQ0KDQpbY29sb3I9I2Y1YzcwYV1TQ1JFRU5T
+        SE9UU1svY29sb3JdDQpbY2VudGVyXQ0KW2NvbG9yPSNmNWM3MGFdU09VUkNFWy9jb2xvcl08PDw8
+        PDw8PDw8PDw8PDw8PC0tLS0tLS0tLS0tLS0tLS0tLS1bY29sb3I9I2Y1YzcwYV1WU1svY29sb3Jd
+        LS0tLS0tLS0tLS0tLS0tLS0tLT4+Pj4+Pj4+Pj4+Pj4+Pj4+W2NvbG9yPSNmNWM3MGFdRU5DT0RF
+        Wy9jb2xvcl0NCntuZm9fc2NyZWVuX3Nob3RzfQ0KWy9jZW50ZXJdDQpbY29sb3I9I2Y1YzcwYV1H
+        UkVFVFpbL2NvbG9yXQ0KDQpBbGwgdGhvc2Ugd2hvIHN1cHBvcnQgb3VyIGdyb3VwLCBvdXIgZW5j
+        b2RlcnMsIGFuZCBvdXIgY29tbXVuaXR5LiANCg0KW2NvbG9yPSNmNWM3MGFdR1JPVVAgTk9URVNb
+        L2NvbG9yXQ0KDQpFbmpveSENCg0KV2UgYXJlIGN1cnJlbnRseSBsb29raW5nIGZvciBub3RoaW5n
+        IGluIHBhcnRpY3VsYXIuIElmIHlvdSBmZWVsIHlvdSBoYXZlIHNvbWV0aGluZyB0byBvZmZlciwg
+        Y29udGFjdCB1cyENCg0KW2NlbnRlcl1baW1nXWh0dHBzOi8vYmV5b25kaGQuY28vaW1hZ2VzLzIw
+        MjEvMDMvMzAvNjJiY2E4ZDU4N2I3MTczMTIxMDA4ODg3ZWJlMDVhNDIucG5nWy9pbWddWy9jZW50
+        ZXJdDQoNCg==
+        """
 
         decoded_nfo = base64.b64decode(nfo_b64).decode("ascii")
 
@@ -838,6 +839,12 @@ def open_nfo_viewer():
         # audio bitrate
         a_bitrate = str(encode_audio_track.other_bit_rate[0]).replace('kb/s', '').strip()
 
+        # optional sub string
+        if forced_subtitles_burned_var.get() == 'on':
+            optional_sub_string = '\nSubtitles               : English (Forced)'
+        elif forced_subtitles_burned_var.get() == 'off':
+            optional_sub_string = ''
+
         # encoder name
         encoded_by = ''
         encoder_sig = nfo_pad_parser['encoder_name']['name'].strip()
@@ -858,8 +865,9 @@ def open_nfo_viewer():
                                            v_fps=v_fps, v_format_profile=v_format_profile, v_width=v_width,
                                            v_height=v_height, v_aspect_ratio=v_aspect_ratio, a_lng=a_lng,
                                            a_commercial=a_commercial, a_chnl_s=a_chnl_s, a_freq=a_freq,
-                                           a_bitrate=a_bitrate, encoded_by=encoded_by,
-                                           nfo_release_notes=nfo_release_notes, nfo_screen_shots=nfo_screen_shots)
+                                           a_bitrate=a_bitrate, optional_sub_string=optional_sub_string,
+                                           encoded_by=encoded_by, nfo_release_notes=nfo_release_notes,
+                                           nfo_screen_shots=nfo_screen_shots)
         return formatted_nfo
 
     try:  # if window is already opened

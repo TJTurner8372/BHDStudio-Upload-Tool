@@ -6,7 +6,7 @@ File Size               : {encode_file_size}
 Duration                : {encode_file_duration}
 Video                   : {container_format} {v_codec} Video / {v_bitrate} kbps / {v_fps} / {v_format_profile}
 Resolution              : {v_width} x {v_height} ({v_aspect_ratio})
-Audio                   : {a_lng} / {a_commercial} Audio / {a_chnl_s} / {a_freq} / {a_bitrate} kbps
+Audio                   : {a_lng} / {a_commercial} Audio / {a_chnl_s} / {a_freq} / {a_bitrate} kbps {optional_sub_string}
 Encoder                 : [color=#f5c70a]{encoded_by}[/color]
 
 [color=#f5c70a]RELEASE NOTES[/color]
