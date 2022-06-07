@@ -71,7 +71,7 @@ def root_exit_function():
         root_exit_parser.read(config_file)
 
         # save main gui window position/geometry
-        if root.wm_state() == 'Normal':
+        if root.wm_state() == 'normal':
             if root_exit_parser['save_window_locations']['bhdstudiotool'] != root.geometry():
                 root_exit_parser.set('save_window_locations', 'bhdstudiotool', root.geometry())
                 with open(config_file, 'w') as root_exit_config_file:
@@ -885,7 +885,7 @@ def open_nfo_viewer():
         nfo_pad_exit_parser.read(config_file)
 
         # save nfo pad position if different
-        if nfo_pad.wm_state() == 'Normal':
+        if nfo_pad.wm_state() == 'normal':
             if nfo_pad_exit_parser['save_window_locations']['nfo_pad'] != nfo_pad.geometry():
                 nfo_pad_exit_parser.set('save_window_locations', 'nfo_pad', nfo_pad.geometry())
                 with open(config_file, 'w') as nfo_configfile:
@@ -1158,7 +1158,7 @@ def torrent_function_window():
                 torrent_parser.write(torrent_configfile)
 
         # save torrent window position/geometry
-        if torrent_window.wm_state() == 'Normal':
+        if torrent_window.wm_state() == 'normal':
             if torrent_parser['save_window_locations']['torrent_window'] != torrent_window.geometry():
                 torrent_parser.set('save_window_locations', 'torrent_window', torrent_window.geometry())
                 with open(config_file, 'w') as torrent_configfile:
