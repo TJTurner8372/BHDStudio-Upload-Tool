@@ -22,6 +22,7 @@ from torf import Torrent
 
 from Packages.About import openaboutwindow
 from Packages.icon import base_64_icon
+from Packages.show_streams import stream_menu
 
 # Set variable to True if you want errors to pop up in window + log to file + console, False for console only
 enable_error_logger = True  # Change this to false if you don't want to log errors to file + pop up window
@@ -129,15 +130,15 @@ for n in range(5):
 class HoverButton(Button):
     def __init__(self, master, **kw):
         Button.__init__(self, master=master, **kw)
-        self.defaultBackground = self["background"]
+        self.defaultBackground = self["foreground"]
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
 
     def on_enter(self, e):
-        self['background'] = self['activebackground']
+        self['foreground'] = self['activeforeground']
 
     def on_leave(self, e):
-        self['background'] = self.defaultBackground
+        self['foreground'] = self.defaultBackground
 
 
 detect_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
@@ -215,12 +216,12 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
                                                                        'Tool/issues/new?assignees=jlw4049&labels=bug'
                                                                        '&template=bug_report.md&title='),
                                        foreground='white', background='#23272A', borderwidth='3',
-                                       activebackground='grey')
+                                       activeforeground="#3498db")
             report_error.grid(row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N)
 
             force_close_root = HoverButton(error_window, text='Force Close Program', command=root.destroy,
                                            foreground='white', background='#23272A', borderwidth='3',
-                                           activebackground='grey')
+                                           activeforeground="#3498db")
             force_close_root.grid(row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N)
 
             def right_click_menu_func(x_y_pos):  # Function for mouse button 3 (right click) to pop up menu
@@ -251,11 +252,17 @@ threading.Thread(target=start_logger).start()
 
 # variables
 source_file_path = StringVar()
+source_loaded = StringVar()
+source_file_information = {}
 encode_file_path = StringVar()
 torrent_file_path = StringVar()
 
 
 def source_input_function(*args):
+    delete_encode_entry()  # clear encode entry
+    source_file_information.clear()  # clear dictionary
+    audio_pop_up_var = StringVar()  # audio pop up var
+
     media_info = MediaInfo.parse(pathlib.Path(*args))
     video_track = media_info.video_tracks[0]
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
@@ -270,6 +277,76 @@ def source_input_function(*args):
     elif not video_track.other_hdr_format:
         hdr_string = ''
 
+    # if source has 0 audio streams (this should never happen)
+    if not media_info.general_tracks[0].count_of_audio_streams:
+        messagebox.showerror(parent=root, title='Error', message='Source has no audio track')
+        return
+
+    # if source file only has 2 or more tracks
+    if int(media_info.general_tracks[0].count_of_audio_streams) >= 2:
+        audio_track_win = Toplevel()  # Toplevel window
+        audio_track_win.configure(background='#363636')  # Set color of audio_track_win background
+        audio_track_win.title('Audio Track Selection')
+        # Open on top left of root window
+        audio_track_win.geometry(f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
+                                 f'{str(int(root.geometry().split("+")[2]) + 80)}')
+        audio_track_win.resizable(0, 0)  # makes window not resizable
+        audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
+        audio_track_win.wm_overrideredirect(True)
+        root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+        audio_track_win.grid_rowconfigure(0, weight=1)
+        audio_track_win.grid_columnconfigure(0, weight=1)
+
+        track_frame = Frame(audio_track_win, highlightbackground="white", highlightthickness=2, bg="#363636",
+                            highlightcolor='white')
+        track_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+        for e_n_f in range(3):
+            track_frame.grid_columnconfigure(e_n_f, weight=1)
+            track_frame.grid_rowconfigure(e_n_f, weight=1)
+
+        # create label
+        track_selection_label = Label(track_frame, text='Select audio source that down-mix was encoded from:',
+                                      background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
+        track_selection_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+
+        # create drop down menu set
+        audio_stream_track_counter = {}
+        for i in range(int(media_info.general_tracks[0].count_of_audio_streams)):
+            audio_stream_track_counter[f'Track #{i + 1}  |  {stream_menu(*args)[i]}'] = i
+
+        audio_pop_up_var.set(next(iter(audio_stream_track_counter)))  # set the default option
+        audio_pop_up_menu = OptionMenu(track_frame, audio_pop_up_var, *audio_stream_track_counter.keys())
+        audio_pop_up_menu.config(background="#23272A", foreground="white", highlightthickness=1,
+                                 width=48, anchor='w', activebackground="#23272A", activeforeground="#3498db")
+        audio_pop_up_menu.grid(row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E)
+        audio_pop_up_menu["menu"].configure(background="#23272A", foreground="white", activebackground="#23272A",
+                                            activeforeground="#3498db")
+
+        # create 'OK' button
+        def audio_ok_button_function():
+            audio_pop_up_var.set(audio_stream_track_counter[audio_pop_up_var.get()])
+            root.wm_attributes('-alpha', 1.0)  # restore transparency
+            audio_track_win.destroy()
+
+        audio_track_okay_btn = HoverButton(track_frame, text="OK", command=audio_ok_button_function, foreground="white",
+                                           background="#23272A", borderwidth="3", width=8, activeforeground="#3498db")
+        audio_track_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+        audio_track_win.wait_window()
+
+    # if source file only has 1 audio track
+    elif int(media_info.general_tracks[0].count_of_audio_streams) == 1:
+        audio_pop_up_var.set('0')
+
+    # set source variables
+    source_loaded.set('loaded')  # set string var to loaded
+
+    # update dictionary
+    # audio track selection
+    source_file_information.update({"audio_track": audio_pop_up_var.get()})
+
+    # resolution
+    source_file_information.update({"resolution": f"{str(video_track.width)}x{str(video_track.height)}"})
+
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
     source_file_path.set(str(pathlib.Path(*args)))
@@ -281,6 +358,10 @@ def source_input_function(*args):
 
 
 def encode_input_function(*args):
+    if source_loaded.get() == '':
+        messagebox.showinfo(parent=root, title='Info', message='You must open a source file first')
+        return
+
     # code to check input extension
     if pathlib.Path(*args).suffix != '.mp4':
         messagebox.showerror(parent=root, title='Incorrect container',
@@ -320,7 +401,9 @@ def encode_input_function(*args):
                                              ((float(video_track.duration) / 60000) * 0.0075) / 1000)
 
     # check for un-even crops
-    if (int(video_track.width) % 2) != 0 or (int(video_track.height) % 2) != 0:
+    width_value = int(str(source_file_information.get('resolution')).split('x')[0]) - int(video_track.width)
+    height_value = int(str(source_file_information.get('resolution')).split('x')[1]) - int(video_track.height)
+    if (int(width_value) % 2) != 0 or (int(height_value) % 2) != 0:
         messagebox.showerror(parent=root, title='Crop Error',
                              message=f'Resolution: "{str(video_track.width)}x{str(video_track.height)}"\n\n'
                                      f'BHDStudio encodes should only be cropped in even numbers')
@@ -458,7 +541,7 @@ def manual_source_input():
 
 
 source_button = HoverButton(source_frame, text="Open", command=manual_source_input, foreground="white",
-                            background="#23272A", borderwidth="3", activebackground='grey')
+                            background="#23272A", borderwidth="3", activeforeground="#3498db")
 source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
 source_entry_box = Entry(source_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
@@ -487,10 +570,12 @@ def delete_source_entry():
     source_label.config(text=' ' * 100)
     source_hdr_label.config(text=' ' * 100)
     source_file_path.set('')
+    source_loaded.set('')
+    delete_encode_entry()
 
 
 reset_source_input = HoverButton(source_frame, text="X", command=delete_source_entry, foreground="white",
-                                 background="#23272A", borderwidth="3", activebackground='grey')
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
 reset_source_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
 # encode --------------------------------------------------------------------------------------------------------------
@@ -515,7 +600,7 @@ def manual_encode_input():
 
 
 encode_button = HoverButton(encode_frame, text="Open", command=manual_encode_input, foreground="white",
-                            background="#23272A", borderwidth="3", activebackground='grey')
+                            background="#23272A", borderwidth="3", activeforeground="#3498db")
 encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
 encode_entry_box = Entry(encode_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
@@ -554,7 +639,7 @@ def delete_encode_entry():
 
 
 reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_entry, foreground="white",
-                                 background="#23272A", borderwidth="3", activebackground='grey')
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
 reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
 # release notes -------------------------------------------------------------------------------------------------------
@@ -691,7 +776,7 @@ screenshot_scrolledtext.grid(row=0, column=0, columnspan=3, pady=(0, 6), padx=10
 # clear screenshot box
 reset_screenshot_box = HoverButton(screenshot_frame, text="X",
                                    command=lambda: screenshot_scrolledtext.delete('1.0', END), foreground="white",
-                                   background="#23272A", borderwidth="3", activebackground='grey', width=4)
+                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=4)
 reset_screenshot_box.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W)
 
 
@@ -1201,7 +1286,7 @@ def open_nfo_viewer():
 
 
 generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
-                                  background="#23272A", borderwidth="3", activebackground='grey', width=1)
+                                  background="#23272A", borderwidth="3", activeforeground="#3498db", width=1)
 generate_nfo_button.grid(row=4, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
@@ -1298,7 +1383,7 @@ def torrent_function_window():
 
     # torrent set path button
     torrent_button = HoverButton(torrent_path_frame, text="Set", command=torrent_save_output, foreground="white",
-                                 background="#23272A", borderwidth="3", activebackground='grey')
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
     torrent_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 5), sticky=N + S + E + W)
 
     # torrent path entry box
@@ -1476,20 +1561,20 @@ def torrent_function_window():
     create_torrent_button = HoverButton(torrent_window, text="Create",
                                         command=lambda: threading.Thread(target=create_torrent).start(),
                                         foreground="white", background="#23272A", borderwidth="3",
-                                        activebackground='grey', width=12)
+                                        activeforeground="#3498db", width=12)
     create_torrent_button.grid(row=4, column=9, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
     # cancel torrent button
     cancel_torrent_button = HoverButton(torrent_window, text="Cancel", command=torrent_window_exit_function,
                                         foreground="white", background="#23272A", borderwidth="3",
-                                        activebackground='grey', width=12)
+                                        activeforeground="#3498db", width=12)
     cancel_torrent_button.grid(row=4, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N)
 
 
 # open torrent window button
 open_torrent_window_button = HoverButton(root, text="Create Torrent", command=torrent_function_window,
                                          foreground="white", background="#23272A", borderwidth="3",
-                                         activebackground='grey', width=1, state=DISABLED)
+                                         activeforeground="#3498db", width=1, state=DISABLED)
 open_torrent_window_button.grid(row=4, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
@@ -1573,6 +1658,7 @@ def set_encoder_name():
     encoder_name_window.resizable(0, 0)
     encoder_name_window.grab_set()
     encoder_name_window.wm_overrideredirect(True)
+    root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
     encoder_name_window.grid_rowconfigure(0, weight=1)
     encoder_name_window.grid_columnconfigure(0, weight=1)
 
@@ -1600,17 +1686,18 @@ def set_encoder_name():
             encoder_name_parser.set('encoder_name', 'name', encoder_entry_box.get().strip())
             with open(config_file, 'w') as encoder_name_config_file:
                 encoder_name_parser.write(encoder_name_config_file)
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
         encoder_name_window.destroy()  # close window
 
     # create 'OK' button
     encoder_okay_btn = HoverButton(encoder_name_frame, text="OK", command=encoder_okay_func, foreground="white",
-                                   background="#23272A", borderwidth="3", activebackground='grey', width=8)
+                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=8)
     encoder_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
     # create 'Cancel' button
-    encoder_cancel_btn = HoverButton(encoder_name_frame, text="Cancel", command=lambda: encoder_name_window.destroy(),
-                                     foreground="white", background="#23272A", borderwidth="3",
-                                     activebackground='grey', width=8)
+    encoder_cancel_btn = HoverButton(encoder_name_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                     command=lambda: [encoder_name_window.destroy(), root.wm_attributes('-alpha', 1.0)],
+                                     foreground="white", background="#23272A", borderwidth="3", )
     encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
 
