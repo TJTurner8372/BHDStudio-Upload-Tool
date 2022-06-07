@@ -63,8 +63,6 @@ def openaboutwindow(main_root_title):
     about_window_text.insert(INSERT, f"{main_root_title}\n")
     about_window_text.insert(INSERT, "\n")
     about_window_text.insert(INSERT, "Development: jlw4049, thesb3")
-    about_window_text.insert(INSERT, "\n\n")
-    about_window_text.insert(INSERT, "BHDStudio Upload Tool \n")
     about_window_text.configure(state=DISABLED)
 
     about_information_frame = LabelFrame(about_window, text=' License ', labelanchor="nw")
