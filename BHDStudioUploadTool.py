@@ -249,14 +249,7 @@ def start_logger():
 
 threading.Thread(target=start_logger).start()
 
-# nfo_frame = LabelFrame(root, text=' NFO ', labelanchor="nw")
-# nfo_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-# nfo_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10))
-# nfo_frame.grid_rowconfigure(0, weight=1)
-# nfo_frame.grid_columnconfigure(0, weight=20)
-# nfo_frame.grid_columnconfigure(1, weight=20)
-# nfo_frame.grid_columnconfigure(2, weight=20)
-# nfo_frame.grid_columnconfigure(3, weight=1)
+# variables
 source_file_path = StringVar()
 encode_file_path = StringVar()
 torrent_file_path = StringVar()
@@ -289,12 +282,44 @@ def source_input_function(*args):
 
 def encode_input_function(*args):
     media_info = MediaInfo.parse(pathlib.Path(*args))
-    video_track = media_info.video_tracks[0]
-    if not media_info.general_tracks[0].count_of_audio_streams:
-        messagebox.showerror(parent=root, title='Error', message='Audio track is missing from encoded file')
+
+    def encode_input_error_box(media_info_count, track_type, error_string):
+        error_message = f'"{pathlib.Path(*args).stem}":\n\nHas {media_info_count} {track_type} track' \
+                        f'(s)\n\n{error_string}'
+        messagebox.showerror(parent=root, title='Incorrect Format', message=error_message)
         delete_encode_entry()
+
+    # video checks
+    # if encode is missing the video track
+    if not media_info.general_tracks[0].count_of_video_streams:
+        encode_input_error_box('0', 'video', 'BHDStudio encodes should have 1 video track')
         return
+
+    # if encode has more than 1 video track
+    if int(media_info.general_tracks[0].count_of_video_streams) > 1:
+        encode_input_error_box(media_info.general_tracks[0].count_of_video_streams, 'video',
+                               'BHDStudio encodes should only have 1 video track')
+        return
+
+    # select video track for parsing
+    video_track = media_info.video_tracks[0]
+
+    # audio checks
+    # if encode is missing the audio track
+    if not media_info.general_tracks[0].count_of_audio_streams:
+        encode_input_error_box('0', 'audio', 'BHDStudio encodes should have 1 audio track')
+        return
+
+    # if encode has more than 1 audio track
+    if int(media_info.general_tracks[0].count_of_audio_streams) > 1:
+        encode_input_error_box(media_info.general_tracks[0].count_of_audio_streams, 'audio',
+                               'BHDStudio encodes should only have 1 audio track')
+        return
+
+    # select audio track #1
     audio_track = media_info.audio_tracks[0]
+
+    # audio channel string conversion and error check
     if audio_track.channel_s == 1:
         audio_channels_string = '1.0'
     elif audio_track.channel_s == 2:
@@ -302,7 +327,10 @@ def encode_input_function(*args):
     elif audio_track.channel_s == 6:
         audio_channels_string = '5.1'
     else:
-        messagebox.showerror(parent=root, title='Error', message='Incorrect audio track format')
+        messagebox.showerror(parent=root, title='Incorrect Format',
+                             message=f'Incorrect audio channel format {str(audio_track.channel_s)}:\n\nBHDStudio '
+                                     f'encodes audio channels should be 1.0, 2.0 (dplII), or 5.1')
+        delete_encode_entry()
         return
 
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
@@ -501,7 +529,7 @@ def update_forced_var():
         release_notes_scrolled.insert(END, '\n-Forced English subtitle embedded for non English dialogue')
     elif forced_subtitles_burned_var.get() == 'off':
         delete_forced = release_notes_scrolled.search(
-            "-Forced English subtitle embedded for non English dialogue", '1.0', END)
+            "-Forced English subtitles embedded for non English dialogue", '1.0', END)
         if delete_forced != '':
             release_notes_scrolled.delete(str(delete_forced), str(float(delete_forced) + 1.0))
     release_notes_scrolled.config(state=DISABLED)
