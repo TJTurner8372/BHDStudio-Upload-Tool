@@ -73,9 +73,11 @@ def root_exit_function():
         # save main gui window position/geometry
         if root.wm_state() == 'normal':
             if root_exit_parser['save_window_locations']['bhdstudiotool'] != root.geometry():
-                root_exit_parser.set('save_window_locations', 'bhdstudiotool', root.geometry())
-                with open(config_file, 'w') as root_exit_config_file:
-                    root_exit_parser.write(root_exit_config_file)
+                if int(root.geometry().split('x')[0]) >= root_window_width or \
+                        int(root.geometry().split('x')[1].split('+')[0]) >= root_window_height:
+                    root_exit_parser.set('save_window_locations', 'bhdstudiotool', root.geometry())
+                    with open(config_file, 'w') as root_exit_config_file:
+                        root_exit_parser.write(root_exit_config_file)
 
     # check for opened windows before closing
     open_tops = False  # Set variable for open toplevel windows
@@ -97,9 +99,9 @@ root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
+root_window_height = 640
+root_window_width = 720
 if config['save_window_locations']['bhdstudiotool'] == '':
-    root_window_height = 640
-    root_window_width = 720
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
     x_coordinate = int((screen_width / 2) - (root_window_width / 2))
@@ -887,17 +889,19 @@ def open_nfo_viewer():
         # save nfo pad position if different
         if nfo_pad.wm_state() == 'normal':
             if nfo_pad_exit_parser['save_window_locations']['nfo_pad'] != nfo_pad.geometry():
-                nfo_pad_exit_parser.set('save_window_locations', 'nfo_pad', nfo_pad.geometry())
-                with open(config_file, 'w') as nfo_configfile:
-                    nfo_pad_exit_parser.write(nfo_configfile)
+                if int(nfo_pad.geometry().split('x')[0]) >= nfo_pad_window_width or \
+                        int(nfo_pad.geometry().split('x')[1].split('+')[0]) >= nfo_pad_window_height:
+                    nfo_pad_exit_parser.set('save_window_locations', 'nfo_pad', nfo_pad.geometry())
+                    with open(config_file, 'w') as nfo_configfile:
+                        nfo_pad_exit_parser.write(nfo_configfile)
 
         nfo_pad.destroy()
 
     nfo_pad = Toplevel()
     nfo_pad.title('BHDStudioUploadTool - NFO Pad')
+    nfo_pad_window_height = 600
+    nfo_pad_window_width = 1000
     if nfo_pad_parser['save_window_locations']['nfo_pad'] == '':
-        nfo_pad_window_height = 600
-        nfo_pad_window_width = 1000
         nfo_screen_width = nfo_pad.winfo_screenwidth()
         nfo_screen_height = nfo_pad.winfo_screenheight()
         nfo_x_coordinate = int((nfo_screen_width / 2) - (nfo_pad_window_width / 2))
@@ -1160,9 +1164,11 @@ def torrent_function_window():
         # save torrent window position/geometry
         if torrent_window.wm_state() == 'normal':
             if torrent_parser['save_window_locations']['torrent_window'] != torrent_window.geometry():
-                torrent_parser.set('save_window_locations', 'torrent_window', torrent_window.geometry())
-                with open(config_file, 'w') as torrent_configfile:
-                    torrent_parser.write(torrent_configfile)
+                if int(torrent_window.geometry().split('x')[0]) >= tor_window_width or \
+                        int(torrent_window.geometry().split('x')[1].split('+')[0]) >= tor_window_height:
+                    torrent_parser.set('save_window_locations', 'torrent_window', torrent_window.geometry())
+                    with open(config_file, 'w') as torrent_configfile:
+                        torrent_parser.write(torrent_configfile)
 
         torrent_window.destroy()  # destroy torrent window
         open_all_toplevels()  # open all top levels that was open
@@ -1175,11 +1181,11 @@ def torrent_function_window():
     torrent_window = Toplevel()
     torrent_window.configure(background="#363636")  # Set color of torrent_window background
     torrent_window.title('BHDStudio Torrent Creator')
+    tor_window_height = 330  # win height
+    tor_window_width = 520  # win width
     if torrent_config['save_window_locations']['torrent_window'] == '':
-        window_height = 330  # win height
-        window_width = 520  # win width
         # open near the center of root
-        torrent_window.geometry(f'{window_width}x{window_height}+'
+        torrent_window.geometry(f'{tor_window_width}x{tor_window_height}+'
                                 f'{str(int(root.geometry().split("+")[1]) + 100)}+'
                                 f'{str(int(root.geometry().split("+")[2]) + 210)}')
     elif torrent_config['save_window_locations']['torrent_window'] != '':

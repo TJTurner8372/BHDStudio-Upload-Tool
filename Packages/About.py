@@ -25,23 +25,25 @@ def openaboutwindow(main_root_title):
         func_parser.read(config_file)
         if about_window.wm_state() == 'normal':
             if func_parser['save_window_locations']['about_window'] != about_window.geometry():
-                func_parser.set('save_window_locations', 'about_window', about_window.geometry())
-                with open(config_file, 'w') as configfile:
-                    func_parser.write(configfile)
+                if int(about_window.geometry().split('x')[0]) >= about_window_width or \
+                        int(about_window.geometry().split('x')[1].split('+')[0]) >= about_window_height:
+                    func_parser.set('save_window_locations', 'about_window', about_window.geometry())
+                    with open(config_file, 'w') as configfile:
+                        func_parser.write(configfile)
 
         about_window.destroy()  # Close window
 
     about_window = Toplevel()
     about_window.title('About')
     about_window.configure(background="#434547")
+    about_window_height = 650
+    about_window_width = 720
     if config['save_window_locations']['about_window'] == '':
-        window_height = 650
-        window_width = 720
         screen_width = about_window.winfo_screenwidth()
         screen_height = about_window.winfo_screenheight()
-        x_coordinate = int((screen_width / 2) - (window_width / 2))
-        y_coordinate = int((screen_height / 2) - (window_height / 2))
-        about_window.geometry("{}x{}+{}+{}".format(window_width, window_height, x_coordinate, y_coordinate))
+        x_coordinate = int((screen_width / 2) - (about_window_width / 2))
+        y_coordinate = int((screen_height / 2) - (about_window_height / 2))
+        about_window.geometry("{}x{}+{}+{}".format(about_window_width, about_window_height, x_coordinate, y_coordinate))
     elif config['save_window_locations']['about_window'] != '':
         about_window.geometry(config['save_window_locations']['about_window'])
     about_window.resizable(False, False)
