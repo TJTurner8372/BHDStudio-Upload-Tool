@@ -281,15 +281,26 @@ def source_input_function(*args):
 
 
 def encode_input_function(*args):
+    # code to check input extension
+    if pathlib.Path(*args).suffix != '.mp4':
+        messagebox.showerror(parent=root, title='Incorrect container',
+                             message=f'Incorrect container/extension "{pathlib.Path(*args).suffix}":\n\n'
+                                     f'BHDStudio encodes are muxed into MP4 containers and should have a '
+                                     f'".mp4" extension')
+        delete_encode_entry()
+        return
+
+    # if file has the correct extension type parse it
     media_info = MediaInfo.parse(pathlib.Path(*args))
 
+    # function to generate generic errors
     def encode_input_error_box(media_info_count, track_type, error_string):
         error_message = f'"{pathlib.Path(*args).stem}":\n\nHas {media_info_count} {track_type} track' \
                         f'(s)\n\n{error_string}'
         messagebox.showerror(parent=root, title='Incorrect Format', message=error_message)
         delete_encode_entry()
 
-    # video checks
+    # video checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the video track
     if not media_info.general_tracks[0].count_of_video_streams:
         encode_input_error_box('0', 'video', 'BHDStudio encodes should have 1 video track')
@@ -304,7 +315,7 @@ def encode_input_function(*args):
     # select video track for parsing
     video_track = media_info.video_tracks[0]
 
-    # audio checks
+    # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
     if not media_info.general_tracks[0].count_of_audio_streams:
         encode_input_error_box('0', 'audio', 'BHDStudio encodes should have 1 audio track')
