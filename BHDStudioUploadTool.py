@@ -315,6 +315,40 @@ def encode_input_function(*args):
     # select video track for parsing
     video_track = media_info.video_tracks[0]
 
+    # calculate average video bit rate for encode
+    calculate_average_video_bit_rate = round((float(video_track.stream_size) / 1000) /
+                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+
+    # check for un-even crops
+    if (int(video_track.width) % 2) != 0 or (int(video_track.height) % 2) != 0:
+        messagebox.showerror(parent=root, title='Crop Error',
+                             message=f'Resolution: "{str(video_track.width)}x{str(video_track.height)}"\n\n'
+                                     f'BHDStudio encodes should only be cropped in even numbers')
+        delete_encode_entry()
+        return
+
+    # error function for resolution check and miss match bit rates
+    def resolution_bit_rate_miss_match_error(res_error_string):
+        messagebox.showerror(parent=root, title='Resolution/Bit rate Miss Match', message=res_error_string)
+        delete_encode_entry()
+
+    # detect resolution and check miss match bit rates
+    if video_track.width <= 1280 and video_track.height <= 720:  # 720p
+        if calculate_average_video_bit_rate <= 3000 or calculate_average_video_bit_rate >= 5000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 720p encodes should be @ 4000 kbps')
+            return
+    elif video_track.width <= 1920 and video_track.height <= 1080:  # 1080p
+        if calculate_average_video_bit_rate <= 7000 or calculate_average_video_bit_rate >= 9000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 1080p encodes should be @ 8000 kbps')
+            return
+    elif video_track.width <= 3840 and video_track.height <= 2160:  # 2160p
+        if calculate_average_video_bit_rate <= 15000 or calculate_average_video_bit_rate >= 17000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 2160p encodes should be @ 16000 kbps')
+            return
+
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
     if not media_info.general_tracks[0].count_of_audio_streams:
