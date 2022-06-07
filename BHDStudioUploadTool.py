@@ -11,8 +11,8 @@ from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
-    LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, \
-    Button, TclError, font, Menu, Text, INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage
+    LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage
 
 import pyperclip
 import torf
@@ -70,12 +70,6 @@ def root_exit_function():
         root_exit_parser = ConfigParser()
         root_exit_parser.read(config_file)
 
-        # save encoder name if different
-        if root_exit_parser['encoder_name']['name'] != encoded_by_entry_box.get().strip():
-            root_exit_parser.set('encoder_name', 'name', encoded_by_entry_box.get().strip())
-            with open(config_file, 'w') as root_exit_config_file:
-                root_exit_parser.write(root_exit_config_file)
-
         # save main gui window position/geometry
         if root.wm_state() == 'Normal':
             if root_exit_parser['save_window_locations']['bhdstudiotool'] != root.geometry():
@@ -104,7 +98,7 @@ root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
 if config['save_window_locations']['bhdstudiotool'] == '':
-    root_window_height = 700
+    root_window_height = 640
     root_window_width = 720
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
@@ -115,8 +109,68 @@ elif config['save_window_locations']['bhdstudiotool'] != '':
     root.geometry(config['save_window_locations']['bhdstudiotool'])
 root.protocol('WM_DELETE_WINDOW', root_exit_function)
 
-
 # root_pid = os.getpid()  # Get root process ID
+
+# Block of code to fix DPI awareness issues on Windows 7 or higher
+try:
+    windll.shcore.SetProcessDpiAwareness(2)  # if your Windows version >= 8.1
+except(Exception,):
+    windll.user32.SetProcessDPIAware()  # Windows 8.0 or less
+# Block of code to fix DPI awareness issues on Windows 7 or higher
+
+for n in range(4):
+    root.grid_columnconfigure(n, weight=1)
+for n in range(5):
+    root.grid_rowconfigure(n, weight=1)
+
+
+class HoverButton(Button):
+    def __init__(self, master, **kw):
+        Button.__init__(self, master=master, **kw)
+        self.defaultBackground = self["background"]
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+
+    def on_enter(self, e):
+        self['background'] = self['activebackground']
+
+    def on_leave(self, e):
+        self['background'] = self.defaultBackground
+
+
+detect_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
+set_font = detect_font.actual().get("family")
+set_font_size = detect_font.actual().get("size")
+color1 = "#434547"
+
+# Custom Tkinter Theme-----------------------------------------
+custom_style = ttk.Style()
+custom_style.theme_create('jlw_style', parent='alt', settings={
+    # Notebook Theme Settings -------------------
+    "TNotebook": {"configure": {"tabmargins": [5, 5, 5, 0], 'background': "#565656"}},
+    "TNotebook.Tab": {
+        "configure": {"padding": [5, 1], "background": 'grey', 'foreground': 'white', 'focuscolor': ''},
+        "map": {"background": [("selected", '#434547')], "expand": [("selected", [1, 1, 1, 0])]}},
+    # Notebook Theme Settings -------------------
+    # ComboBox Theme Settings -------------------
+    'TCombobox': {'configure': {'selectbackground': '#23272A', 'fieldbackground': '#23272A',
+                                'background': 'white', 'foreground': 'white'}}},
+                          # ComboBox Theme Settings -------------------
+                          )
+custom_style.theme_use('jlw_style')  # Enable the use of the custom theme
+custom_style.layout('text.Horizontal.TProgressbar',
+                    [('Horizontal.Progressbar.trough',
+                      {'children': [('Horizontal.Progressbar.pbar',
+                                     {'side': 'left', 'sticky': 'ns'})],
+                       'sticky': 'nswe'}),
+                     ('Horizontal.Progressbar.label', {'sticky': 'nswe'})])
+# set initial text
+custom_style.configure('text.Horizontal.TProgressbar', text='', anchor='center', background="#3498db")
+
+
+# custom_style.configure("custom.Horizontal.TProgressbar", background="#3498db")
+
+# ------------------------------------------ Custom Tkinter Theme
 
 
 # Logger class, handles all traceback/stdout errors for program, writes to file and to window -------------------------
@@ -192,65 +246,6 @@ def start_logger():
 
 
 threading.Thread(target=start_logger).start()
-
-# Block of code to fix DPI awareness issues on Windows 7 or higher
-try:
-    windll.shcore.SetProcessDpiAwareness(2)  # if your Windows version >= 8.1
-except(Exception,):
-    windll.user32.SetProcessDPIAware()  # Windows 8.0 or less
-# Block of code to fix DPI awareness issues on Windows 7 or higher
-
-for n in range(4):
-    root.grid_columnconfigure(n, weight=1)
-for n in range(6):
-    root.grid_rowconfigure(n, weight=1)
-
-
-class HoverButton(Button):
-    def __init__(self, master, **kw):
-        Button.__init__(self, master=master, **kw)
-        self.defaultBackground = self["background"]
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
-
-    def on_enter(self, e):
-        self['background'] = self['activebackground']
-
-    def on_leave(self, e):
-        self['background'] = self.defaultBackground
-
-
-detect_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
-set_font = detect_font.actual().get("family")
-set_font_size = detect_font.actual().get("size")
-color1 = "#434547"
-
-# Custom Tkinter Theme-----------------------------------------
-custom_style = ttk.Style()
-custom_style.theme_create('jlw_style', parent='alt', settings={
-    # Notebook Theme Settings -------------------
-    "TNotebook": {"configure": {"tabmargins": [5, 5, 5, 0], 'background': "#565656"}},
-    "TNotebook.Tab": {
-        "configure": {"padding": [5, 1], "background": 'grey', 'foreground': 'white', 'focuscolor': ''},
-        "map": {"background": [("selected", '#434547')], "expand": [("selected", [1, 1, 1, 0])]}},
-    # Notebook Theme Settings -------------------
-    # ComboBox Theme Settings -------------------
-    'TCombobox': {'configure': {'selectbackground': '#23272A', 'fieldbackground': '#23272A',
-                                'background': 'white', 'foreground': 'white'}}},
-                          # ComboBox Theme Settings -------------------
-                          )
-custom_style.theme_use('jlw_style')  # Enable the use of the custom theme
-custom_style.layout('text.Horizontal.TProgressbar',
-                    [('Horizontal.Progressbar.trough',
-                      {'children': [('Horizontal.Progressbar.pbar',
-                                     {'side': 'left', 'sticky': 'ns'})],
-                       'sticky': 'nswe'}),
-                     ('Horizontal.Progressbar.label', {'sticky': 'nswe'})])
-# set initial text
-custom_style.configure('text.Horizontal.TProgressbar', text='', anchor='center', background="#3498db")
-# custom_style.configure("custom.Horizontal.TProgressbar", background="#3498db")
-
-# ------------------------------------------ Custom Tkinter Theme
 
 # nfo_frame = LabelFrame(root, text=' NFO ', labelanchor="nw")
 # nfo_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
@@ -487,22 +482,9 @@ reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_e
                                  background="#23272A", borderwidth="3", activebackground='grey')
 reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
-# encoded by frame
-encoded_by_frame = LabelFrame(root, text=' Encoder Name ', labelanchor="nw")
-encoded_by_frame.grid(column=0, row=2, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S)
-encoded_by_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
-encoded_by_frame.grid_columnconfigure(0, weight=1)
-encoded_by_frame.grid_rowconfigure(0, weight=1)
-
-encoded_by_entry_box = Entry(encoded_by_frame, borderwidth=4, bg="#565656", fg='white',
-                             disabledforeground='white', disabledbackground="#565656")
-encoded_by_entry_box.grid(row=0, column=0, columnspan=9, padx=5, pady=(5, 5), sticky=E + W)
-if config['encoder_name']['name'].strip() != '':
-    encoded_by_entry_box.insert(END, config['encoder_name']['name'].strip())
-
 # release notes -------------------------------------------------------------------------------------------------------
 release_notes_frame = LabelFrame(root, text=' Release Notes ', labelanchor="nw")
-release_notes_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+release_notes_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 release_notes_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 
 for rl_row in range(3):
@@ -619,7 +601,7 @@ def enable_clear_all_checkbuttons():
 
 # screenshots ---------------------------------------------------------------------------------------------------------
 screenshot_frame = LabelFrame(root, text=' Sreenshots ', labelanchor="nw")
-screenshot_frame.grid(column=0, row=4, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+screenshot_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 screenshot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 screenshot_frame.grid_rowconfigure(0, weight=1)
 screenshot_frame.grid_columnconfigure(0, weight=20)
@@ -858,11 +840,11 @@ def open_nfo_viewer():
 
         # encoder name
         encoded_by = ''
-        encoder_sig = encoded_by_entry_box.get().strip()
+        encoder_sig = nfo_pad_parser['encoder_name']['name'].strip()
         if encoder_sig == '':
             encoded_by = 'Anonymous'
         elif encoder_sig != '':
-            encoded_by = encoded_by_entry_box.get().strip()
+            encoded_by = nfo_pad_parser['encoder_name']['name'].strip()
 
         # release notes
         nfo_release_notes = release_notes_scrolled.get("1.0", END).strip()
@@ -1135,7 +1117,7 @@ def open_nfo_viewer():
 
 generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activebackground='grey', width=1)
-generate_nfo_button.grid(row=5, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+generate_nfo_button.grid(row=4, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
 def generate_button_checker():
@@ -1421,7 +1403,7 @@ def torrent_function_window():
 open_torrent_window_button = HoverButton(root, text="Create Torrent", command=torrent_function_window,
                                          foreground="white", background="#23272A", borderwidth="3",
                                          activebackground='grey', width=1, state=DISABLED)
-open_torrent_window_button.grid(row=5, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+open_torrent_window_button.grid(row=4, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
 
 
 # Hide/Open all top level window function -----------------------------------------------------------------------------
@@ -1490,8 +1472,65 @@ file_menu.add_command(label='Reset GUI              [CTRL + R]', command=reset_g
 root.bind("<Control-r>", lambda event: reset_gui())
 file_menu.add_command(label='Exit                        [ALT + F4]', command=root_exit_function)
 
+
+def set_encoder_name():
+    # set parser
+    encoder_name_parser = ConfigParser()
+    encoder_name_parser.read(config_file)
+
+    # encoder name window
+    encoder_name_window = Toplevel()
+    encoder_name_window.configure(background="#363636")
+    encoder_name_window.geometry(f'{260}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+                                 f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    encoder_name_window.resizable(0, 0)
+    encoder_name_window.grab_set()
+    encoder_name_window.wm_overrideredirect(True)
+    encoder_name_window.grid_rowconfigure(0, weight=1)
+    encoder_name_window.grid_columnconfigure(0, weight=1)
+
+    # encoder name frame
+    encoder_name_frame = Frame(encoder_name_window, highlightbackground="white", highlightthickness=2, bg="#363636",
+                               highlightcolor='white')
+    encoder_name_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    for e_n_f in range(3):
+        encoder_name_frame.grid_columnconfigure(e_n_f, weight=1)
+        encoder_name_frame.grid_rowconfigure(e_n_f, weight=1)
+
+    # create label
+    encoder_label = Label(encoder_name_frame, text='Encoder Name:', background='#363636', fg="#3498db",
+                          font=(set_font, set_font_size, "bold"))
+    encoder_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+
+    # create entry box
+    encoder_entry_box = Entry(encoder_name_frame, borderwidth=4, bg="#565656", fg='white')
+    encoder_entry_box.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W)
+    encoder_entry_box.insert(END, encoder_name_parser['encoder_name']['name'])
+
+    # function to save new name to config.ini
+    def encoder_okay_func():
+        if encoder_name_parser['encoder_name']['name'] != encoder_entry_box.get().strip():
+            encoder_name_parser.set('encoder_name', 'name', encoder_entry_box.get().strip())
+            with open(config_file, 'w') as encoder_name_config_file:
+                encoder_name_parser.write(encoder_name_config_file)
+        encoder_name_window.destroy()  # close window
+
+    # create 'OK' button
+    encoder_okay_btn = HoverButton(encoder_name_frame, text="OK", command=encoder_okay_func, foreground="white",
+                                   background="#23272A", borderwidth="3", activebackground='grey', width=8)
+    encoder_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+
+    # create 'Cancel' button
+    encoder_cancel_btn = HoverButton(encoder_name_frame, text="Cancel", command=lambda: encoder_name_window.destroy(),
+                                     foreground="white", background="#23272A", borderwidth="3",
+                                     activebackground='grey', width=8)
+    encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
+options_menu.add_command(label='Set Encoder Name', command=set_encoder_name)
+options_menu.add_separator()
 options_menu.add_command(label='Reset Configuration File', command=reset_config)
 
 help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
