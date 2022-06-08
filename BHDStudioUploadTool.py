@@ -260,6 +260,7 @@ source_loaded = StringVar()
 source_file_information = {}
 encode_file_path = StringVar()
 torrent_file_path = StringVar()
+# automatic_workflow = StringVar()
 
 
 def source_input_function(*args):
@@ -1473,7 +1474,7 @@ def torrent_function_window():
     torrent_piece_frame.grid_rowconfigure(1, weight=1)
 
     # calculate piece size for 'piece_size_info_label2'
-    def set_piece_size():
+    def set_piece_size(*args):
         # get size of file with os.stat()
         file = float(os.stat(pathlib.Path(encode_file_path.get())).st_size)
         # if torrent is auto use torf.Torrent() to generate piece size
@@ -1813,6 +1814,7 @@ def generate_button_checker():
         open_torrent_window_button.config(state=DISABLED)
         parse_and_upload.config(state=DISABLED)
     root.after(50, generate_button_checker)  # loop to constantly check
+
 
 generate_button_checker()
 
