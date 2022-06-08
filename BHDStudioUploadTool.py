@@ -462,10 +462,9 @@ def encode_input_function(*args):
     audio_track = media_info.audio_tracks[0]
 
     # check audio track format
-    if str(source_file_information["source_selected_audio_info"]['format']) != 'AC-3':
+    if str(audio_track.format) != 'AC-3':
         messagebox.showerror(parent=root, title='Error',
-                             message=f'Audio format '
-                                     f'"{str(source_file_information["source_selected_audio_info"]["format"])}"'
+                             message=f'Audio format "{str(audio_track.format)}" '
                                      f'is not correct.\n\nBHDStudio encodes should be in "Dolby Digital (AC-3)" only')
         return
 
@@ -565,9 +564,8 @@ def encode_input_function(*args):
 
     enable_clear_all_checkbuttons()
 
-    # enable torrent button
+    # set torrent name
     torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
-    open_torrent_window_button.config(state=NORMAL)
 
     encode_label.config(text=update_source_label)
     encode_hdr_label.config(text=hdr_string)
@@ -1371,17 +1369,6 @@ generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=
 generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
 
 
-def generate_button_checker():
-    if source_file_path.get() != '' and encode_file_path.get() != '':
-        generate_nfo_button.config(state=NORMAL)
-    else:
-        generate_nfo_button.config(state=DISABLED)
-    root.after(50, generate_button_checker)
-
-
-generate_button_checker()
-
-
 # torrent creation ----------------------------------------------------------------------------------------------------
 def torrent_function_window():
     # main torrent parser
@@ -1813,5 +1800,20 @@ help_menu.add_command(label="Report Error / Feature Request",  # Open GitHub tra
                                                       '/issues/new/choose'))
 help_menu.add_separator()
 help_menu.add_command(label="Info", command=lambda: openaboutwindow(main_root_title))  # Opens about window
+
+
+# function to enable/disable main GUI buttons
+def generate_button_checker():
+    if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
+        generate_nfo_button.config(state=NORMAL)
+        open_torrent_window_button.config(state=NORMAL)
+        parse_and_upload.config(state=NORMAL)
+    else:  # if source/encode is empty strings
+        generate_nfo_button.config(state=DISABLED)
+        open_torrent_window_button.config(state=DISABLED)
+        parse_and_upload.config(state=DISABLED)
+    root.after(50, generate_button_checker)  # loop to constantly check
+
+generate_button_checker()
 
 root.mainloop()
