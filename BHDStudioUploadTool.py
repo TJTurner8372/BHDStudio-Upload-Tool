@@ -47,6 +47,10 @@ if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
 if not config.has_option('encoder_name', 'name'):
     config.set('encoder_name', 'name', '')
+if not config.has_section('watch_folder'):
+    config.add_section('watch_folder')
+if not config.has_option('watch_folder', 'path'):
+    config.set('watch_folder', 'path', '')
 
 # window location settings
 if not config.has_section('save_window_locations'):
