@@ -860,6 +860,16 @@ def parse_screen_shots():
             return False
 
 
+# manual workflow frame
+manual_workflow = LabelFrame(root, text=' Manual Workflow ', labelanchor="nw")
+manual_workflow.grid(column=0, row=4, columnspan=3, padx=5, pady=(5, 3), sticky=W)
+manual_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+manual_workflow.grid_rowconfigure(0, weight=1)
+manual_workflow.grid_columnconfigure(0, weight=1)
+manual_workflow.grid_columnconfigure(1, weight=1)
+manual_workflow.grid_columnconfigure(2, weight=1)
+
+
 # generate nfo
 def open_nfo_viewer():
     global nfo_pad, nfo_pad_text_box, nfo
@@ -1285,9 +1295,9 @@ def open_nfo_viewer():
     nfo_pad_text_box.insert(END, nfo)
 
 
-generate_nfo_button = HoverButton(root, text="Generate NFO", command=open_nfo_viewer, foreground="white",
-                                  background="#23272A", borderwidth="3", activeforeground="#3498db", width=1)
-generate_nfo_button.grid(row=4, column=3, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=open_nfo_viewer, foreground="white",
+                                  background="#23272A", borderwidth="3", activeforeground="#3498db")
+generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
 
 
 def generate_button_checker():
@@ -1572,10 +1582,23 @@ def torrent_function_window():
 
 
 # open torrent window button
-open_torrent_window_button = HoverButton(root, text="Create Torrent", command=torrent_function_window,
+open_torrent_window_button = HoverButton(manual_workflow, text="Create Torrent", command=torrent_function_window,
                                          foreground="white", background="#23272A", borderwidth="3",
-                                         activeforeground="#3498db", width=1, state=DISABLED)
-open_torrent_window_button.grid(row=4, column=0, columnspan=1, padx=10, pady=(3, 0), sticky=E + W)
+                                         activeforeground="#3498db", state=DISABLED)
+open_torrent_window_button.grid(row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W)
+
+# automatic workflow frame
+automatic_workflow = LabelFrame(root, text=' Automatic Workflow ', labelanchor="nw")
+automatic_workflow.grid(column=3, row=4, columnspan=1, padx=5, pady=(5, 3), sticky=E)
+automatic_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+automatic_workflow.grid_rowconfigure(0, weight=1)
+automatic_workflow.grid_columnconfigure(0, weight=1)
+
+# open torrent window button
+parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", command=None,
+                               foreground="white", background="#23272A", borderwidth="3",
+                               activeforeground="#3498db", width=1, state=DISABLED)
+parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
 
 
 # Hide/Open all top level window function -----------------------------------------------------------------------------
