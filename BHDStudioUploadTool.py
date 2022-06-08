@@ -267,10 +267,10 @@ def source_input_function(*args):
     video_track = media_info.video_tracks[0]
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
-    update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
-                          f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
-                          f"Frame rate:  {str(video_track.frame_rate)}   |   " \
-                          f"Stream size:  {str(video_track.other_stream_size[3])}"
+    update_source_label = f"Avg BR:  {str(calculate_average_video_bitrate)} kbps  |  " \
+                          f"Res:  {str(video_track.width)}x{str(video_track.height)}  |  " \
+                          f"FPS:  {str(video_track.frame_rate)}  |  " \
+                          f"Size:  {str(video_track.other_stream_size[3])}"
     hdr_string = ''
     if video_track.other_hdr_format:
         hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
@@ -464,11 +464,11 @@ def encode_input_function(*args):
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
 
-    update_source_label = f"Bitrate:  {str(calculate_average_video_bitrate)} kb/s   |   " \
-                          f"Resolution:  {str(video_track.width)}x{str(video_track.height)}   |   " \
-                          f"Frame rate:  {str(video_track.frame_rate)}   |   " \
-                          f"Audio:  {str(audio_track.format)}  /  {audio_channels_string}  /  " \
-                          f"{str(audio_track.other_bit_rate[0]).replace('kb/s', '').strip().replace(' ', '')} kb/s"
+    update_source_label = f"Avg BR:  {str(calculate_average_video_bitrate)} kbps  |  " \
+                          f"Res:  {str(video_track.width)}x{str(video_track.height)}  |  " \
+                          f"FPS:  {str(video_track.frame_rate)}  |  " \
+                          f"Audio:  {str(audio_track.format)} / {audio_channels_string} / " \
+                          f"{str(audio_track.other_bit_rate[0]).replace('kb/s', '').strip().replace(' ', '')} kbps"
     hdr_string = ''
     if video_track.other_hdr_format:
         hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
