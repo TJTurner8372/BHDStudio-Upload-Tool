@@ -461,6 +461,14 @@ def encode_input_function(*args):
     # select audio track #1
     audio_track = media_info.audio_tracks[0]
 
+    # check audio track format
+    if str(source_file_information["source_selected_audio_info"]['format']) != 'AC-3':
+        messagebox.showerror(parent=root, title='Error',
+                             message=f'Audio format '
+                                     f'"{str(source_file_information["source_selected_audio_info"]["format"])}"'
+                                     f'is not correct.\n\nBHDStudio encodes should be in "Dolby Digital (AC-3)" only')
+        return
+
     # check if audio channels was properly encoded from source
     source_audio_channels = int(source_file_information["source_selected_audio_info"]["channel_s"])
     # 720p check, define accepted bhd audio channels
