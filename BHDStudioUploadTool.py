@@ -24,8 +24,8 @@ from Packages.About import openaboutwindow
 from Packages.icon import base_64_icon
 from Packages.show_streams import stream_menu
 
-# Set variable to True if you want errors to pop up in window + log to file + console, False for console only
-enable_error_logger = True  # Change this to false if you don't want to log errors to file + pop up window
+# Set variable to True if you want errors to pop up in window + console, False for console only
+enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
 main_root_title = "BHDStudio Upload Tool v1.0"
@@ -104,7 +104,7 @@ root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
-root_window_height = 640
+root_window_height = 660
 root_window_width = 720
 if config['save_window_locations']['bhdstudiotool'] == '':
     screen_width = root.winfo_screenwidth()
@@ -345,6 +345,13 @@ def source_input_function(*args):
     source_loaded.set('loaded')  # set string var to loaded
 
     # update dictionary
+    # source input path
+    source_file_information.update({"source_path": str(pathlib.Path(*args))})
+
+    # selected source audio track info
+    source_file_information.update(
+        {"source_selected_audio_info": media_info.audio_tracks[int(audio_pop_up_var.get())].to_data()})
+
     # audio track selection
     source_file_information.update({"audio_track": audio_pop_up_var.get()})
 
@@ -421,16 +428,19 @@ def encode_input_function(*args):
 
     # detect resolution and check miss match bit rates
     if video_track.width <= 1280 and video_track.height <= 720:  # 720p
+        encoded_source_resolution = '720p'
         if calculate_average_video_bit_rate <= 3000 or calculate_average_video_bit_rate >= 5000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 720p encodes should be @ 4000 kbps')
             return
     elif video_track.width <= 1920 and video_track.height <= 1080:  # 1080p
+        encoded_source_resolution = '1080p'
         if calculate_average_video_bit_rate <= 7000 or calculate_average_video_bit_rate >= 9000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 1080p encodes should be @ 8000 kbps')
             return
     elif video_track.width <= 3840 and video_track.height <= 2160:  # 2160p
+        encoded_source_resolution = '2160p'
         if calculate_average_video_bit_rate <= 15000 or calculate_average_video_bit_rate >= 17000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 2160p encodes should be @ 16000 kbps')
@@ -450,6 +460,55 @@ def encode_input_function(*args):
 
     # select audio track #1
     audio_track = media_info.audio_tracks[0]
+
+    # check if audio channels was properly encoded from source
+    source_audio_channels = int(source_file_information["source_selected_audio_info"]["channel_s"])
+    # 720p check, define accepted bhd audio channels
+    if encoded_source_resolution == '720p':
+        if source_audio_channels == 1:
+            bhd_accepted_audio_channels = 1
+        elif source_audio_channels >= 2:
+            bhd_accepted_audio_channels = 2
+
+    # 1080p/2160p check, define accepted bhd audio channels
+    elif encoded_source_resolution == '1080p' or encoded_source_resolution == '2160p':
+        if source_audio_channels == 1:
+            bhd_accepted_audio_channels = 1
+        elif source_audio_channels in (2, 3, 4, 5):
+            bhd_accepted_audio_channels = 2
+        elif source_audio_channels in (6, 7, 8):
+            bhd_accepted_audio_channels = 6
+
+    # compare encoded audio channels against BHD accepted audio channels, if they are not the same prompt an error
+    if int(audio_track.channel_s) != bhd_accepted_audio_channels:
+        # generate cleaner audio strings for source
+        if source_audio_channels == 1:
+            source_audio_string = '1.0'
+        elif source_audio_channels == 2:
+            source_audio_string = '2.0'
+        elif source_audio_channels == 3:
+            source_audio_string = '2.1'
+        elif source_audio_channels == 6:
+            source_audio_string = '5.1'
+        elif source_audio_channels == 7:
+            source_audio_string = '6.1'
+        elif source_audio_channels == 8:
+            source_audio_string = '7.1'
+        else:
+            source_audio_string = str(source_audio_channels)
+
+        # generate cleaner audio strings for encode
+        if bhd_accepted_audio_channels == 1:
+            encode_audio_string = '1.0'
+        elif bhd_accepted_audio_channels == 2:
+            encode_audio_string = '2.0 (dplII)'
+        elif bhd_accepted_audio_channels == 6:
+            encode_audio_string = '5.1'
+        messagebox.showerror(parent=root, title='Error',
+                             message=f'Source audio is {source_audio_string}\n\n'
+                                     f'{encoded_source_resolution} BHDStudio audio should be Dolby Digital '
+                                     f'{encode_audio_string}')
+        return
 
     # audio channel string conversion and error check
     if audio_track.channel_s == 1:
