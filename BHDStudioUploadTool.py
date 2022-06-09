@@ -3,7 +3,6 @@ import math
 import os
 import pathlib
 import re
-import requests
 import sys
 import threading
 import tkinter.scrolledtext as scrolledtextwidget
@@ -16,6 +15,7 @@ from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N,
     INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar
 
 import pyperclip
+import requests
 import torf
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
@@ -48,6 +48,10 @@ if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
 if not config.has_option('encoder_name', 'name'):
     config.set('encoder_name', 'name', '')
+if not config.has_section('bhd_upload_api'):
+    config.add_section('bhd_upload_api')
+if not config.has_option('bhd_upload_api', 'key'):
+    config.set('bhd_upload_api', 'key', '')
 if not config.has_section('watch_folder'):
     config.add_section('watch_folder')
 if not config.has_option('watch_folder', 'path'):
@@ -1336,12 +1340,12 @@ def open_nfo_viewer():
     bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
 
     # Create Menu
-    my_menu = Menu(nfo_pad)
-    nfo_pad.config(menu=my_menu)
+    nfo_main_menu = Menu(nfo_pad)
+    nfo_pad.config(menu=nfo_main_menu)
 
     # Add File Menu
-    nfo_menu = Menu(my_menu, tearoff=False)
-    my_menu.add_cascade(label="File", menu=nfo_menu)
+    nfo_menu = Menu(nfo_main_menu, tearoff=False)
+    nfo_main_menu.add_cascade(label="File", menu=nfo_menu)
     nfo_menu.add_command(label="New", command=new_file)
     nfo_menu.add_command(label="Open", command=open_file)
     nfo_menu.add_command(label="Save", command=save_file)
@@ -1350,8 +1354,8 @@ def open_nfo_viewer():
     nfo_menu.add_command(label="Exit", command=lambda: [automatic_workflow_boolean.set(False), nfo_pad_exit_function()])
 
     # Add Edit Menu
-    edit_menu = Menu(my_menu, tearoff=False)
-    my_menu.add_cascade(label="Edit", menu=edit_menu)
+    edit_menu = Menu(nfo_main_menu, tearoff=False)
+    nfo_main_menu.add_cascade(label="Edit", menu=edit_menu)
     edit_menu.add_command(label="Cut", command=lambda: cut_text(False), accelerator="(Ctrl+x)")
     edit_menu.add_command(label="Copy", command=lambda: copy_text(False), accelerator="(Ctrl+c)")
     edit_menu.add_command(label="Paste             ", command=lambda: paste_text(False), accelerator="(Ctrl+v)")
@@ -1363,8 +1367,8 @@ def open_nfo_viewer():
     edit_menu.add_command(label="Clear", command=clear_all)
 
     # Add Color Menu
-    color_menu = Menu(my_menu, tearoff=False)
-    my_menu.add_cascade(label="Colors", menu=color_menu)
+    color_menu = Menu(nfo_main_menu, tearoff=False)
+    nfo_main_menu.add_cascade(label="Colors", menu=color_menu)
     color_menu.add_command(label="Text Color", command=all_text_color)
     color_menu.add_command(label="Background", command=bg_color)
 
@@ -1821,65 +1825,70 @@ root.bind("<Control-r>", lambda event: reset_gui())
 file_menu.add_command(label='Exit                        [ALT + F4]', command=root_exit_function)
 
 
-def set_encoder_name():
+# custom input box that accepts label, config option, and config key
+def custom_input_prompt(label_input, config_option, config_key):
     # set parser
-    encoder_name_parser = ConfigParser()
-    encoder_name_parser.read(config_file)
+    custom_input_parser = ConfigParser()
+    custom_input_parser.read(config_file)
 
     # encoder name window
-    encoder_name_window = Toplevel()
-    encoder_name_window.configure(background="#363636")
-    encoder_name_window.geometry(f'{260}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+    custom_input_window = Toplevel()
+    custom_input_window.configure(background="#363636")
+    custom_input_window.geometry(f'{260}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    encoder_name_window.resizable(0, 0)
-    encoder_name_window.grab_set()
-    encoder_name_window.wm_overrideredirect(True)
+    custom_input_window.resizable(0, 0)
+    custom_input_window.grab_set()
+    custom_input_window.wm_overrideredirect(True)
     root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
-    encoder_name_window.grid_rowconfigure(0, weight=1)
-    encoder_name_window.grid_columnconfigure(0, weight=1)
+    custom_input_window.grid_rowconfigure(0, weight=1)
+    custom_input_window.grid_columnconfigure(0, weight=1)
 
     # encoder name frame
-    encoder_name_frame = Frame(encoder_name_window, highlightbackground="white", highlightthickness=2, bg="#363636",
+    custom_input_frame = Frame(custom_input_window, highlightbackground="white", highlightthickness=2, bg="#363636",
                                highlightcolor='white')
-    encoder_name_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    custom_input_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
-        encoder_name_frame.grid_columnconfigure(e_n_f, weight=1)
-        encoder_name_frame.grid_rowconfigure(e_n_f, weight=1)
+        custom_input_frame.grid_columnconfigure(e_n_f, weight=1)
+        custom_input_frame.grid_rowconfigure(e_n_f, weight=1)
 
     # create label
-    encoder_label = Label(encoder_name_frame, text='Encoder Name:', background='#363636', fg="#3498db",
+    custom_label = Label(custom_input_frame, text=label_input, background='#363636', fg="#3498db",
                           font=(set_font, set_font_size, "bold"))
-    encoder_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+    custom_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
 
     # create entry box
-    encoder_entry_box = Entry(encoder_name_frame, borderwidth=4, bg="#565656", fg='white')
-    encoder_entry_box.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W)
-    encoder_entry_box.insert(END, encoder_name_parser['encoder_name']['name'])
+    custom_entry_box = Entry(custom_input_frame, borderwidth=4, bg="#565656", fg='white')
+    custom_entry_box.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W)
+    custom_entry_box.insert(END, custom_input_parser[config_option][config_key])
 
     # function to save new name to config.ini
     def encoder_okay_func():
-        if encoder_name_parser['encoder_name']['name'] != encoder_entry_box.get().strip():
-            encoder_name_parser.set('encoder_name', 'name', encoder_entry_box.get().strip())
+        if custom_input_parser[config_option][config_key] != custom_entry_box.get().strip():
+            custom_input_parser.set(config_option, config_key, custom_entry_box.get().strip())
             with open(config_file, 'w') as encoder_name_config_file:
-                encoder_name_parser.write(encoder_name_config_file)
+                custom_input_parser.write(encoder_name_config_file)
         root.wm_attributes('-alpha', 1.0)  # restore transparency
-        encoder_name_window.destroy()  # close window
+        custom_input_window.destroy()  # close window
 
     # create 'OK' button
-    encoder_okay_btn = HoverButton(encoder_name_frame, text="OK", command=encoder_okay_func, foreground="white",
+    encoder_okay_btn = HoverButton(custom_input_frame, text="OK", command=encoder_okay_func, foreground="white",
                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=8)
     encoder_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
     # create 'Cancel' button
-    encoder_cancel_btn = HoverButton(encoder_name_frame, text="Cancel", activeforeground="#3498db", width=8,
-                                     command=lambda: [encoder_name_window.destroy(), root.wm_attributes('-alpha', 1.0)],
+    encoder_cancel_btn = HoverButton(custom_input_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                     command=lambda: [custom_input_window.destroy(),
+                                                      root.wm_attributes('-alpha', 1.0)],
                                      foreground="white", background="#23272A", borderwidth="3", )
     encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
 
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
-options_menu.add_command(label='Set Encoder Name', command=set_encoder_name)
+options_menu.add_command(label='Encoder Name',
+                         command=lambda: [custom_input_prompt('Encoder Name:', 'encoder_name', 'name')])
+options_menu.add_command(label='API Key',
+                         command=lambda: [custom_input_prompt('BHD Upload Key:', 'bhd_upload_api', 'key')])
 options_menu.add_separator()
 options_menu.add_command(label='Reset Configuration File', command=reset_config)
 
