@@ -3,6 +3,7 @@ import math
 import os
 import pathlib
 import re
+import requests
 import sys
 import threading
 import tkinter.scrolledtext as scrolledtextwidget
@@ -12,7 +13,7 @@ from ctypes import windll
 from idlelib.tooltip import Hovertip
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
-    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar
 
 import pyperclip
 import torf
@@ -260,7 +261,7 @@ source_loaded = StringVar()
 source_file_information = {}
 encode_file_path = StringVar()
 torrent_file_path = StringVar()
-# automatic_workflow = StringVar()
+automatic_workflow_boolean = BooleanVar()
 
 
 def source_input_function(*args):
@@ -1364,6 +1365,13 @@ def open_nfo_viewer():
     nfo_pad_text_box.delete("1.0", END)
     nfo_pad_text_box.insert(END, nfo)
 
+    # if program is in automatic workflow mode
+    if automatic_workflow_boolean.get():
+        status_bar.config(text="Double check NFO and close this window (saving is optional, saved internally) "
+                               "to continue the Automatic Workflow")
+        nfo_pad.wait_window()
+        return nfo
+
 
 generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activeforeground="#3498db")
@@ -1397,9 +1405,12 @@ def torrent_function_window():
                     with open(config_file, 'w') as torrent_configfile:
                         torrent_parser.write(torrent_configfile)
 
-        torrent_window.destroy()  # destroy torrent window
-        open_all_toplevels()  # open all top levels that was open
-        advanced_root_deiconify()  # re-open root
+        if not automatic_workflow_boolean.get():
+            torrent_window.destroy()  # destroy torrent window
+            open_all_toplevels()  # open all top levels that was open
+            advanced_root_deiconify()  # re-open root
+        if automatic_workflow_boolean.get():
+            torrent_window.destroy()  # destroy torrent window
 
     hide_all_toplevels()  # hide all top levels
     root.withdraw()  # hide root
@@ -1634,10 +1645,16 @@ def torrent_function_window():
     create_torrent_button.grid(row=4, column=9, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
     # cancel torrent button
-    cancel_torrent_button = HoverButton(torrent_window, text="Cancel", command=torrent_window_exit_function,
+    cancel_torrent_button = HoverButton(torrent_window, text="Cancel",
+                                        command=lambda: [automatic_workflow_boolean.set(False),
+                                                         torrent_window_exit_function()],
                                         foreground="white", background="#23272A", borderwidth="3",
                                         activeforeground="#3498db", width=12)
     cancel_torrent_button.grid(row=4, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N)
+
+    # if program is in automatic workflow mode
+    if automatic_workflow_boolean.get():
+        torrent_window.wait_window()
 
 
 # open torrent window button
@@ -1653,8 +1670,46 @@ automatic_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 1
 automatic_workflow.grid_rowconfigure(0, weight=1)
 automatic_workflow.grid_columnconfigure(0, weight=1)
 
-# open torrent window button
-parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", command=None,
+
+# automatic workflow code
+def automatic_workflow_function():
+    automatic_workflow_boolean.set(True)
+    # torrent_function_window()
+    if not automatic_workflow_boolean.get():
+        return
+    collect_parsed_nfo = open_nfo_viewer()
+    if not automatic_workflow_boolean.get():
+        return
+
+
+    # build out uploader window
+    api_upl = "https://beyond-hd.me/api/upload/a2faa6489d9ddb6268450ee140bcc989"
+
+    def upload(tor_f, name, mi_file, nfo, imdb, tmdb, live=0, anon=0):
+        params = {"name": name, "category_id": 1, "type": "720p", "source": "Blu-ray",
+                  "imdb_id": imdb, "tmdb_id": tmdb, "description": nfo, "nfo": nfo, "live": live,
+                  "anon": anon, "stream": "optimized", "promo": 2, "internal": 1}
+        req = requests.post(api_upl, params, files={'file': open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", 'rb'),
+                                                    "mediainfo": open(r"C:\Users\jlw_4\Desktop\torrent.test.txt",
+                                                                      "rb")})
+        return req
+
+    name = "2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio"
+    imdb = 472582
+    tmdb = 2168
+    tor_file = open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", "rb")
+    mi_file = open(r"C:\Users\jlw_4\Desktop\torrent.test.txt", "rb")
+
+    req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
+    print(req.status_code)
+    print(req.json())
+    req.raise_for_status()
+    #
+
+
+
+# automatic work flow button
+parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", command=automatic_workflow_function,
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", width=1, state=DISABLED)
 parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
