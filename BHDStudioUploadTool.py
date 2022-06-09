@@ -1825,8 +1825,8 @@ root.bind("<Control-r>", lambda event: reset_gui())
 file_menu.add_command(label='Exit                        [ALT + F4]', command=root_exit_function)
 
 
-# custom input box that accepts label, config option, and config key
-def custom_input_prompt(label_input, config_option, config_key):
+# custom input box that accepts parent window, label, config option, and config key
+def custom_input_prompt(parent_window, label_input, config_option, config_key):
     # set parser
     custom_input_parser = ConfigParser()
     custom_input_parser.read(config_file)
@@ -1834,12 +1834,12 @@ def custom_input_prompt(label_input, config_option, config_key):
     # encoder name window
     custom_input_window = Toplevel()
     custom_input_window.configure(background="#363636")
-    custom_input_window.geometry(f'{260}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
-                                 f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    custom_input_window.geometry(f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
+                                 f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
     custom_input_window.resizable(0, 0)
     custom_input_window.grab_set()
     custom_input_window.wm_overrideredirect(True)
-    root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+    parent_window.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
     custom_input_window.grid_rowconfigure(0, weight=1)
     custom_input_window.grid_columnconfigure(0, weight=1)
 
@@ -1853,7 +1853,7 @@ def custom_input_prompt(label_input, config_option, config_key):
 
     # create label
     custom_label = Label(custom_input_frame, text=label_input, background='#363636', fg="#3498db",
-                          font=(set_font, set_font_size, "bold"))
+                         font=(set_font, set_font_size, "bold"))
     custom_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
 
     # create entry box
@@ -1867,7 +1867,7 @@ def custom_input_prompt(label_input, config_option, config_key):
             custom_input_parser.set(config_option, config_key, custom_entry_box.get().strip())
             with open(config_file, 'w') as encoder_name_config_file:
                 custom_input_parser.write(encoder_name_config_file)
-        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        parent_window.wm_attributes('-alpha', 1.0)  # restore transparency
         custom_input_window.destroy()  # close window
 
     # create 'OK' button
@@ -1886,9 +1886,9 @@ def custom_input_prompt(label_input, config_option, config_key):
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
 options_menu.add_command(label='Encoder Name',
-                         command=lambda: [custom_input_prompt('Encoder Name:', 'encoder_name', 'name')])
+                         command=lambda: [custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name')])
 options_menu.add_command(label='API Key',
-                         command=lambda: [custom_input_prompt('BHD Upload Key:', 'bhd_upload_api', 'key')])
+                         command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')])
 options_menu.add_separator()
 options_menu.add_command(label='Reset Configuration File', command=reset_config)
 
