@@ -1157,6 +1157,7 @@ def open_nfo_viewer():
     nfo_pad.title('BHDStudioUploadTool - NFO Pad')
     nfo_pad_window_height = 600
     nfo_pad_window_width = 1000
+    nfo_pad.config(bg="#363636")
     if nfo_pad_parser['save_window_locations']['nfo_pad'] == '':
         nfo_screen_width = nfo_pad.winfo_screenwidth()
         nfo_screen_height = nfo_pad.winfo_screenheight()
@@ -1165,11 +1166,13 @@ def open_nfo_viewer():
         nfo_pad.geometry(f"{nfo_pad_window_width}x{nfo_pad_window_height}+{nfo_x_coordinate}+{nfo_y_coordinate}")
     elif nfo_pad_parser['save_window_locations']['nfo_pad'] != '':
         nfo_pad.geometry(nfo_pad_parser['save_window_locations']['nfo_pad'])
-    nfo_pad.protocol('WM_DELETE_WINDOW', nfo_pad_exit_function)
+    nfo_pad.protocol('WM_DELETE_WINDOW', lambda: [automatic_workflow_boolean.set(False), nfo_pad_exit_function()])
 
     nfo_pad.grid_columnconfigure(0, weight=1)
+    nfo_pad.grid_columnconfigure(1, weight=1)
     nfo_pad.grid_rowconfigure(0, weight=1000)
     nfo_pad.grid_rowconfigure(1, weight=1)
+    nfo_pad.grid_rowconfigure(2, weight=1)
 
     # Set variable for open file name
     global open_status_name
@@ -1312,17 +1315,17 @@ def open_nfo_viewer():
         nfo_pad_text_box.delete(1.0, END)
 
     # Create Main Frame
-    my_frame = Frame(nfo_pad)
-    my_frame.grid(column=0, row=0, sticky=N + S + E + W)
-    my_frame.grid_columnconfigure(0, weight=1)
-    my_frame.grid_rowconfigure(0, weight=1)
+    nfo_frame = Frame(nfo_pad)
+    nfo_frame.grid(column=0, columnspan=2, row=0, pady=(5, 0), padx=5, sticky=N + S + E + W)
+    nfo_frame.grid_columnconfigure(0, weight=1)
+    nfo_frame.grid_rowconfigure(0, weight=1)
 
     # scroll bars
-    right_scrollbar = Scrollbar(my_frame, orient=VERTICAL)  # Scrollbars
-    bottom_scrollbar = Scrollbar(my_frame, orient=HORIZONTAL)
+    right_scrollbar = Scrollbar(nfo_frame, orient=VERTICAL)  # Scrollbars
+    bottom_scrollbar = Scrollbar(nfo_frame, orient=HORIZONTAL)
 
     # Create Text Box
-    nfo_pad_text_box = Text(my_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
+    nfo_pad_text_box = Text(nfo_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
                             xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
     nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
 
@@ -1344,7 +1347,7 @@ def open_nfo_viewer():
     nfo_menu.add_command(label="Save", command=save_file)
     nfo_menu.add_command(label="Save As...", command=save_as_file)
     nfo_menu.add_separator()
-    nfo_menu.add_command(label="Exit", command=nfo_pad.quit)
+    nfo_menu.add_command(label="Exit", command=lambda: [automatic_workflow_boolean.set(False), nfo_pad_exit_function()])
 
     # Add Edit Menu
     edit_menu = Menu(my_menu, tearoff=False)
@@ -1366,8 +1369,8 @@ def open_nfo_viewer():
     color_menu.add_command(label="Background", command=bg_color)
 
     # Add Status Bar To Bottom Of App
-    status_bar = Label(nfo_pad, text='Ready', anchor=E)
-    status_bar.grid(column=0, row=1, sticky=E + W)
+    status_bar = Label(nfo_pad, text='Ready', anchor=E, bg="#565656", fg="white", relief=SUNKEN)
+    status_bar.grid(column=0, columnspan=2, row=2, pady=1, padx=1, sticky=E + W)
 
     # Edit Bindings
     nfo_pad.bind('<Control-Key-x>', cut_text)
@@ -1384,8 +1387,25 @@ def open_nfo_viewer():
 
     # if program is in automatic workflow mode
     if automatic_workflow_boolean.get():
-        status_bar.config(text="Double check NFO and close this window (saving is optional, saved internally) "
-                               "to continue the Automatic Workflow")
+        workflow_frame = Frame(nfo_pad, bg="#363636")
+        workflow_frame.grid(row=1, column=0, columnspan=2, padx=0, pady=0, sticky=N + S + E + W)
+        workflow_frame.grid_columnconfigure(0, weight=1)
+        workflow_frame.grid_columnconfigure(1, weight=1)
+        workflow_frame.grid_rowconfigure(0, weight=1)
+
+        continue_button = HoverButton(workflow_frame, text="Continue",
+                                      command=lambda: [automatic_workflow_boolean.set(True), nfo_pad_exit_function()],
+                                      foreground="white", background="#23272A", borderwidth="3",
+                                      activeforeground="#3498db", width=10)
+        continue_button.grid(row=0, column=1, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + E)
+
+        cancel_workflow_button = HoverButton(workflow_frame, text="Cancel", width=10, foreground="white",
+                                             command=lambda: [automatic_workflow_boolean.set(False),
+                                                              nfo_pad_exit_function()],
+                                             borderwidth="3", activeforeground="#3498db", background="#23272A")
+        cancel_workflow_button.grid(row=0, column=0, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + W)
+        status_bar.config(text="(Saving is optional)   Cancel / Closing NFO Pad will stop the automatic workflow  |  "
+                               "Click continue to proceed...")
         nfo_pad.wait_window()
         return nfo
 
@@ -1445,7 +1465,8 @@ def torrent_function_window():
                                 f'{str(int(root.geometry().split("+")[2]) + 210)}')
     elif torrent_config['save_window_locations']['torrent_window'] != '':
         torrent_window.geometry(torrent_config['save_window_locations']['torrent_window'])
-    torrent_window.protocol('WM_DELETE_WINDOW', torrent_window_exit_function)
+    torrent_window.protocol('WM_DELETE_WINDOW', lambda: [automatic_workflow_boolean.set(False),
+                                                         torrent_window_exit_function()])
 
     # row and column configure
     for t_w in range(10):
@@ -1691,10 +1712,11 @@ automatic_workflow.grid_columnconfigure(0, weight=1)
 # automatic workflow code
 def automatic_workflow_function():
     automatic_workflow_boolean.set(True)
-    torrent_function_window()
+    # torrent_function_window()
     if not automatic_workflow_boolean.get():
         return
     collect_parsed_nfo = open_nfo_viewer()
+    print(automatic_workflow_boolean.get())
     if not automatic_workflow_boolean.get():
         return
 
@@ -1717,10 +1739,10 @@ def automatic_workflow_function():
     tor_file = open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", "rb")
     mi_file = open(r"C:\Users\jlw_4\Desktop\torrent.test.txt", "rb")
 
-    req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
-    print(req.status_code)
-    print(req.json())
-    req.raise_for_status()
+    # req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
+    # print(req.status_code)
+    # print(req.json())
+    # req.raise_for_status()
     #
 
 
