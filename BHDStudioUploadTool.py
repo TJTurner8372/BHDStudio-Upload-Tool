@@ -448,6 +448,23 @@ def encode_input_function(*args):
                                                  f'Bit rate for 2160p encodes should be @ 16000 kbps')
             return
 
+    # check for source resolution vs encode resolution (do not allow 2160p encode on a 1080p source)
+    source_width = str(source_file_information['resolution']).split('x')[0]
+    source_height = str(source_file_information['resolution']).split('x')[1]
+    if int(source_width) <= 1920 and int(source_height) <= 1080:  # 1080p
+        source_resolution = '1080p'
+        allowed_encode_resolutions = ['720p', '1080p']
+    elif int(source_width) <= 3840 and int(source_height) <= 2160:  # 2160p
+        source_resolution = '2160p'
+        allowed_encode_resolutions = ['2160p']
+    if encoded_source_resolution not in allowed_encode_resolutions:
+        messagebox.showerror(parent=root, title='Error',
+                             message=f'Source resolution {source_resolution}:\n'
+                                     f'Encode resolution {encoded_source_resolution}\n\n'
+                                     f'Allowed encode resolutions based on source:\n'
+                                     f'"{", ".join(allowed_encode_resolutions)}"')
+        return
+
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
     if not media_info.general_tracks[0].count_of_audio_streams:
@@ -1674,7 +1691,7 @@ automatic_workflow.grid_columnconfigure(0, weight=1)
 # automatic workflow code
 def automatic_workflow_function():
     automatic_workflow_boolean.set(True)
-    # torrent_function_window()
+    torrent_function_window()
     if not automatic_workflow_boolean.get():
         return
     collect_parsed_nfo = open_nfo_viewer()
