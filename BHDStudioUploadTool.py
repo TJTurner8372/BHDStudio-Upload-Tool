@@ -10,9 +10,11 @@ import webbrowser
 from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
+from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
     INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar
+from PIL import Image, ImageTk
 
 import pyperclip
 import requests
@@ -22,7 +24,7 @@ from pymediainfo import MediaInfo
 from torf import Torrent
 
 from Packages.About import openaboutwindow
-from Packages.icon import base_64_icon
+from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon
 from Packages.show_streams import stream_menu
 
 # Set variable to True if you want errors to pop up in window + console, False for console only
@@ -66,6 +68,8 @@ if not config.has_option('save_window_locations', 'torrent_window'):
     config.set('save_window_locations', 'torrent_window', '')
 if not config.has_option('save_window_locations', 'nfo_pad'):
     config.set('save_window_locations', 'nfo_pad', '')
+if not config.has_option('save_window_locations', 'uploader'):
+    config.set('save_window_locations', 'uploader', '')
 if not config.has_option('save_window_locations', 'about_window'):
     config.set('save_window_locations', 'about_window', '')
 
@@ -225,12 +229,12 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
                                                                        'Tool/issues/new?assignees=jlw4049&labels=bug'
                                                                        '&template=bug_report.md&title='),
                                        foreground='white', background='#23272A', borderwidth='3',
-                                       activeforeground="#3498db")
+                                       activeforeground="#3498db", activebackground="#23272A")
             report_error.grid(row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N)
 
             force_close_root = HoverButton(error_window, text='Force Close Program', command=root.destroy,
                                            foreground='white', background='#23272A', borderwidth='3',
-                                           activeforeground="#3498db")
+                                           activeforeground="#3498db", activebackground="#23272A")
             force_close_root.grid(row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N)
 
             def right_click_menu_func(x_y_pos):  # Function for mouse button 3 (right click) to pop up menu
@@ -266,6 +270,8 @@ source_file_information = {}
 encode_file_path = StringVar()
 torrent_file_path = StringVar()
 automatic_workflow_boolean = BooleanVar()
+live_boolean = BooleanVar()
+anonymous_boolean = BooleanVar()
 
 
 def source_input_function(*args):
@@ -339,7 +345,8 @@ def source_input_function(*args):
             audio_track_win.destroy()
 
         audio_track_okay_btn = HoverButton(track_frame, text="OK", command=audio_ok_button_function, foreground="white",
-                                           background="#23272A", borderwidth="3", width=8, activeforeground="#3498db")
+                                           background="#23272A", borderwidth="3", width=8, activeforeground="#3498db",
+                                           activebackground="#23272A")
         audio_track_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
         audio_track_win.wait_window()
 
@@ -633,7 +640,8 @@ def manual_source_input():
 
 
 source_button = HoverButton(source_frame, text="Open", command=manual_source_input, foreground="white",
-                            background="#23272A", borderwidth="3", activeforeground="#3498db")
+                            background="#23272A", borderwidth="3", activeforeground="#3498db",
+                            activebackground="#23272A")
 source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
 source_entry_box = Entry(source_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
@@ -667,7 +675,8 @@ def delete_source_entry():
 
 
 reset_source_input = HoverButton(source_frame, text="X", command=delete_source_entry, foreground="white",
-                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db",
+                                 activebackground="#23272A")
 reset_source_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
 # encode --------------------------------------------------------------------------------------------------------------
@@ -692,7 +701,8 @@ def manual_encode_input():
 
 
 encode_button = HoverButton(encode_frame, text="Open", command=manual_encode_input, foreground="white",
-                            background="#23272A", borderwidth="3", activeforeground="#3498db")
+                            background="#23272A", borderwidth="3", activeforeground="#3498db",
+                            activebackground="#23272A")
 encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
 encode_entry_box = Entry(encode_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
@@ -731,7 +741,8 @@ def delete_encode_entry():
 
 
 reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_entry, foreground="white",
-                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db",
+                                 activebackground="#23272A")
 reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
 
 # release notes -------------------------------------------------------------------------------------------------------
@@ -866,7 +877,7 @@ screenshot_scrolledtext = scrolledtextwidget.ScrolledText(screenshot_frame, heig
 screenshot_scrolledtext.grid(row=0, column=0, columnspan=3, pady=(0, 6), padx=10, sticky=E + W)
 
 # clear screenshot box
-reset_screenshot_box = HoverButton(screenshot_frame, text="X",
+reset_screenshot_box = HoverButton(screenshot_frame, text="X", activebackground="#23272A",
                                    command=lambda: screenshot_scrolledtext.delete('1.0', END), foreground="white",
                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=4)
 reset_screenshot_box.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W)
@@ -1397,7 +1408,7 @@ def open_nfo_viewer():
         workflow_frame.grid_columnconfigure(1, weight=1)
         workflow_frame.grid_rowconfigure(0, weight=1)
 
-        continue_button = HoverButton(workflow_frame, text="Continue",
+        continue_button = HoverButton(workflow_frame, text="Continue", activebackground="#23272A",
                                       command=lambda: [automatic_workflow_boolean.set(True), nfo_pad_exit_function()],
                                       foreground="white", background="#23272A", borderwidth="3",
                                       activeforeground="#3498db", width=10)
@@ -1405,7 +1416,7 @@ def open_nfo_viewer():
 
         cancel_workflow_button = HoverButton(workflow_frame, text="Cancel", width=10, foreground="white",
                                              command=lambda: [automatic_workflow_boolean.set(False),
-                                                              nfo_pad_exit_function()],
+                                                              nfo_pad_exit_function()], activebackground="#23272A",
                                              borderwidth="3", activeforeground="#3498db", background="#23272A")
         cancel_workflow_button.grid(row=0, column=0, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + W)
         status_bar.config(text="(Saving is optional)   Cancel / Closing NFO Pad will stop the automatic workflow  |  "
@@ -1415,7 +1426,8 @@ def open_nfo_viewer():
 
 
 generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=open_nfo_viewer, foreground="white",
-                                  background="#23272A", borderwidth="3", activeforeground="#3498db")
+                                  background="#23272A", borderwidth="3", activeforeground="#3498db",
+                                  activebackground="#23272A")
 generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
 
 
@@ -1505,7 +1517,8 @@ def torrent_function_window():
 
     # torrent set path button
     torrent_button = HoverButton(torrent_path_frame, text="Set", command=torrent_save_output, foreground="white",
-                                 background="#23272A", borderwidth="3", activeforeground="#3498db")
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db",
+                                 activebackground="#23272A")
     torrent_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 5), sticky=N + S + E + W)
 
     # torrent path entry box
@@ -1680,14 +1693,14 @@ def torrent_function_window():
     custom_style.configure('text.Horizontal.TProgressbar', text='')
 
     # create torrent button
-    create_torrent_button = HoverButton(torrent_window, text="Create",
+    create_torrent_button = HoverButton(torrent_window, text="Create", activebackground="#23272A",
                                         command=lambda: threading.Thread(target=create_torrent).start(),
                                         foreground="white", background="#23272A", borderwidth="3",
                                         activeforeground="#3498db", width=12)
     create_torrent_button.grid(row=4, column=9, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
     # cancel torrent button
-    cancel_torrent_button = HoverButton(torrent_window, text="Cancel",
+    cancel_torrent_button = HoverButton(torrent_window, text="Cancel", activebackground="#23272A",
                                         command=lambda: [automatic_workflow_boolean.set(False),
                                                          torrent_window_exit_function()],
                                         foreground="white", background="#23272A", borderwidth="3",
@@ -1702,7 +1715,7 @@ def torrent_function_window():
 # open torrent window button
 open_torrent_window_button = HoverButton(manual_workflow, text="Create Torrent", command=torrent_function_window,
                                          foreground="white", background="#23272A", borderwidth="3",
-                                         activeforeground="#3498db", state=DISABLED)
+                                         activeforeground="#3498db", activebackground="#23272A", state=DISABLED)
 open_torrent_window_button.grid(row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W)
 
 # automatic workflow frame
@@ -1715,46 +1728,288 @@ automatic_workflow.grid_columnconfigure(0, weight=1)
 
 # automatic workflow code
 def automatic_workflow_function():
-    automatic_workflow_boolean.set(True)
+    # automatic_workflow_boolean.set(True)
     # torrent_function_window()
-    if not automatic_workflow_boolean.get():
-        return
-    collect_parsed_nfo = open_nfo_viewer()
-    print(automatic_workflow_boolean.get())
-    if not automatic_workflow_boolean.get():
-        return
+    # if not automatic_workflow_boolean.get():
+    #     return
+    # collect_parsed_nfo = open_nfo_viewer()
+    # if not automatic_workflow_boolean.get():
+    #     return
+
+    upload_window = Toplevel()
+    upload_window.title('BHDStudio - Uploader')
+    upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
+    upload_window.configure(background="#363636")
+    upload_window_window_height = 660
+    upload_window_window_width = 720
+    # if config['save_window_locations']['bhdstudiotool'] == '':
+    uploader_screen_width = upload_window.winfo_screenwidth()
+    uploader_screen_height = upload_window.winfo_screenheight()
+    uploader_x_coordinate = int((uploader_screen_width / 2) - (upload_window_window_width / 2))
+    uploader_y_coordinate = int((uploader_screen_height / 2) - (upload_window_window_height / 2))
+    upload_window.geometry(f"{upload_window_window_width}x{upload_window_window_height}+"
+                           f"{uploader_x_coordinate}+{uploader_y_coordinate}")
+    # elif config['save_window_locations']['bhdstudiotool'] != '':
+    #     upload_window.geometry(config['save_window_locations']['bhdstudiotool'])
+    # upload_window.protocol('WM_DELETE_WINDOW', upload_window_exit_function)
+
+    for u_w_c in range(4):
+        upload_window.grid_columnconfigure(u_w_c, weight=1)
+    for u_w_r in range(7):
+        upload_window.grid_rowconfigure(u_w_r, weight=1)
+
+    torrent_options_frame = LabelFrame(upload_window, text=' Torrent Input ', labelanchor="nw")
+    torrent_options_frame.grid(column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    torrent_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    torrent_options_frame.grid_rowconfigure(0, weight=1)
+    torrent_options_frame.grid_columnconfigure(0, weight=1)
+    torrent_options_frame.grid_columnconfigure(1, weight=20)
+
+    torrent_input_button = HoverButton(torrent_options_frame, text="Open", command=manual_source_input,
+                                       foreground="white", background="#23272A", borderwidth="3",
+                                       activeforeground="#3498db", activebackground="#23272A")
+    torrent_input_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
+
+    torrent_input_entry_box = Entry(torrent_options_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
+                                    disabledforeground='white', disabledbackground="#565656")
+    torrent_input_entry_box.grid(row=0, column=1, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
 
 
-    # build out uploader window
-    api_upl = "https://beyond-hd.me/api/upload/a2faa6489d9ddb6268450ee140bcc989"
+    title_options_frame = LabelFrame(upload_window, text=' Title ', labelanchor="nw")
+    title_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    title_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    title_options_frame.grid_rowconfigure(0, weight=1)
+    title_options_frame.grid_columnconfigure(0, weight=1)
 
-    def upload(tor_f, name, mi_file, nfo, imdb, tmdb, live=0, anon=0):
-        params = {"name": name, "category_id": 1, "type": "720p", "source": "Blu-ray",
-                  "imdb_id": imdb, "tmdb_id": tmdb, "description": nfo, "nfo": nfo, "live": live,
-                  "anon": anon, "stream": "optimized", "promo": 2, "internal": 1}
-        req = requests.post(api_upl, params, files={'file': open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", 'rb'),
-                                                    "mediainfo": open(r"C:\Users\jlw_4\Desktop\torrent.test.txt",
-                                                                      "rb")})
-        return req
+    title_input_entry_box = Entry(title_options_frame, borderwidth=4, bg="#565656", fg='white',
+                                  disabledforeground='white', disabledbackground="#565656")
+    title_input_entry_box.grid(row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 
-    name = "2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio"
-    imdb = 472582
-    tmdb = 2168
-    tor_file = open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", "rb")
-    mi_file = open(r"C:\Users\jlw_4\Desktop\torrent.test.txt", "rb")
 
-    # req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
-    # print(req.status_code)
-    # print(req.json())
-    # req.raise_for_status()
-    #
+    upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
+    upload_options_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    upload_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    upload_options_frame.grid_rowconfigure(0, weight=1)
+    upload_options_frame.grid_rowconfigure(1, weight=1)
+    for u_o_f in range(6):
+        upload_options_frame.grid_columnconfigure(u_o_f, weight=300)
+
+
+    type_label = Label(upload_options_frame, text='Type:', bd=0, relief=SUNKEN, background='#363636',
+                       fg="#3498db", font=(set_font, set_font_size + 1))
+    type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
+
+    type_choices = {"720p": "720p", "1080p": "1080p", "2160p": "2160p"}
+    type_var = StringVar()
+    # type_var.set("Auto")
+    type_var_menu = OptionMenu(upload_options_frame, type_var, *type_choices.keys(), command=None)
+    type_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
+                         activebackground="grey")
+    type_var_menu.grid(row=0, column=1, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=W)
+    type_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
+
+
+
+
+    source_label = Label(upload_options_frame, text='Source:', bd=0, relief=SUNKEN, background='#363636',
+                         fg="#3498db", font=(set_font, set_font_size + 1))
+    source_label.grid(column=2, row=0, columnspan=1, pady=(5, 0), padx=(5, 5), sticky=E)
+
+    source_choices = {"Blu-Ray": "Blu-Ray", "HD-DVD": "HD-DVD"}
+    source_var = StringVar()
+    # source_var.set("Auto")
+    source_var_menu = OptionMenu(upload_options_frame, source_var, *source_choices.keys(), command=None)
+    source_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
+                           activebackground="grey")
+    source_var_menu.grid(row=0, column=3, columnspan=1, pady=(7, 5), padx=(2, 5), sticky=W)
+    source_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
+
+
+    edition_label = Label(upload_options_frame, text='Edition\n(Optional):', bd=0, relief=SUNKEN, background='#363636',
+                         fg="#3498db", font=(set_font, set_font_size + 1))
+    edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
+
+    edition_choices = {
+        "N/A": "",
+        "Collector's Edition": "Collector",
+        "Director's Cut": "Director",
+        "Extended Cut": "Extended",
+        "Limited Edition": "Limited",
+        "Special Edition": "Special",
+        "Theatrical Cut": "Theatrical",
+        "Uncut": "Uncut",
+        "Unrated": "Unrated"}
+    edition_var = StringVar()
+    edition_var.set("N/A")
+    edition_var_menu = OptionMenu(upload_options_frame, edition_var, *edition_choices.keys(), command=None)
+    edition_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
+                           activebackground="grey")
+    edition_var_menu.grid(row=0, column=5, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=E)
+    edition_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
+
+    edition_label = Label(upload_options_frame, text='Edition\n(Custom):', bd=0, relief=SUNKEN, background='#363636',
+                          fg="#3498db", font=(set_font, set_font_size + 1))
+    edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
+
+    edition_entry_box = Entry(upload_options_frame, borderwidth=4, bg="#565656", fg='white',
+                              disabledforeground='white', disabledbackground="#565656")
+    edition_entry_box.grid(row=1, column=1, columnspan=5, padx=5, pady=(5, 0), sticky=E + W)
+
+
+    imdb_tmdb_frame = LabelFrame(upload_window, text=' IMDB / TMDB ', labelanchor="nw")
+    imdb_tmdb_frame.grid(column=0, row=3, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
+    imdb_tmdb_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(1, weight=300)
+    imdb_tmdb_frame.grid_columnconfigure(7, weight=1)
+
+    imdb_tmdb_search_frame = LabelFrame(imdb_tmdb_frame, text=' Search ', labelanchor="n")
+    imdb_tmdb_search_frame.grid(column=0, row=0, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
+    imdb_tmdb_search_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
+    imdb_tmdb_search_frame.grid_rowconfigure(0, weight=1)
+    imdb_tmdb_search_frame.grid_columnconfigure(0, weight=1)
+
+    search_entry_box = Entry(imdb_tmdb_search_frame, borderwidth=4, bg="#565656", fg='white',
+                             disabledforeground='white', disabledbackground="#565656")
+    search_entry_box.grid(row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
+
+    search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
+                                        command=None,foreground="white", background="#23272A", borderwidth="3",
+                                        activeforeground="#3498db", width=12)
+    search_button.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
+
+    imdb_label = Label(imdb_tmdb_frame, text='IMDB ID\n(Required)', background='#363636',
+                       fg="#3498db", font=(set_font, set_font_size + 1))
+    imdb_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=W)
+
+    imdb_entry_box = Entry(imdb_tmdb_frame, borderwidth=4, bg="#565656", fg='white',
+                           disabledforeground='white', disabledbackground="#565656")
+    imdb_entry_box.grid(row=1, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W)
+
+    decode_resize_imdb_image = Image.open(BytesIO(base64.b64decode(imdb_icon))).resize((35, 35))
+    imdb_img = ImageTk.PhotoImage(decode_resize_imdb_image)
+
+    imdb_button = Button(imdb_tmdb_frame, image=imdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                         activebackground="#363636")
+    imdb_button.grid(row=1, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
+    imdb_button.photo = imdb_img
+
+
+    tmdb_label = Label(imdb_tmdb_frame, text='TMDB ID\n(Required)', background='#363636',
+                       fg="#3498db", font=(set_font, set_font_size + 1))
+    tmdb_label.grid(column=0, row=2, columnspan=1, pady=(5, 0), padx=5, sticky=W)
+
+    tmdb_entry_box = Entry(imdb_tmdb_frame, borderwidth=4, bg="#565656", fg='white',
+                           disabledforeground='white', disabledbackground="#565656")
+    tmdb_entry_box.grid(row=2, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W)
+
+    decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(tmdb_icon))).resize((35, 35))
+    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+
+    tmdb_button = Button(imdb_tmdb_frame, image=tmdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                         activebackground="#363636")
+    tmdb_button.grid(row=2, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
+    tmdb_button.photo = tmdb_img
+
+    info_frame = LabelFrame(upload_window, text=' Info ', labelanchor="nw")
+    info_frame.grid(column=0, row=4, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    info_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    info_frame.grid_rowconfigure(0, weight=1)
+    info_frame.grid_columnconfigure(0, weight=1)
+    info_frame.grid_columnconfigure(1, weight=100)
+    info_frame.grid_columnconfigure(2, weight=1)
+    info_frame.grid_columnconfigure(3, weight=100)
+
+    media_info_button = HoverButton(info_frame, text="MediaInfo", command=None, foreground="white",
+                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=15,
+                                    activebackground="#23272A")
+    media_info_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N)
+
+    media_info_entry = Entry(info_frame, borderwidth=4, bg="#565656", fg='white',
+                             disabledforeground='white', disabledbackground="#565656")
+    media_info_entry.grid(row=0, column=1, columnspan=1, padx=5, pady=(5, 0), sticky=E + W)
+
+    nfo_desc_button = HoverButton(info_frame, text="NFO / Description", command=None, foreground="white",
+                                  background="#23272A", borderwidth="3", activeforeground="#3498db", width=15,
+                                  activebackground="#23272A")
+    nfo_desc_button.grid(row=0, column=2, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
+
+    nfo_desc_entry = Entry(info_frame, borderwidth=4, bg="#565656", fg='white',
+                             disabledforeground='white', disabledbackground="#565656")
+    nfo_desc_entry.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + W)
+
+    misc_options_frame = LabelFrame(upload_window, text=' Upload Options ', labelanchor="nw")
+    misc_options_frame.grid(column=0, row=5, columnspan=3, padx=5, pady=(5, 3), sticky=E + W)
+    misc_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    misc_options_frame.grid_rowconfigure(0, weight=1)
+    for m_o_f in range(3):
+        misc_options_frame.grid_columnconfigure(m_o_f, weight=1)
+
+
+    live_checkbox = Checkbutton(misc_options_frame, text='Send to Drafts', variable=live_boolean, state=DISABLED,
+                                onvalue=0, offvalue=1)
+    live_checkbox.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=E + W)
+    live_checkbox.configure(background="#363636", foreground="white", activebackground="#363636",
+                                          activeforeground="white", selectcolor="#363636",
+                                          font=(set_font, set_font_size + 1))
+    live_boolean.set(0)
+
+
+    anonymous_checkbox = Checkbutton(misc_options_frame, text='Anonymous', variable=anonymous_boolean, onvalue=1,
+                                     offvalue=0)
+    anonymous_checkbox.grid(row=0, column=1, padx=5, pady=(5, 3), sticky=W)
+    anonymous_checkbox.configure(background="#363636", foreground="white", activebackground="#363636",
+                                          activeforeground="white", selectcolor="#363636",
+                                          font=(set_font, set_font_size + 1))
+    anonymous_boolean.set(0)
+
+
+
+    def upload_to_api():
+        pass
+
+        # api_upl = "https://beyond-hd.me/api/upload/a2faa6489d9ddb6268450ee140bcc989"
+        #
+        # def upload(tor_f, name, mi_file, nfo, imdb, tmdb, live=0, anon=0):
+        #     params = {"name": name, "category_id": 1, "type": "720p", "source": "Blu-ray",
+        #               "imdb_id": imdb, "tmdb_id": tmdb, "description": nfo, "nfo": nfo, "live": live,
+        #               "anon": anon, "stream": "optimized", "promo": 2, "internal": 1}
+        #     req = requests.post(api_upl, params, files={'file': open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", 'rb'),
+        #                                                 "mediainfo": open(r"C:\Users\jlw_4\Desktop\torrent.test.txt",
+        #                                                                   "rb")})
+        #     return req
+        #
+        # name = "2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio"
+        # imdb = 472582
+        # tmdb = 2168
+        # tor_file = open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", "rb")
+        # mi_file = open(r"C:\Users\jlw_4\Desktop\torrent.test.txt", "rb")
+
+        # req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
+        # print(req.status_code)
+        # print(req.json())
+        # req.raise_for_status()
+        #
+
+
+
+    decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(bhd_upload_icon))).resize((120, 45))
+    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+
+    upload_button = HoverButton(upload_window, text="Upload", command=upload_to_api, image=tmdb_img,
+                                background="#363636", borderwidth=0, activebackground="#363636", cursor='hand2')
+    upload_button.grid(row=5, column=3, padx=(5, 10), pady=(5, 10), sticky=E + S)
+    upload_button.image = tmdb_img
+
 
 
 
 # automatic work flow button
 parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", command=automatic_workflow_function,
                                foreground="white", background="#23272A", borderwidth="3",
-                               activeforeground="#3498db", width=1, state=DISABLED)
+                               activeforeground="#3498db", width=1, activebackground="#23272A")
 parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
 
 
@@ -1839,7 +2094,7 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
     custom_input_window.resizable(0, 0)
     custom_input_window.grab_set()
     custom_input_window.wm_overrideredirect(True)
-    parent_window.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+    parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
     custom_input_window.grid_rowconfigure(0, weight=1)
     custom_input_window.grid_columnconfigure(0, weight=1)
 
@@ -1872,14 +2127,16 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
 
     # create 'OK' button
     encoder_okay_btn = HoverButton(custom_input_frame, text="OK", command=encoder_okay_func, foreground="white",
-                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=8)
+                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+                                   activebackground="#23272A")
     encoder_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
     # create 'Cancel' button
     encoder_cancel_btn = HoverButton(custom_input_frame, text="Cancel", activeforeground="#3498db", width=8,
                                      command=lambda: [custom_input_window.destroy(),
                                                       root.wm_attributes('-alpha', 1.0)],
-                                     foreground="white", background="#23272A", borderwidth="3", )
+                                     foreground="white", background="#23272A", borderwidth="3",
+                                     activebackground="#23272A")
     encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
 
@@ -1911,11 +2168,11 @@ def generate_button_checker():
     if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
         generate_nfo_button.config(state=NORMAL)
         open_torrent_window_button.config(state=NORMAL)
-        parse_and_upload.config(state=NORMAL)
-    else:  # if source/encode is empty strings
+        # parse_and_upload.config(state=NORMAL)
+    else:  # if source/encode is empty stringsN
         generate_nfo_button.config(state=DISABLED)
         open_torrent_window_button.config(state=DISABLED)
-        parse_and_upload.config(state=DISABLED)
+        # parse_and_upload.config(state=DISABLED)
     root.after(50, generate_button_checker)  # loop to constantly check
 
 
