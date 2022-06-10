@@ -10,10 +10,11 @@ import webbrowser
 from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
+import tmdbsimple as tmdb
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
-    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, EXTENDED
 from PIL import Image, ImageTk
 
 import pyperclip
@@ -1875,9 +1876,79 @@ def automatic_workflow_function():
                              disabledforeground='white', disabledbackground="#565656")
     search_entry_box.grid(row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
 
+    def search_movie_db_ids_function():
+        if search_entry_box.get().strip() != '':
+            batch_input_window = Toplevel()
+            batch_input_window.configure(background="#434547")  # Set's the background color
+            batch_input_window.title('Batch File Input')  # Toplevel Title
+            # if batch_func_parser['save_window_locations']['batch window position'] == '' or \
+            #         batch_func_parser['save_window_locations']['batch window'] == 'no':
+            window_height = 400
+            window_width = 1000
+            screen_width = batch_input_window.winfo_screenwidth()
+            screen_height = batch_input_window.winfo_screenheight()
+            x_coordinate = int((screen_width / 2) - (window_width / 2))
+            y_coordinate = int((screen_height / 2) - (window_height / 2))
+            batch_input_window.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
+            # elif batch_func_parser['save_window_locations']['batch window position'] != '' and \
+            #         batch_func_parser['save_window_locations']['batch window'] == 'yes':
+            #     batch_input_window.geometry(batch_func_parser['save_window_locations']['batch window position'])
+            # batch_input_window.protocol('WM_DELETE_WINDOW', batch_window_exit_function)
+
+            # Row/Grid configures
+            batch_input_window.grid_columnconfigure(0, weight=20)
+            batch_input_window.grid_columnconfigure(1, weight=1)
+            batch_input_window.grid_rowconfigure(0, weight=1)
+            # Row/Grid configures
+
+            listbox_frame = Frame(batch_input_window)  # Set dynamic listbox frame
+            listbox_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N + S + E + W)
+            listbox_frame.grid_rowconfigure(0, weight=200)
+            listbox_frame.grid_rowconfigure(1, weight=0)
+            listbox_frame.grid_columnconfigure(0, weight=200)
+            listbox_frame.grid_columnconfigure(1, weight=0)
+
+            right_scrollbar = Scrollbar(listbox_frame, orient=VERTICAL)  # Scrollbars
+            bottom_scrollbar = Scrollbar(listbox_frame, orient=HORIZONTAL)
+
+            # Create listbox
+            batch_listbox = Listbox(listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
+                                    yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db",
+                                    selectbackground='#272727', selectforeground='light green', selectmode=EXTENDED,
+                                    font=(set_font, set_font_size + 2))
+            batch_listbox.grid(row=0, column=0, sticky=N + E + S + W)
+
+            # add scrollbars to the listbox
+            right_scrollbar.config(command=batch_listbox.yview)
+            right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
+            bottom_scrollbar.config(command=batch_listbox.xview)
+            bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+            tmdb.API_KEY = ''
+            search = tmdb.Search()
+            search.movie(query='The Matrix', primary_release_year=1999)
+            empty_dict = {}
+            for s in search.results:
+                imdb_id = dict(tmdb.Movies(int(s['id'])).info())['imdb_id']
+                print(f"{s['title']} ({str(s['release_date']).split('-')[0]}) | tvdbID:{s['id']} | imdbID:{imdb_id}")
+                empty_dict.update({f"{s['title']} ({str(s['release_date']).split('-')[0]})": {"tvdb_id": f"{s['id']}",
+                                                                                              "imdb_id": f"{imdb_id}"}})
+            for key in empty_dict.keys():
+                batch_listbox.insert(END, key)
+
+            def callback(event):
+                selection = event.widget.curselection()
+                if selection:
+                    index = selection[0]
+                    data = event.widget.get(index)
+                    print(empty_dict[data])
+
+            batch_listbox.bind("<<ListboxSelect>>", callback)
+
+
     search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
-                                        command=None,foreground="white", background="#23272A", borderwidth="3",
-                                        activeforeground="#3498db", width=12)
+                                        command=search_movie_db_ids_function, foreground="white", background="#23272A",
+                                borderwidth="3", activeforeground="#3498db", width=12)
     search_button.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
     imdb_label = Label(imdb_tmdb_frame, text='IMDB ID\n(Required)', background='#363636',
