@@ -14,7 +14,7 @@ import tmdbsimple as tmdb
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
-    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, EXTENDED
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE
 from PIL import Image, ImageTk
 
 import pyperclip
@@ -1914,7 +1914,7 @@ def automatic_workflow_function():
             # Create listbox
             batch_listbox = Listbox(listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
                                     yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db",
-                                    selectbackground='#272727', selectforeground='light green', selectmode=EXTENDED,
+                                    selectbackground='#272727', selectforeground='light green', selectmode=SINGLE,
                                     font=(set_font, set_font_size + 2))
             batch_listbox.grid(row=0, column=0, sticky=N + E + S + W)
 
@@ -1932,7 +1932,8 @@ def automatic_workflow_function():
                 imdb_id = dict(tmdb.Movies(int(s['id'])).info())['imdb_id']
                 print(f"{s['title']} ({str(s['release_date']).split('-')[0]}) | tvdbID:{s['id']} | imdbID:{imdb_id}")
                 empty_dict.update({f"{s['title']} ({str(s['release_date']).split('-')[0]})": {"tvdb_id": f"{s['id']}",
-                                                                                              "imdb_id": f"{imdb_id}"}})
+                                                                                              "imdb_id": f"{imdb_id}",
+                                                                                              "plot": f"{s['overview']}"}})
             for key in empty_dict.keys():
                 batch_listbox.insert(END, key)
 
@@ -1942,8 +1943,16 @@ def automatic_workflow_function():
                     index = selection[0]
                     data = event.widget.get(index)
                     print(empty_dict[data])
+                    print(empty_dict[data]['plot'])
+                    jobs_window_progress.delete("1.0", END)
+                    jobs_window_progress.insert(END, empty_dict[data]['plot'])
 
             batch_listbox.bind("<<ListboxSelect>>", callback)
+
+            jobs_window_progress = scrolledtextwidget.ScrolledText(
+                batch_input_window, width=90, height=5)
+            jobs_window_progress.grid(row=1, column=0, columnspan=2, pady=(0, 6), padx=10, sticky=E + W)
+            jobs_window_progress.config(bg='black', fg='#CFD2D1', bd=8)
 
 
     search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
