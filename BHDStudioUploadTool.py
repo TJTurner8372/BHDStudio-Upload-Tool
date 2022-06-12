@@ -10,22 +10,21 @@ import webbrowser
 from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
-import tmdbsimple as tmdb
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
     INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE
-from PIL import Image, ImageTk
 
 import pyperclip
-import requests
+import tmdbsimple as tmdb
 import torf
+from PIL import Image, ImageTk
 from TkinterDnD2 import *
 from pymediainfo import MediaInfo
 from torf import Torrent
 
 from Packages.About import openaboutwindow
-from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon
+from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, bhd_upload_icon_disabled
 from Packages.show_streams import stream_menu
 
 # Set variable to True if you want errors to pop up in window + console, False for console only
@@ -269,6 +268,7 @@ source_file_path = StringVar()
 source_loaded = StringVar()
 source_file_information = {}
 encode_file_path = StringVar()
+encode_file_resolution = StringVar()
 torrent_file_path = StringVar()
 automatic_workflow_boolean = BooleanVar()
 live_boolean = BooleanVar()
@@ -459,6 +459,8 @@ def encode_input_function(*args):
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 2160p encodes should be @ 16000 kbps')
             return
+    # set encode file resolution stringvar
+    encode_file_resolution.set(encoded_source_resolution)
 
     # check for source resolution vs encode resolution (do not allow 2160p encode on a 1080p source)
     source_width = str(source_file_information['resolution']).split('x')[0]
@@ -1775,7 +1777,6 @@ def automatic_workflow_function():
                                     disabledforeground='white', disabledbackground="#565656")
     torrent_input_entry_box.grid(row=0, column=1, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
 
-
     title_options_frame = LabelFrame(upload_window, text=' Title ', labelanchor="nw")
     title_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     title_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
@@ -1785,7 +1786,9 @@ def automatic_workflow_function():
     title_input_entry_box = Entry(title_options_frame, borderwidth=4, bg="#565656", fg='white',
                                   disabledforeground='white', disabledbackground="#565656")
     title_input_entry_box.grid(row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-
+    if encode_file_path.get() != '' and pathlib.Path(encode_file_path.get()).is_file():
+        title_input_entry_box.delete(0, END)
+        title_input_entry_box.insert(END, str(pathlib.Path(encode_file_path.get()).stem))
 
     upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
     upload_options_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
@@ -1795,22 +1798,19 @@ def automatic_workflow_function():
     for u_o_f in range(6):
         upload_options_frame.grid_columnconfigure(u_o_f, weight=300)
 
-
     type_label = Label(upload_options_frame, text='Type:', bd=0, relief=SUNKEN, background='#363636',
                        fg="#3498db", font=(set_font, set_font_size + 1))
     type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
 
     type_choices = {"720p": "720p", "1080p": "1080p", "2160p": "2160p"}
     type_var = StringVar()
-    # type_var.set("Auto")
     type_var_menu = OptionMenu(upload_options_frame, type_var, *type_choices.keys(), command=None)
     type_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
                          activebackground="grey")
     type_var_menu.grid(row=0, column=1, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=W)
     type_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
-
-
-
+    if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
+        type_var.set(encode_file_resolution.get().strip())
 
     source_label = Label(upload_options_frame, text='Source:', bd=0, relief=SUNKEN, background='#363636',
                          fg="#3498db", font=(set_font, set_font_size + 1))
@@ -1818,16 +1818,21 @@ def automatic_workflow_function():
 
     source_choices = {"Blu-Ray": "Blu-Ray", "HD-DVD": "HD-DVD"}
     source_var = StringVar()
-    # source_var.set("Auto")
     source_var_menu = OptionMenu(upload_options_frame, source_var, *source_choices.keys(), command=None)
     source_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
                            activebackground="grey")
     source_var_menu.grid(row=0, column=3, columnspan=1, pady=(7, 5), padx=(2, 5), sticky=W)
     source_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
-
+    if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
+        is_bluray = re.search(r'(bluray|blu-ray)', title_input_entry_box.get().strip(), re.IGNORECASE)
+        is_hd_dvd = re.search(r'(hddvd|hd-dvd)', title_input_entry_box.get().strip(), re.IGNORECASE)
+        if is_bluray:
+            source_var.set('Blu-Ray')
+        if is_hd_dvd:
+            source_var.set('HD-DVD')
 
     edition_label = Label(upload_options_frame, text='Edition\n(Optional):', bd=0, relief=SUNKEN, background='#363636',
-                         fg="#3498db", font=(set_font, set_font_size + 1))
+                          fg="#3498db", font=(set_font, set_font_size + 1))
     edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
 
     edition_choices = {
@@ -1844,9 +1849,34 @@ def automatic_workflow_function():
     edition_var.set("N/A")
     edition_var_menu = OptionMenu(upload_options_frame, edition_var, *edition_choices.keys(), command=None)
     edition_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
-                           activebackground="grey")
+                            activebackground="grey")
     edition_var_menu.grid(row=0, column=5, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=E)
     edition_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
+
+    def check_edition_function():
+        if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
+            edition_check = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|s'
+                                      'pecial.*edition|theatrical.*cut|uncut|unrated',
+                                      title_input_entry_box.get().strip(), re.IGNORECASE)
+            if edition_check:
+                if 'collector' in str(edition_check.group()).lower():
+                    edition_var.set("Collector's Edition")
+                elif 'director' in str(edition_check.group()).lower():
+                    edition_var.set("Director's Cut")
+                elif 'extended' in str(edition_check.group()).lower():
+                    edition_var.set("Extended Cut")
+                elif 'limited' in str(edition_check.group()).lower():
+                    edition_var.set("Limited Edition")
+                elif 'special' in str(edition_check.group()).lower():
+                    edition_var.set("Special Edition")
+                elif 'theatrical' in str(edition_check.group()).lower():
+                    edition_var.set("Theatrical Cut")
+                elif 'uncut' in str(edition_check.group()).lower():
+                    edition_var.set("Uncut")
+                elif 'unrated' in str(edition_check.group()).lower():
+                    edition_var.set("Unrated")
+
+    check_edition_function()
 
     edition_label = Label(upload_options_frame, text='Edition\n(Custom):', bd=0, relief=SUNKEN, background='#363636',
                           fg="#3498db", font=(set_font, set_font_size + 1))
@@ -1856,6 +1886,16 @@ def automatic_workflow_function():
                               disabledforeground='white', disabledbackground="#565656")
     edition_entry_box.grid(row=1, column=1, columnspan=5, padx=5, pady=(5, 0), sticky=E + W)
 
+    def reset_disable_set_edition():
+        if edition_entry_box.get().strip() != '':
+            edition_var.set("N/A")
+            edition_var_menu.config(state=DISABLED)
+        else:
+            edition_var_menu.config(state=NORMAL)
+            check_edition_function()
+        upload_window.after(50, reset_disable_set_edition)
+
+    reset_disable_set_edition()
 
     imdb_tmdb_frame = LabelFrame(upload_window, text=' IMDB / TMDB ', labelanchor="nw")
     imdb_tmdb_frame.grid(column=0, row=3, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
@@ -1875,88 +1915,129 @@ def automatic_workflow_function():
     search_entry_box = Entry(imdb_tmdb_search_frame, borderwidth=4, bg="#565656", fg='white',
                              disabledforeground='white', disabledbackground="#565656")
     search_entry_box.grid(row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
+    if title_input_entry_box.get().strip() != '':
+        search_entry_box.delete(0, END)
+        movie_name = re.finditer(r'\d{4}(?!p)', title_input_entry_box.get().strip(), re.IGNORECASE)
+        movie_name_extraction = []
+        for match in movie_name:
+            movie_name_extraction.append(match.span())
+        full_movie_name = title_input_entry_box.get().strip()[0:int(movie_name_extraction[-1][-1])].replace('.', ' ')
+        search_entry_box.insert(END, full_movie_name)
 
-    def search_movie_db_ids_function():
+    def search_movie_db_ids_function(*args):
         if search_entry_box.get().strip() != '':
-            batch_input_window = Toplevel()
-            batch_input_window.configure(background="#434547")  # Set's the background color
-            batch_input_window.title('Batch File Input')  # Toplevel Title
+            movie_info_window = Toplevel()
+            movie_info_window.configure(background="#434547")  # Set's the background color
+            movie_info_window.title('Movie Information')  # Toplevel Title
             # if batch_func_parser['save_window_locations']['batch window position'] == '' or \
             #         batch_func_parser['save_window_locations']['batch window'] == 'no':
-            window_height = 400
-            window_width = 1000
-            screen_width = batch_input_window.winfo_screenwidth()
-            screen_height = batch_input_window.winfo_screenheight()
-            x_coordinate = int((screen_width / 2) - (window_width / 2))
-            y_coordinate = int((screen_height / 2) - (window_height / 2))
-            batch_input_window.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
+            movie_window_height = 400
+            movie_window_width = 1000
+            movie_screen_width = movie_info_window.winfo_screenwidth()
+            movie_screen_height = movie_info_window.winfo_screenheight()
+            movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
+            movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
+            movie_info_window.geometry(f"{movie_window_width}x{movie_window_height}+"
+                                       f"{movie_x_coordinate}+{movie_y_coordinate}")
+            movie_info_window.grab_set()
             # elif batch_func_parser['save_window_locations']['batch window position'] != '' and \
             #         batch_func_parser['save_window_locations']['batch window'] == 'yes':
-            #     batch_input_window.geometry(batch_func_parser['save_window_locations']['batch window position'])
-            # batch_input_window.protocol('WM_DELETE_WINDOW', batch_window_exit_function)
+            #     movie_info_window.geometry(batch_func_parser['save_window_locations']['batch window position'])
+            # movie_info_window.protocol('WM_DELETE_WINDOW', batch_window_exit_function)
 
             # Row/Grid configures
-            batch_input_window.grid_columnconfigure(0, weight=20)
-            batch_input_window.grid_columnconfigure(1, weight=1)
-            batch_input_window.grid_rowconfigure(0, weight=1)
+            movie_info_window.grid_columnconfigure(0, weight=20)
+            movie_info_window.grid_columnconfigure(1, weight=1)
+            movie_info_window.grid_rowconfigure(0, weight=1)
             # Row/Grid configures
 
-            listbox_frame = Frame(batch_input_window)  # Set dynamic listbox frame
-            listbox_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N + S + E + W)
-            listbox_frame.grid_rowconfigure(0, weight=200)
-            listbox_frame.grid_rowconfigure(1, weight=0)
-            listbox_frame.grid_columnconfigure(0, weight=200)
-            listbox_frame.grid_columnconfigure(1, weight=0)
+            movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
+            movie_listbox_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N + S + E + W)
+            movie_listbox_frame.grid_rowconfigure(0, weight=200)
+            movie_listbox_frame.grid_rowconfigure(1, weight=0)
+            movie_listbox_frame.grid_columnconfigure(0, weight=200)
+            movie_listbox_frame.grid_columnconfigure(1, weight=0)
 
-            right_scrollbar = Scrollbar(listbox_frame, orient=VERTICAL)  # Scrollbars
-            bottom_scrollbar = Scrollbar(listbox_frame, orient=HORIZONTAL)
+            right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
+            bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
 
             # Create listbox
-            batch_listbox = Listbox(listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
+            movie_listbox = Listbox(movie_listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
                                     yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db",
                                     selectbackground='#272727', selectforeground='light green', selectmode=SINGLE,
                                     font=(set_font, set_font_size + 2))
-            batch_listbox.grid(row=0, column=0, sticky=N + E + S + W)
+            movie_listbox.grid(row=0, column=0, sticky=N + E + S + W)
 
             # add scrollbars to the listbox
-            right_scrollbar.config(command=batch_listbox.yview)
+            right_scrollbar.config(command=movie_listbox.yview)
             right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
-            bottom_scrollbar.config(command=batch_listbox.xview)
+            bottom_scrollbar.config(command=movie_listbox.xview)
             bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
 
-            tmdb.API_KEY = ''
-            search = tmdb.Search()
-            search.movie(query='The Matrix', primary_release_year=1999)
-            empty_dict = {}
-            for s in search.results:
-                imdb_id = dict(tmdb.Movies(int(s['id'])).info())['imdb_id']
-                print(f"{s['title']} ({str(s['release_date']).split('-')[0]}) | tvdbID:{s['id']} | imdbID:{imdb_id}")
-                empty_dict.update({f"{s['title']} ({str(s['release_date']).split('-')[0]})": {"tvdb_id": f"{s['id']}",
-                                                                                              "imdb_id": f"{imdb_id}",
-                                                                                              "plot": f"{s['overview']}"}})
-            for key in empty_dict.keys():
-                batch_listbox.insert(END, key)
+            def run_api_check():
+                tmdb.API_KEY = 'be3d5868c8ee5655d5151222f2c9638d'
+                search = tmdb.Search()
 
-            def callback(event):
-                selection = event.widget.curselection()
-                if selection:
-                    index = selection[0]
-                    data = event.widget.get(index)
-                    print(empty_dict[data])
-                    print(empty_dict[data]['plot'])
-                    jobs_window_progress.delete("1.0", END)
-                    jobs_window_progress.insert(END, empty_dict[data]['plot'])
+                collect_title = re.finditer(r'\d{4}', search_entry_box.get().strip())
 
-            batch_listbox.bind("<<ListboxSelect>>", callback)
+                title_span = []
+                for title_only in collect_title:
+                    title_span.append(title_only.span())
+
+                if title_span:
+                    movie_title = str(search_entry_box.get()[0:title_span[-1][0]]).replace('.', ' ').replace(
+                        '(', '').replace(')', '').strip()
+                    collect_year = re.findall(r'\d{4}', search_entry_box.get().strip())
+                    search.movie(query=movie_title, primary_release_year=int(str(collect_year[-1])))
+                if not title_span:
+                    search.movie(query=search_entry_box.get().strip())
+
+                movie_dict = {}
+
+                for s in search.results:
+                    # find imdb_id data through tmdb
+                    imdb_id = dict(tmdb.Movies(int(s['id'])).info())['imdb_id']
+                    # if release date string isn't nothing
+                    if str(s['release_date']) != "":
+                        # convert release date to standard month/day/year
+                        release_date = str(s['release_date']).split('-')
+                        full_release_date = f"{release_date[1]}-{release_date[2]}-{release_date[0]}"
+                    else:  # if release date string is empty, set it to none
+                        full_release_date = 'None'
+                    movie_dict.update({f"{s['title']} ({str(s['release_date']).split('-')[0]})": {
+                        "tvdb_id": f"{s['id']}", "imdb_id": f"{imdb_id}", "plot": f"{s['overview']}",
+                        "vote_average": f"{str(s['vote_average'])}", "popularity": f"{str(s['popularity'])}",
+                        "full_release_date": full_release_date}})
+
+                movie_listbox.delete(0, END)
+
+                for key in movie_dict.keys():
+                    movie_listbox.insert(END, key)
+
+                def callback(event):
+                    selection = event.widget.curselection()
+                    if selection:
+                        index = selection[0]
+                        data = event.widget.get(index)
+                        jobs_window_progress.delete("1.0", END)
+                        jobs_window_progress.insert(END, movie_dict[data]['plot'])
+
+                movie_listbox.bind("<<ListboxSelect>>", callback)
+
+            movie_listbox.insert(END, 'Loading, please wait...')
 
             jobs_window_progress = scrolledtextwidget.ScrolledText(
-                batch_input_window, width=90, height=5)
+                movie_info_window, width=90, height=5)
             jobs_window_progress.grid(row=1, column=0, columnspan=2, pady=(0, 6), padx=10, sticky=E + W)
             jobs_window_progress.config(bg='black', fg='#CFD2D1', bd=8)
 
+            threading.Thread(target=run_api_check).start()
 
+            movie_info_window.focus_set()  # focus's id window
+
+    search_entry_box.bind("<Return>", search_movie_db_ids_function)
     search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
-                                        command=search_movie_db_ids_function, foreground="white", background="#23272A",
+                                command=search_movie_db_ids_function, foreground="white", background="#23272A",
                                 borderwidth="3", activeforeground="#3498db", width=12)
     search_button.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
@@ -1975,7 +2056,6 @@ def automatic_workflow_function():
                          activebackground="#363636")
     imdb_button.grid(row=1, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
     imdb_button.photo = imdb_img
-
 
     tmdb_label = Label(imdb_tmdb_frame, text='TMDB ID\n(Required)', background='#363636',
                        fg="#3498db", font=(set_font, set_font_size + 1))
@@ -2017,7 +2097,7 @@ def automatic_workflow_function():
     nfo_desc_button.grid(row=0, column=2, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
     nfo_desc_entry = Entry(info_frame, borderwidth=4, bg="#565656", fg='white',
-                             disabledforeground='white', disabledbackground="#565656")
+                           disabledforeground='white', disabledbackground="#565656")
     nfo_desc_entry.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + W)
 
     misc_options_frame = LabelFrame(upload_window, text=' Upload Options ', labelanchor="nw")
@@ -2027,25 +2107,21 @@ def automatic_workflow_function():
     for m_o_f in range(3):
         misc_options_frame.grid_columnconfigure(m_o_f, weight=1)
 
-
     live_checkbox = Checkbutton(misc_options_frame, text='Send to Drafts', variable=live_boolean, state=DISABLED,
                                 onvalue=0, offvalue=1)
     live_checkbox.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=E + W)
     live_checkbox.configure(background="#363636", foreground="white", activebackground="#363636",
-                                          activeforeground="white", selectcolor="#363636",
-                                          font=(set_font, set_font_size + 1))
+                            activeforeground="white", selectcolor="#363636",
+                            font=(set_font, set_font_size + 1))
     live_boolean.set(0)
-
 
     anonymous_checkbox = Checkbutton(misc_options_frame, text='Anonymous', variable=anonymous_boolean, onvalue=1,
                                      offvalue=0)
     anonymous_checkbox.grid(row=0, column=1, padx=5, pady=(5, 3), sticky=W)
     anonymous_checkbox.configure(background="#363636", foreground="white", activebackground="#363636",
-                                          activeforeground="white", selectcolor="#363636",
-                                          font=(set_font, set_font_size + 1))
+                                 activeforeground="white", selectcolor="#363636",
+                                 font=(set_font, set_font_size + 1))
     anonymous_boolean.set(0)
-
-
 
     def upload_to_api():
         pass
@@ -2073,17 +2149,22 @@ def automatic_workflow_function():
         # req.raise_for_status()
         #
 
-
-
+    # enabled upload img
     decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(bhd_upload_icon))).resize((120, 45))
-    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+    upload_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
 
-    upload_button = HoverButton(upload_window, text="Upload", command=upload_to_api, image=tmdb_img,
-                                background="#363636", borderwidth=0, activebackground="#363636", cursor='hand2')
+    # disabled upload img
+    decode_resize_tmdb_image2 = Image.open(BytesIO(base64.b64decode(bhd_upload_icon_disabled))).resize((120, 45))
+    upload_img_disabled = ImageTk.PhotoImage(decode_resize_tmdb_image2)
+
+    upload_button = HoverButton(upload_window, text="Upload", command=upload_to_api, image=upload_img_disabled,
+                                background="#363636", borderwidth=0, activebackground="#363636",
+                                cursor='question_arrow')
     upload_button.grid(row=5, column=3, padx=(5, 10), pady=(5, 10), sticky=E + S)
-    upload_button.image = tmdb_img
+    upload_button.image = upload_img_disabled
 
-
+    # if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
+    #     search_movie_db_ids_function()
 
 
 # automatic work flow button
