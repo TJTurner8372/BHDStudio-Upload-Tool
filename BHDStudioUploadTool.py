@@ -28,7 +28,7 @@ from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, b
 from Packages.show_streams import stream_menu
 
 # Set variable to True if you want errors to pop up in window + console, False for console only
-enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
+enable_error_logger = False  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
 main_root_title = "BHDStudio Upload Tool v1.0"
@@ -1798,7 +1798,7 @@ def automatic_workflow_function():
     for u_o_f in range(6):
         upload_options_frame.grid_columnconfigure(u_o_f, weight=300)
 
-    type_label = Label(upload_options_frame, text='Type:', bd=0, relief=SUNKEN, background='#363636',
+    type_label = Label(upload_options_frame, text='Type', bd=0, relief=SUNKEN, background='#363636',
                        fg="#3498db", font=(set_font, set_font_size + 1))
     type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
 
@@ -1812,7 +1812,7 @@ def automatic_workflow_function():
     if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
         type_var.set(encode_file_resolution.get().strip())
 
-    source_label = Label(upload_options_frame, text='Source:', bd=0, relief=SUNKEN, background='#363636',
+    source_label = Label(upload_options_frame, text='Source', bd=0, relief=SUNKEN, background='#363636',
                          fg="#3498db", font=(set_font, set_font_size + 1))
     source_label.grid(column=2, row=0, columnspan=1, pady=(5, 0), padx=(5, 5), sticky=E)
 
@@ -1831,7 +1831,7 @@ def automatic_workflow_function():
         if is_hd_dvd:
             source_var.set('HD-DVD')
 
-    edition_label = Label(upload_options_frame, text='Edition\n(Optional):', bd=0, relief=SUNKEN, background='#363636',
+    edition_label = Label(upload_options_frame, text='Edition\n(Optional)', bd=0, relief=SUNKEN, background='#363636',
                           fg="#3498db", font=(set_font, set_font_size + 1))
     edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
 
@@ -1878,7 +1878,7 @@ def automatic_workflow_function():
 
     check_edition_function()
 
-    edition_label = Label(upload_options_frame, text='Edition\n(Custom):', bd=0, relief=SUNKEN, background='#363636',
+    edition_label = Label(upload_options_frame, text='Edition\n(Custom)', bd=0, relief=SUNKEN, background='#363636',
                           fg="#3498db", font=(set_font, set_font_size + 1))
     edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
 
@@ -1921,7 +1921,7 @@ def automatic_workflow_function():
         movie_name_extraction = []
         for match in movie_name:
             movie_name_extraction.append(match.span())
-        full_movie_name = title_input_entry_box.get().strip()[0:int(movie_name_extraction[-1][-1])].replace('.', ' ')
+        full_movie_name = title_input_entry_box.get()[0:int(movie_name_extraction[-1][-1])].replace('.', ' ').strip()
         search_entry_box.insert(END, full_movie_name)
 
     def search_movie_db_ids_function(*args):
@@ -1932,7 +1932,7 @@ def automatic_workflow_function():
             # if batch_func_parser['save_window_locations']['batch window position'] == '' or \
             #         batch_func_parser['save_window_locations']['batch window'] == 'no':
             movie_window_height = 400
-            movie_window_width = 1000
+            movie_window_width = 800
             movie_screen_width = movie_info_window.winfo_screenwidth()
             movie_screen_height = movie_info_window.winfo_screenheight()
             movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
@@ -1946,9 +1946,12 @@ def automatic_workflow_function():
             # movie_info_window.protocol('WM_DELETE_WINDOW', batch_window_exit_function)
 
             # Row/Grid configures
-            movie_info_window.grid_columnconfigure(0, weight=20)
+            movie_info_window.grid_columnconfigure(0, weight=1)
             movie_info_window.grid_columnconfigure(1, weight=1)
+            movie_info_window.grid_columnconfigure(2, weight=1)
+            movie_info_window.grid_columnconfigure(3, weight=1)
             movie_info_window.grid_rowconfigure(0, weight=1)
+            movie_info_window.grid_rowconfigure(1, weight=1)
             # Row/Grid configures
 
             movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
