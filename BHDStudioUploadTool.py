@@ -16,19 +16,21 @@ from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N,
     INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE
 
 import pyperclip
-import tmdbsimple as tmdb
+import requests
 import torf
 from PIL import Image, ImageTk
 from TkinterDnD2 import *
+from imdb import Cinemagoer
 from pymediainfo import MediaInfo
 from torf import Torrent
 
 from Packages.About import openaboutwindow
 from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, bhd_upload_icon_disabled
 from Packages.show_streams import stream_menu
+from Packages.tmdb_key import tmdb_api_key
 
 # Set variable to True if you want errors to pop up in window + console, False for console only
-enable_error_logger = False  # Change this to false if you don't want to log errors to pop up window
+enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
 main_root_title = "BHDStudio Upload Tool v1.0"
@@ -54,10 +56,12 @@ if not config.has_section('bhd_upload_api'):
     config.add_section('bhd_upload_api')
 if not config.has_option('bhd_upload_api', 'key'):
     config.set('bhd_upload_api', 'key', '')
-if not config.has_section('watch_folder'):
-    config.add_section('watch_folder')
-if not config.has_option('watch_folder', 'path'):
-    config.set('watch_folder', 'path', '')
+if not config.has_section('live_release'):
+    config.add_section('live_release')
+if not config.has_option('live_release', 'password'):
+    config.set('live_release', 'password', '')
+if not config.has_option('live_release', 'value'):
+    config.set('live_release', 'value', '')
 
 # window location settings
 if not config.has_section('save_window_locations'):
@@ -70,6 +74,8 @@ if not config.has_option('save_window_locations', 'nfo_pad'):
     config.set('save_window_locations', 'nfo_pad', '')
 if not config.has_option('save_window_locations', 'uploader'):
     config.set('save_window_locations', 'uploader', '')
+if not config.has_option('save_window_locations', 'movie_info'):
+    config.set('save_window_locations', 'movie_info', '')
 if not config.has_option('save_window_locations', 'about_window'):
     config.set('save_window_locations', 'about_window', '')
 
@@ -263,16 +269,65 @@ def start_logger():
 
 threading.Thread(target=start_logger).start()
 
-# variables
+# variables to be used within the program
 source_file_path = StringVar()
 source_loaded = StringVar()
 source_file_information = {}
 encode_file_path = StringVar()
 encode_file_resolution = StringVar()
+encode_media_info = StringVar()
+encode_file_audio = StringVar()
+encode_hdr_string = StringVar()
 torrent_file_path = StringVar()
+nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
 live_boolean = BooleanVar()
 anonymous_boolean = BooleanVar()
+movie_search_var = StringVar()
+movie_search_active = BooleanVar()
+tmdb_id_var = StringVar()
+imdb_id_var = StringVar()
+release_date_var = StringVar()
+rating_var = StringVar()
+
+
+# function to clear all variables
+def clear_all_variables():
+    source_file_path.set('')
+    source_loaded.set('')
+    source_file_information.clear()
+    encode_file_path.set('')
+    encode_file_resolution.set('')
+    encode_media_info.set('')
+    encode_file_audio.set('')
+    encode_hdr_string.set('')
+    torrent_file_path.set('')
+    nfo_info_var.set('')
+    automatic_workflow_boolean.set(0)
+    live_boolean.set(0)
+    anonymous_boolean.set(0)
+    movie_search_var.set('')
+    movie_search_active.set(0)
+    tmdb_id_var.set('')
+    imdb_id_var.set('')
+    release_date_var.set('')
+    rating_var.set('')
+
+
+# function to open imdb links with and without the id
+def open_imdb_link():
+    if imdb_id_var.get() != '':
+        webbrowser.open(f'https://imdb.com/title/{imdb_id_var.get()}')
+    else:
+        webbrowser.open('https://www.imdb.com/')
+
+
+# function to open tmdb links with and without the id
+def open_tmdb_link():
+    if tmdb_id_var.get() != '':
+        webbrowser.open(f'https://www.themoviedb.org/movie/{tmdb_id_var.get()}')
+    else:
+        webbrowser.open('https://www.themoviedb.org/movie')
 
 
 def source_input_function(*args):
@@ -550,6 +605,14 @@ def encode_input_function(*args):
                                      f'{encode_audio_string}')
         return
 
+    # update audio channel string var for use with the uploader
+    if bhd_accepted_audio_channels == 1:
+        encode_file_audio.set('DD1.0')
+    elif bhd_accepted_audio_channels == 2:
+        encode_file_audio.set('DD2.0')
+    elif bhd_accepted_audio_channels == 6:
+        encode_file_audio.set('DD5.1')
+
     # audio channel string conversion and error check
     if audio_track.channel_s == 1:
         audio_channels_string = '1.0'
@@ -575,8 +638,11 @@ def encode_input_function(*args):
     hdr_string = ''
     if video_track.other_hdr_format:
         hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
+        if 'hdr10' in hdr_string.lower():
+            encode_hdr_string.set('HDR')
     elif not video_track.other_hdr_format:
         hdr_string = ''
+        encode_hdr_string.set('')
 
     release_notes_scrolled.config(state=NORMAL)
     release_notes_scrolled.delete('1.0', END)
@@ -599,6 +665,10 @@ def encode_input_function(*args):
 
     # set torrent name
     torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
+
+    # set media info memory file
+    media_info_original = MediaInfo.parse(pathlib.Path(*args), full=False, output="")  # parse identical to mediainfo
+    encode_media_info.set(media_info_original)
 
     encode_label.config(text=update_source_label)
     encode_hdr_label.config(text=hdr_string)
@@ -741,6 +811,10 @@ def delete_encode_entry():
     open_torrent_window_button.config(state=DISABLED)
     generate_nfo_button.config(state=DISABLED)
     encode_file_path.set('')
+    encode_file_resolution.set('')
+    encode_media_info.set('')
+    encode_file_audio.set('')
+    encode_hdr_string.set('')
 
 
 reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_entry, foreground="white",
@@ -1169,7 +1243,15 @@ def open_nfo_viewer():
                     with open(config_file, 'w') as nfo_configfile:
                         nfo_pad_exit_parser.write(nfo_configfile)
 
-        nfo_pad.destroy()
+        # update nfo var
+        nfo_info_var.set(nfo_pad_text_box.get("1.0", "end-1c"))
+
+        if not automatic_workflow_boolean.get():
+            nfo_pad.destroy()  # destroy nfo window
+            open_all_toplevels()  # open all top levels that was open
+            advanced_root_deiconify()  # re-open root
+        if automatic_workflow_boolean.get():
+            nfo_pad.destroy()  # destroy nfo window
 
     nfo_pad = Toplevel()
     nfo_pad.title('BHDStudioUploadTool - NFO Pad')
@@ -1239,36 +1321,22 @@ def open_nfo_viewer():
         text_file.close()
 
     # Save As File
-    def save_as_file():
+    def nfo_pad_save():
         text_file = filedialog.asksaveasfilename(parent=nfo_pad, defaultextension=".nfo", initialdir="/",
                                                  title="Save File", filetypes=[("NFO File", "*.nfo")])
         if text_file:
-            # Update Status Bars
+            # update status bars
             name = text_file
             status_bar.config(text=f'Saved: {name}')
             nfo_pad.title(f'{name} - NFO Pad')
 
-            # Save the file
+            # save the file
             text_file = open(text_file, 'w')
-            text_file.write(nfo_pad_text_box.get(1.0, END))
-            # Close the file
-            text_file.close()
+            text_file.write(nfo_pad_text_box.get("1.0", "end-1c"))
 
-    # Save File
-    def save_file():
-        global open_status_name
-        if open_status_name:
-            # Save the file
-            text_file = open(open_status_name, 'w')
-            text_file.write(nfo_pad_text_box.get(1.0, END))
             # Close the file
             text_file.close()
-            # Put status update or popup code
-            status_bar.config(text=f'Saved: {open_status_name}        ')
-            name = open_status_name
-            nfo_pad.title(f'{name} - NFO Pad')
-        else:
-            save_as_file()
+            nfo_pad_exit_function()
 
     # Cut Text
     def cut_text(e):
@@ -1362,8 +1430,8 @@ def open_nfo_viewer():
     nfo_main_menu.add_cascade(label="File", menu=nfo_menu)
     nfo_menu.add_command(label="New", command=new_file)
     nfo_menu.add_command(label="Open", command=open_file)
-    nfo_menu.add_command(label="Save", command=save_file)
-    nfo_menu.add_command(label="Save As...", command=save_as_file)
+    nfo_menu.add_command(label="Save", command=nfo_pad_save)
+    nfo_menu.add_command(label="Save Internally", command=nfo_pad_exit_function)
     nfo_menu.add_separator()
     nfo_menu.add_command(label="Exit", command=lambda: [automatic_workflow_boolean.set(False), nfo_pad_exit_function()])
 
@@ -1425,13 +1493,12 @@ def open_nfo_viewer():
         status_bar.config(text="(Saving is optional)   Cancel / Closing NFO Pad will stop the automatic workflow  |  "
                                "Click continue to proceed...")
         nfo_pad.wait_window()
-        return nfo
 
 
 generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activeforeground="#3498db",
-                                  activebackground="#23272A")
-generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
+                                  activebackground="#23272A", width=12)
+generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=5, pady=1, sticky=E + W)
 
 
 # torrent creation ----------------------------------------------------------------------------------------------------
@@ -1640,14 +1707,25 @@ def torrent_function_window():
     # create torrent
     def create_torrent():
         if pathlib.Path(torrent_file_path.get()).is_file():
-            check_overwrite = messagebox.askyesno(parent=root, title='File Already Exists',
-                                                  message=f'"{pathlib.Path(torrent_file_path.get()).name}"\n\n'
-                                                          f'File already exists.\n\nWould you like to overwrite the '
-                                                          f'file?')
-            if not check_overwrite:  # if user does not want to overwrite file
-                save_new_file = torrent_save_output()  # call the torrent_save_output() function
-                if not save_new_file:  # if user press cancel in the torrent_save_output() window
-                    return  # exit this function
+            # ask user if they would like to use the existing torrent file
+            use_existing_file = messagebox.askyesno(parent=root, title='Use Existing File?',
+                                                    message=f'"{pathlib.Path(torrent_file_path.get()).name}"\n\n'
+                                                            f'File already exists.\n\nWould you like to use '
+                                                            f'existing file?')
+            # if user presses yes
+            if use_existing_file:
+                torrent_window_exit_function()
+                return
+
+            # if user press no
+            if not use_existing_file:
+                # ask user if they would like to overwrite
+                check_overwrite = messagebox.askyesno(parent=root, title='Overwrite File?',
+                                                      message='Would you like to overwrite file?')
+                if not check_overwrite:  # if user does not want to overwrite file
+                    save_new_file = torrent_save_output()  # call the torrent_save_output() function
+                    if not save_new_file:  # if user press cancel in the torrent_save_output() window
+                        return  # exit this function
 
         error = False  # set temporary error variable
         try:
@@ -1717,50 +1795,111 @@ def torrent_function_window():
 
 # open torrent window button
 open_torrent_window_button = HoverButton(manual_workflow, text="Create Torrent", command=torrent_function_window,
-                                         foreground="white", background="#23272A", borderwidth="3",
+                                         foreground="white", background="#23272A", borderwidth="3", width=12,
                                          activeforeground="#3498db", activebackground="#23272A", state=DISABLED)
 open_torrent_window_button.grid(row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W)
 
 # automatic workflow frame
 automatic_workflow = LabelFrame(root, text=' Automatic Workflow ', labelanchor="nw")
 automatic_workflow.grid(column=3, row=4, columnspan=1, padx=5, pady=(5, 3), sticky=E)
-automatic_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+automatic_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, set_font_size + 1, 'bold'))
 automatic_workflow.grid_rowconfigure(0, weight=1)
 automatic_workflow.grid_columnconfigure(0, weight=1)
 
 
-# automatic workflow code
-def automatic_workflow_function():
-    # automatic_workflow_boolean.set(True)
-    # torrent_function_window()
-    # if not automatic_workflow_boolean.get():
-    #     return
-    # collect_parsed_nfo = open_nfo_viewer()
-    # if not automatic_workflow_boolean.get():
-    #     return
+# uploader window
+def open_uploader_window(job_mode):
+    # uploader window config parser
+    uploader_window_config_parser = ConfigParser()
+    uploader_window_config_parser.read(config_file)
 
+    # if key is not found in the config.ini file
+    if uploader_window_config_parser['bhd_upload_api']['key'] == '':
+        api_checkpoint = messagebox.askyesno(parent=root, title='Missing API Key',
+                                             message='You are missing your BHD API Key\n\nWould you like to add '
+                                                     'this key now?\n\nNote: You can do this manually in '
+                                                     '"Options > Api Key"')
+        # if user presses yes
+        if api_checkpoint:
+            # open a new custom window to obtain and save the key to config.ini
+            custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')
+            # define temp parser
+            api_temp_parser = ConfigParser()
+            api_temp_parser.read(config_file)
+            # if bhd key is still nothing, set workflow to False, re-open root and top levels, then exit this function
+            if api_temp_parser['bhd_upload_api']['key'] == '':
+                automatic_workflow_boolean.set(0)
+                advanced_root_deiconify()
+                open_all_toplevels()
+                return
+        # if user presses no, set workflow to False, re-open root and top levels, then exit this function
+        if not api_checkpoint:
+            automatic_workflow_boolean.set(0)
+            advanced_root_deiconify()
+            open_all_toplevels()
+            return
+
+    # check job type, if auto or manual, clear some variables
+    if job_mode == 'auto' or job_mode == 'manual':
+        movie_search_var.set('')
+        tmdb_id_var.set('')
+        imdb_id_var.set('')
+        release_date_var.set('')
+        rating_var.set('')
+
+    # if job type is custom_advanced, reset the entire GUI for a clean and empty uploader window
+    elif job_mode == 'custom_advanced':
+        reset_gui()
+
+    # uploader window exit function
+    def upload_window_exit_function():
+        # uploader exit parser
+        uploader_exit_parser = ConfigParser()
+        uploader_exit_parser.read(config_file)
+
+        # save window position/geometry
+        if upload_window.wm_state() == 'normal':
+            if uploader_exit_parser['save_window_locations']['uploader'] != upload_window.geometry():
+                if int(upload_window.geometry().split('x')[0]) >= upload_window_window_width or \
+                        int(upload_window.geometry().split('x')[1].split('+')[0]) >= upload_window_window_height:
+                    uploader_exit_parser.set('save_window_locations', 'uploader', upload_window.geometry())
+                    with open(config_file, 'w') as uploader_exit_config_file:
+                        uploader_exit_parser.write(uploader_exit_config_file)
+
+        # close window, re-open root, re-open all top level windows if they exist
+        upload_window.destroy()
+        advanced_root_deiconify()
+        open_all_toplevels()
+
+    # hide all top levels and main GUI
+    hide_all_toplevels()
+    root.withdraw()
+
+    # upload window
     upload_window = Toplevel()
     upload_window.title('BHDStudio - Uploader')
     upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
     upload_window.configure(background="#363636")
     upload_window_window_height = 660
     upload_window_window_width = 720
-    # if config['save_window_locations']['bhdstudiotool'] == '':
-    uploader_screen_width = upload_window.winfo_screenwidth()
-    uploader_screen_height = upload_window.winfo_screenheight()
-    uploader_x_coordinate = int((uploader_screen_width / 2) - (upload_window_window_width / 2))
-    uploader_y_coordinate = int((uploader_screen_height / 2) - (upload_window_window_height / 2))
-    upload_window.geometry(f"{upload_window_window_width}x{upload_window_window_height}+"
-                           f"{uploader_x_coordinate}+{uploader_y_coordinate}")
-    # elif config['save_window_locations']['bhdstudiotool'] != '':
-    #     upload_window.geometry(config['save_window_locations']['bhdstudiotool'])
-    # upload_window.protocol('WM_DELETE_WINDOW', upload_window_exit_function)
+    if uploader_window_config_parser['save_window_locations']['uploader'] == '':
+        uploader_screen_width = upload_window.winfo_screenwidth()
+        uploader_screen_height = upload_window.winfo_screenheight()
+        uploader_x_coordinate = int((uploader_screen_width / 2) - (upload_window_window_width / 2))
+        uploader_y_coordinate = int((uploader_screen_height / 2) - (upload_window_window_height / 2))
+        upload_window.geometry(f"{upload_window_window_width}x{upload_window_window_height}+"
+                               f"{uploader_x_coordinate}+{uploader_y_coordinate}")
+    elif uploader_window_config_parser['save_window_locations']['uploader'] != '':
+        upload_window.geometry(uploader_window_config_parser['save_window_locations']['uploader'])
+    upload_window.protocol('WM_DELETE_WINDOW', upload_window_exit_function)
 
+    # row and column configures
     for u_w_c in range(4):
         upload_window.grid_columnconfigure(u_w_c, weight=1)
     for u_w_r in range(7):
         upload_window.grid_rowconfigure(u_w_r, weight=1)
 
+    # upload torrent options frame
     torrent_options_frame = LabelFrame(upload_window, text=' Torrent Input ', labelanchor="nw")
     torrent_options_frame.grid(column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     torrent_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
@@ -1768,17 +1907,38 @@ def automatic_workflow_function():
     torrent_options_frame.grid_columnconfigure(0, weight=1)
     torrent_options_frame.grid_columnconfigure(1, weight=20)
 
-    torrent_input_button = HoverButton(torrent_options_frame, text="Open", command=manual_source_input,
+    # torrent drag and drop function for torrent file
+    def torrent_drop_function(event):
+        torrent_file_input = [x for x in root.splitlist(event.data)][0]
+        # ensure dropped file is a *.torrent file
+        if pathlib.Path(torrent_file_input).suffix == '.torrent':
+            torrent_file_path.set(str(pathlib.Path(torrent_file_input)))
+        else:
+            messagebox.showinfo(parent=upload_window, title='Info', message='Only .torrent files can be opened')
+
+    # bind frame to drop torrent file
+    torrent_options_frame.drop_target_register(DND_FILES)
+    torrent_options_frame.dnd_bind('<<Drop>>', torrent_drop_function)
+
+    # manual torrent file selection
+    def open_torrent_file():
+        torrent_input = filedialog.askopenfilename(parent=upload_window, title='Select Torrent', initialdir='/',
+                                                   filetypes=[("Torrent Files", "*.torrent")])
+        if torrent_input:
+            torrent_file_path.set(str(pathlib.Path(torrent_input)))
+
+    torrent_input_button = HoverButton(torrent_options_frame, text="Open", command=open_torrent_file,
                                        foreground="white", background="#23272A", borderwidth="3",
                                        activeforeground="#3498db", activebackground="#23272A")
     torrent_input_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
     torrent_input_entry_box = Entry(torrent_options_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
-                                    disabledforeground='white', disabledbackground="#565656")
+                                    disabledforeground='white', disabledbackground="#565656",
+                                    textvariable=torrent_file_path)
     torrent_input_entry_box.grid(row=0, column=1, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
 
     title_options_frame = LabelFrame(upload_window, text=' Title ', labelanchor="nw")
-    title_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    title_options_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     title_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
     title_options_frame.grid_rowconfigure(0, weight=1)
     title_options_frame.grid_columnconfigure(0, weight=1)
@@ -1786,12 +1946,9 @@ def automatic_workflow_function():
     title_input_entry_box = Entry(title_options_frame, borderwidth=4, bg="#565656", fg='white',
                                   disabledforeground='white', disabledbackground="#565656")
     title_input_entry_box.grid(row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-    if encode_file_path.get() != '' and pathlib.Path(encode_file_path.get()).is_file():
-        title_input_entry_box.delete(0, END)
-        title_input_entry_box.insert(END, str(pathlib.Path(encode_file_path.get()).stem))
 
     upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
-    upload_options_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    upload_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     upload_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
     upload_options_frame.grid_rowconfigure(0, weight=1)
     upload_options_frame.grid_rowconfigure(1, weight=1)
@@ -1802,6 +1959,7 @@ def automatic_workflow_function():
                        fg="#3498db", font=(set_font, set_font_size + 1))
     type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
 
+    # resolution menu
     type_choices = {"720p": "720p", "1080p": "1080p", "2160p": "2160p"}
     type_var = StringVar()
     type_var_menu = OptionMenu(upload_options_frame, type_var, *type_choices.keys(), command=None)
@@ -1812,25 +1970,21 @@ def automatic_workflow_function():
     if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
         type_var.set(encode_file_resolution.get().strip())
 
-    source_label = Label(upload_options_frame, text='Source', bd=0, relief=SUNKEN, background='#363636',
-                         fg="#3498db", font=(set_font, set_font_size + 1))
-    source_label.grid(column=2, row=0, columnspan=1, pady=(5, 0), padx=(5, 5), sticky=E)
+    # Blu-ray selection menu (only Blu-ray for BHD)
+    upload_source_label = Label(upload_options_frame, text='Source', bd=0, relief=SUNKEN, background='#363636',
+                                fg="#3498db", font=(set_font, set_font_size + 1))
+    upload_source_label.grid(column=2, row=0, columnspan=1, pady=(5, 0), padx=(5, 5), sticky=E)
 
-    source_choices = {"Blu-Ray": "Blu-Ray", "HD-DVD": "HD-DVD"}
+    source_choices = {"Blu-Ray": "Blu-ray"}
     source_var = StringVar()
     source_var_menu = OptionMenu(upload_options_frame, source_var, *source_choices.keys(), command=None)
     source_var_menu.config(background="#23272A", foreground="white", highlightthickness=1, width=12,
                            activebackground="grey")
     source_var_menu.grid(row=0, column=3, columnspan=1, pady=(7, 5), padx=(2, 5), sticky=W)
     source_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
-    if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
-        is_bluray = re.search(r'(bluray|blu-ray)', title_input_entry_box.get().strip(), re.IGNORECASE)
-        is_hd_dvd = re.search(r'(hddvd|hd-dvd)', title_input_entry_box.get().strip(), re.IGNORECASE)
-        if is_bluray:
-            source_var.set('Blu-Ray')
-        if is_hd_dvd:
-            source_var.set('HD-DVD')
+    source_var.set('Blu-Ray')  # set var to Blu-Ray
 
+    # select edition menu
     edition_label = Label(upload_options_frame, text='Edition\n(Optional)', bd=0, relief=SUNKEN, background='#363636',
                           fg="#3498db", font=(set_font, set_font_size + 1))
     edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -1853,11 +2007,12 @@ def automatic_workflow_function():
     edition_var_menu.grid(row=0, column=5, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=E)
     edition_var_menu["menu"].configure(activebackground="grey", background="#23272A", foreground='white')
 
+    # function to automatically grab edition based off of file name
     def check_edition_function():
-        if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
+        if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get()).is_file():
             edition_check = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|s'
                                       'pecial.*edition|theatrical.*cut|uncut|unrated',
-                                      title_input_entry_box.get().strip(), re.IGNORECASE)
+                                      pathlib.Path(encode_file_path.get()).stem, re.IGNORECASE)
             if edition_check:
                 if 'collector' in str(edition_check.group()).lower():
                     edition_var.set("Collector's Edition")
@@ -1876,8 +2031,9 @@ def automatic_workflow_function():
                 elif 'unrated' in str(edition_check.group()).lower():
                     edition_var.set("Unrated")
 
-    check_edition_function()
+    check_edition_function()  # run function to check edition upon opening the window automatically
 
+    # custom edition label and entry box
     edition_label = Label(upload_options_frame, text='Edition\n(Custom)', bd=0, relief=SUNKEN, background='#363636',
                           fg="#3498db", font=(set_font, set_font_size + 1))
     edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -1886,6 +2042,7 @@ def automatic_workflow_function():
                               disabledforeground='white', disabledbackground="#565656")
     edition_entry_box.grid(row=1, column=1, columnspan=5, padx=5, pady=(5, 0), sticky=E + W)
 
+    # a constant function to check if user types in the custom edition box, this set's edition to N/A and accepts text
     def reset_disable_set_edition():
         if edition_entry_box.get().strip() != '':
             edition_var.set("N/A")
@@ -1895,10 +2052,11 @@ def automatic_workflow_function():
             check_edition_function()
         upload_window.after(50, reset_disable_set_edition)
 
-    reset_disable_set_edition()
+    reset_disable_set_edition()  # launch loop to check edition
 
+    # IMDB and TMDB frame
     imdb_tmdb_frame = LabelFrame(upload_window, text=' IMDB / TMDB ', labelanchor="nw")
-    imdb_tmdb_frame.grid(column=0, row=3, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
+    imdb_tmdb_frame.grid(column=0, row=2, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
     imdb_tmdb_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
     imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
@@ -1906,176 +2064,407 @@ def automatic_workflow_function():
     imdb_tmdb_frame.grid_columnconfigure(1, weight=300)
     imdb_tmdb_frame.grid_columnconfigure(7, weight=1)
 
+    # search frame inside the IMDB and TMDB frame
     imdb_tmdb_search_frame = LabelFrame(imdb_tmdb_frame, text=' Search ', labelanchor="n")
     imdb_tmdb_search_frame.grid(column=0, row=0, columnspan=8, padx=5, pady=(5, 3), sticky=E + W)
     imdb_tmdb_search_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
     imdb_tmdb_search_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_search_frame.grid_columnconfigure(0, weight=1)
 
+    # search entry box
     search_entry_box = Entry(imdb_tmdb_search_frame, borderwidth=4, bg="#565656", fg='white',
-                             disabledforeground='white', disabledbackground="#565656")
+                             disabledforeground='white', disabledbackground="#565656", textvariable=movie_search_var)
     search_entry_box.grid(row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
-    if title_input_entry_box.get().strip() != '':
-        search_entry_box.delete(0, END)
-        movie_name = re.finditer(r'\d{4}(?!p)', title_input_entry_box.get().strip(), re.IGNORECASE)
-        movie_name_extraction = []
-        for match in movie_name:
-            movie_name_extraction.append(match.span())
-        full_movie_name = title_input_entry_box.get()[0:int(movie_name_extraction[-1][-1])].replace('.', ' ').strip()
-        search_entry_box.insert(END, full_movie_name)
 
+    # if encode file is loaded, parse the name of the file to get autoload it into the search box for the user
+    if pathlib.Path(encode_file_path.get()).stem != '':
+        search_entry_box.delete(0, END)  # clear the search box
+        # use regex to find the movie name
+        movie_name = re.finditer(r'\d{4}(?!p)', pathlib.Path(encode_file_path.get()).stem, re.IGNORECASE)
+        movie_name_extraction = []  # create empty list
+        for match in movie_name:  # get the "span" from the movie name
+            movie_name_extraction.append(match.span())
+        # extract the full movie name (removing anything that is not needed from the filename)
+        full_movie_name = pathlib.Path(encode_file_path.get()).stem[0:int(
+            movie_name_extraction[-1][-1])].replace('.', ' ').strip()
+        search_entry_box.insert(END, full_movie_name)  # insert this full movie name into the search box
+
+    # function to search tmdb for information
     def search_movie_db_ids_function(*args):
-        if search_entry_box.get().strip() != '':
+        # set parser
+        movie_window_parser = ConfigParser()
+        movie_window_parser.read(config_file)
+
+        # if there is text inside the search box enable the search
+        if movie_search_var.get().strip() != '':
+            # movie window exit function
+            def movie_info_exit_function():
+                # set stop thread to True
+                stop_thread.set()
+
+                # set parser
+                exit_movie_window_parser = ConfigParser()
+                exit_movie_window_parser.read(config_file)
+
+                # save window position/geometry
+                if movie_info_window.wm_state() == 'normal':
+                    if exit_movie_window_parser['save_window_locations']['movie_info'] != movie_info_window.geometry():
+                        if int(movie_info_window.geometry().split('x')[0]) >= movie_window_width or \
+                                int(movie_info_window.geometry().split('x')[1].split('+')[0]) >= movie_window_height:
+                            exit_movie_window_parser.set('save_window_locations', 'movie_info',
+                                                         movie_info_window.geometry())
+                            with open(config_file, 'w') as root_exit_config_file:
+                                exit_movie_window_parser.write(root_exit_config_file)
+
+                # close movie info window
+                movie_info_window.destroy()
+
+            def get_imdb_update_filename():
+                # check if imdb id is missing
+                if imdb_id_var.get() == "None":
+                    messagebox.showerror(parent=movie_info_window, title='Missing IMDB ID',
+                                         message='Please manually search for the proper IMDB ID and manually '
+                                                 'add it to the entry box')
+                    return
+
+                if 't' in imdb_id_var.get():
+                    imdb_module = Cinemagoer()
+                    movie = imdb_module.get_movie(str(imdb_id_var.get()).replace('t', ''))
+                    imdb_movie_name = str(movie['long imdb title']).replace(')', '').replace('(', '')
+                else:
+                    return
+
+                # check edition
+                if edition_var.get() == "N/A":
+                    # if edition is set to "N/A" then check for custom
+                    if edition_entry_box.get().strip() != '':
+                        # if custom edition box is not empty define custom edition string
+                        edition_string = edition_entry_box.get().strip() + ' '
+                    else:  # if custom edition box is empty, define an empty string
+                        edition_string = ''
+                # if edition is not "N/A", get edition from menu and define string with the edition type
+                elif edition_var.get() != 'N/A':
+                    edition_string = edition_var.get() + ' '
+
+                complete_filename = ''  # define complete_filename
+
+                # create a completed filename based on all the above information for 720p/1080p files
+                if encode_file_resolution.get() == '720p' or encode_file_resolution.get() == '1080p':
+                    complete_filename = f"{edition_string}BluRay {type_var.get()} " \
+                                        f"{encode_file_audio.get()} x264-BHDStudio"
+
+                # create a completed filename based on all the above information for 2160p files
+                elif encode_file_resolution.get() == '2160p':
+                    # check for HDR string
+                    if encode_hdr_string.get() != '':
+                        add_hdr_string = ' ' + encode_hdr_string.get()
+                    complete_filename = f"{edition_string}UHD BluRay {type_var.get()} " \
+                                        f"{encode_file_audio.get()}{add_hdr_string} x265-BHDStudio"
+
+                # clear the title input entry box and replace with the new created name for BHD
+                title_input_entry_box.delete(0, END)
+                if complete_filename != '':
+                    title_input_entry_box.insert(END, f"{imdb_movie_name} {complete_filename}")
+                movie_info_exit_function()  # close movie_info_window
+
+            # movie info window
             movie_info_window = Toplevel()
-            movie_info_window.configure(background="#434547")  # Set's the background color
-            movie_info_window.title('Movie Information')  # Toplevel Title
-            # if batch_func_parser['save_window_locations']['batch window position'] == '' or \
-            #         batch_func_parser['save_window_locations']['batch window'] == 'no':
-            movie_window_height = 400
-            movie_window_width = 800
-            movie_screen_width = movie_info_window.winfo_screenwidth()
-            movie_screen_height = movie_info_window.winfo_screenheight()
-            movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
-            movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
-            movie_info_window.geometry(f"{movie_window_width}x{movie_window_height}+"
-                                       f"{movie_x_coordinate}+{movie_y_coordinate}")
+            movie_info_window.configure(background="#363636")  # Set's the background color
+            movie_info_window.title('Movie Selection')  # Toplevel Title
+            movie_window_height = 600
+            movie_window_width = 1000
+            if movie_window_parser['save_window_locations']['movie_info'] == '':
+                movie_screen_width = movie_info_window.winfo_screenwidth()
+                movie_screen_height = movie_info_window.winfo_screenheight()
+                movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
+                movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
+                movie_info_window.geometry(f"{movie_window_width}x{movie_window_height}+"
+                                           f"{movie_x_coordinate}+{movie_y_coordinate}")
+            elif movie_window_parser['save_window_locations']['movie_info'] != '':
+                movie_info_window.geometry(movie_window_parser['save_window_locations']['movie_info'])
             movie_info_window.grab_set()
-            # elif batch_func_parser['save_window_locations']['batch window position'] != '' and \
-            #         batch_func_parser['save_window_locations']['batch window'] == 'yes':
-            #     movie_info_window.geometry(batch_func_parser['save_window_locations']['batch window position'])
-            # movie_info_window.protocol('WM_DELETE_WINDOW', batch_window_exit_function)
+            movie_info_window.protocol('WM_DELETE_WINDOW', movie_info_exit_function)
 
             # Row/Grid configures
-            movie_info_window.grid_columnconfigure(0, weight=1)
-            movie_info_window.grid_columnconfigure(1, weight=1)
-            movie_info_window.grid_columnconfigure(2, weight=1)
-            movie_info_window.grid_columnconfigure(3, weight=1)
-            movie_info_window.grid_rowconfigure(0, weight=1)
-            movie_info_window.grid_rowconfigure(1, weight=1)
+            for m_i_w_c in range(6):
+                movie_info_window.grid_columnconfigure(m_i_w_c, weight=1)
+            for m_i_w_r in range(4):
+                movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
             # Row/Grid configures
 
             movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
-            movie_listbox_frame.grid(column=0, row=0, padx=5, pady=5, sticky=N + S + E + W)
-            movie_listbox_frame.grid_rowconfigure(0, weight=200)
-            movie_listbox_frame.grid_rowconfigure(1, weight=0)
-            movie_listbox_frame.grid_columnconfigure(0, weight=200)
-            movie_listbox_frame.grid_columnconfigure(1, weight=0)
+            movie_listbox_frame.grid(column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W)
+            movie_listbox_frame.grid_rowconfigure(0, weight=1)
+            movie_listbox_frame.grid_columnconfigure(0, weight=1)
 
             right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
             bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
 
             # Create listbox
             movie_listbox = Listbox(movie_listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
-                                    yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db",
-                                    selectbackground='#272727', selectforeground='light green', selectmode=SINGLE,
+                                    yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db", height=10,
+                                    selectbackground='black', selectforeground='lime green', selectmode=SINGLE,
                                     font=(set_font, set_font_size + 2))
-            movie_listbox.grid(row=0, column=0, sticky=N + E + S + W)
+            movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
 
             # add scrollbars to the listbox
             right_scrollbar.config(command=movie_listbox.yview)
-            right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
+            right_scrollbar.grid(row=0, column=5, sticky=N + W + S)
             bottom_scrollbar.config(command=movie_listbox.xview)
             bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
 
-            def run_api_check():
-                tmdb.API_KEY = 'be3d5868c8ee5655d5151222f2c9638d'
-                search = tmdb.Search()
+            # define stop thread event
+            stop_thread = threading.Event()
 
-                collect_title = re.finditer(r'\d{4}', search_entry_box.get().strip())
+            # define api check function
+            def run_api_check():
+                if movie_search_active.get():
+                    return
+                movie_search_active.set(True)
+
+                movie_listbox.delete(0, END)
+                movie_listbox.insert(END, 'Loading, please wait...')
+
+                collect_title = re.finditer(r'\d{4}', movie_search_var.get().strip())
 
                 title_span = []
                 for title_only in collect_title:
                     title_span.append(title_only.span())
 
-                if title_span:
-                    movie_title = str(search_entry_box.get()[0:title_span[-1][0]]).replace('.', ' ').replace(
+                try:
+                    movie_title = str(movie_search_var.get()[0:title_span[-1][0]]).replace('.', ' ').replace(
                         '(', '').replace(')', '').strip()
-                    collect_year = re.findall(r'\d{4}', search_entry_box.get().strip())
-                    search.movie(query=movie_title, primary_release_year=int(str(collect_year[-1])))
-                if not title_span:
-                    search.movie(query=search_entry_box.get().strip())
+                except IndexError:
+                    movie_title = str(movie_search_var.get().strip())
 
+                collect_year = re.findall(r'\d{4}', movie_search_var.get().strip())
+                if collect_year:
+                    movie_year = collect_year[-1]
+                else:
+                    movie_year = ''
+
+                search_movie = requests.get(f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&language"
+                                            f"=en-US&page=1&include_adult=false&query={movie_title}&year={movie_year}")
                 movie_dict = {}
 
-                for s in search.results:
+                for results in search_movie.json()['results']:
                     # find imdb_id data through tmdb
-                    imdb_id = dict(tmdb.Movies(int(s['id'])).info())['imdb_id']
+                    imdb_id = requests.get(
+                        f"https://api.themoviedb.org/3/movie/{results['id']}/external_ids?api_key={tmdb_api_key}")
                     # if release date string isn't nothing
-                    if str(s['release_date']) != "":
+                    if imdb_id.json()['imdb_id'] and results['release_date']:
                         # convert release date to standard month/day/year
-                        release_date = str(s['release_date']).split('-')
+                        release_date = str(results['release_date']).split('-')
                         full_release_date = f"{release_date[1]}-{release_date[2]}-{release_date[0]}"
-                    else:  # if release date string is empty, set it to none
-                        full_release_date = 'None'
-                    movie_dict.update({f"{s['title']} ({str(s['release_date']).split('-')[0]})": {
-                        "tvdb_id": f"{s['id']}", "imdb_id": f"{imdb_id}", "plot": f"{s['overview']}",
-                        "vote_average": f"{str(s['vote_average'])}", "popularity": f"{str(s['popularity'])}",
-                        "full_release_date": full_release_date}})
+                        # update dictionary
+                        movie_dict.update({f"{results['title']} ({(release_date)[0]})": {
+                            "tvdb_id": f"{results['id']}", "imdb_id": f"{imdb_id.json()['imdb_id']}",
+                            "plot": f"{results['overview']}", "vote_average": f"{str(results['vote_average'])}",
+                            "full_release_date": full_release_date}})
+                        # if thread event stop was called
+                        if stop_thread.is_set():
+                            movie_search_active.set(False)  # set active search to false
+                            break  # break from loop
 
+                # if stop_thread was called and closed the loop
+                if not movie_search_active.get():
+                    return  # exit function
+
+                # clear movie list box
                 movie_listbox.delete(0, END)
 
+                # add all the movies into the listbox
                 for key in movie_dict.keys():
                     movie_listbox.insert(END, key)
 
-                def callback(event):
-                    selection = event.widget.curselection()
+                # function that is ran each time a movie is selected to update all the information in the window
+                def update_movie_info(event):
+                    selection = event.widget.curselection()  # get current selection
+                    # if there is a selection
                     if selection:
-                        index = selection[0]
-                        data = event.widget.get(index)
-                        jobs_window_progress.delete("1.0", END)
-                        jobs_window_progress.insert(END, movie_dict[data]['plot'])
+                        movie_listbox_index = selection[0]  # define index of selection
+                        movie_data = event.widget.get(movie_listbox_index)
 
-                movie_listbox.bind("<<ListboxSelect>>", callback)
+                        # delete plot text and update it
+                        plot_scrolled_text.delete("1.0", END)
+                        plot_scrolled_text.insert(END, movie_dict[movie_data]['plot'])
 
-            movie_listbox.insert(END, 'Loading, please wait...')
+                        # update imdb and tmdb entry box's
+                        imdb_id_var.set(movie_dict[movie_data]['imdb_id'])
+                        tmdb_id_var.set(movie_dict[movie_data]['tvdb_id'])
 
-            jobs_window_progress = scrolledtextwidget.ScrolledText(
-                movie_info_window, width=90, height=5)
-            jobs_window_progress.grid(row=1, column=0, columnspan=2, pady=(0, 6), padx=10, sticky=E + W)
-            jobs_window_progress.config(bg='black', fg='#CFD2D1', bd=8)
+                        # update release date label
+                        release_date_var.set(movie_dict[movie_data]['full_release_date'])
 
-            threading.Thread(target=run_api_check).start()
+                        # update rating label
+                        rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
+
+                movie_listbox.bind("<<ListboxSelect>>", update_movie_info)  # bind listbox select event to the updater
+                movie_search_active.set(False)  # once listbox has been updated, set active to False
+
+            # plot frame
+            plot_frame = LabelFrame(movie_info_window, text=' Plot ', labelanchor="nw")
+            plot_frame.grid(column=0, row=1, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
+            plot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
+            plot_frame.grid_rowconfigure(0, weight=1)
+            plot_frame.grid_columnconfigure(0, weight=1)
+
+            # plot text window
+            plot_scrolled_text = scrolledtextwidget.ScrolledText(plot_frame, height=6)
+            plot_scrolled_text.grid(row=0, column=0, columnspan=6, pady=(0, 5), padx=5, sticky=E + W)
+            plot_scrolled_text.config(bg='black', fg='#CFD2D1', bd=2)
+
+            # internal search frame
+            internal_search_frame = LabelFrame(movie_info_window, text=' Search ', labelanchor="nw")
+            internal_search_frame.grid(column=0, row=2, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
+            internal_search_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
+            internal_search_frame.grid_rowconfigure(0, weight=1)
+            internal_search_frame.grid_columnconfigure(0, weight=1)
+
+            # internal search box
+            search_entry_box2 = Entry(internal_search_frame, borderwidth=4, bg="#565656", fg='white',
+                                      disabledforeground='white', disabledbackground="#565656",
+                                      textvariable=movie_search_var)
+            search_entry_box2.grid(row=0, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W)
+
+            # function to search again
+            def start_search_again(*args):
+                stop_thread.clear()  # set stop thread to false
+                threading.Thread(target=run_api_check).start()
+
+            # bind "Enter" key to run the function
+            search_entry_box2.bind("<Return>", start_search_again)
+
+            # internal search button
+            search_button2 = HoverButton(internal_search_frame, text="Search", activebackground="#23272A",
+                                         command=start_search_again,
+                                         foreground="white", background="#23272A",
+                                         borderwidth="3", activeforeground="#3498db", width=12)
+            search_button2.grid(row=0, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N)
+
+            # function to enable and disable the internal search button if a current search is active
+            def enable_disable_internal_search_btn():
+                if movie_search_active.get():  # if search is active disable button
+                    search_button2.config(state=DISABLED)
+                else:  # if search is not active enable button
+                    search_button2.config(state=NORMAL)
+                movie_info_window.after(50, enable_disable_internal_search_btn)
+
+            # start loop to check internal button
+            enable_disable_internal_search_btn()
+
+            # information frame
+            information_frame = Frame(movie_info_window, bd=0, bg="#363636")
+            information_frame.grid(column=0, row=3, columnspan=7, padx=5, pady=(5, 3), sticky=E + W)
+            information_frame.grid_rowconfigure(0, weight=1)
+            information_frame.grid_rowconfigure(1, weight=1)
+            information_frame.grid_columnconfigure(0, weight=1)
+            information_frame.grid_columnconfigure(1, weight=100)
+            information_frame.grid_columnconfigure(2, weight=1000)
+            information_frame.grid_columnconfigure(3, weight=10000)
+            information_frame.grid_columnconfigure(4, weight=100000)
+            information_frame.grid_columnconfigure(5, weight=1000000)
+            information_frame.grid_columnconfigure(6, weight=1)
+
+            # imdb clickable icon button
+            imdb_button2 = Button(information_frame, image=imdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                                  activebackground="#363636", command=open_imdb_link)
+            imdb_button2.grid(row=0, column=0, columnspan=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+            imdb_button2.photo = imdb_img
+
+            # imdb entry box internal
+            imdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
+                                    disabledforeground='white', disabledbackground="#565656", textvariable=imdb_id_var)
+            imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+            # tmdb clickable icon button
+            tmdb_button2 = Button(information_frame, image=tmdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                                  activebackground="#363636", command=open_tmdb_link)
+            tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+            tmdb_button2.photo = tmdb_img
+
+            # tmdb internal entry box
+            tmdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
+                                    disabledforeground='white', disabledbackground="#565656", textvariable=tmdb_id_var)
+            tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+            # release date labels
+            release_date_label = Label(information_frame, text='Release Date:', background='#363636', fg="#3498db",
+                                       font=(set_font, set_font_size + 1, "bold"))
+            release_date_label.grid(row=0, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
+
+            release_date_label2 = Label(information_frame, textvariable=release_date_var, width=10,
+                                        background='#363636', fg="#3498db", font=(set_font, set_font_size))
+            release_date_label2.grid(row=0, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
+
+            # rating labels
+            rating_label = Label(information_frame, text='           Rating:', background='#363636', fg="#3498db",
+                                 font=(set_font, set_font_size + 1, "bold"))
+            rating_label.grid(row=1, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
+
+            rating_label2 = Label(information_frame, textvariable=rating_var, width=10,
+                                  background='#363636', fg="#3498db", font=(set_font, set_font_size))
+            rating_label2.grid(row=1, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
+
+            # confirm movie button
+            confirm_movie_btn = HoverButton(information_frame, text="Confirm", command=get_imdb_update_filename,
+                                            foreground="white", background="#23272A", borderwidth="3", width=10,
+                                            activeforeground="#3498db", activebackground="#23272A")
+            confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
 
             movie_info_window.focus_set()  # focus's id window
+            stop_thread.clear()  # set stop thread event to false
+            threading.Thread(target=run_api_check).start()
 
+    # search button and bind to use command from "Enter" key
     search_entry_box.bind("<Return>", search_movie_db_ids_function)
     search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
-                                command=search_movie_db_ids_function, foreground="white", background="#23272A",
+                                command=search_movie_db_ids_function,
+                                foreground="white", background="#23272A",
                                 borderwidth="3", activeforeground="#3498db", width=12)
     search_button.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
+    # imdb label
     imdb_label = Label(imdb_tmdb_frame, text='IMDB ID\n(Required)', background='#363636',
                        fg="#3498db", font=(set_font, set_font_size + 1))
     imdb_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=W)
 
+    # imdb entry box
     imdb_entry_box = Entry(imdb_tmdb_frame, borderwidth=4, bg="#565656", fg='white',
-                           disabledforeground='white', disabledbackground="#565656")
+                           disabledforeground='white', disabledbackground="#565656", textvariable=imdb_id_var)
     imdb_entry_box.grid(row=1, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W)
 
+    # decode imdb img for use with the buttons
     decode_resize_imdb_image = Image.open(BytesIO(base64.b64decode(imdb_icon))).resize((35, 35))
     imdb_img = ImageTk.PhotoImage(decode_resize_imdb_image)
 
+    # upload window imdb button with decoded image
     imdb_button = Button(imdb_tmdb_frame, image=imdb_img, borderwidth=0, cursor='hand2', bg="#363636",
-                         activebackground="#363636")
+                         activebackground="#363636", command=open_imdb_link)
     imdb_button.grid(row=1, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
     imdb_button.photo = imdb_img
 
+    # tmdb label
     tmdb_label = Label(imdb_tmdb_frame, text='TMDB ID\n(Required)', background='#363636',
                        fg="#3498db", font=(set_font, set_font_size + 1))
     tmdb_label.grid(column=0, row=2, columnspan=1, pady=(5, 0), padx=5, sticky=W)
 
+    # tmdb upload window entry box
     tmdb_entry_box = Entry(imdb_tmdb_frame, borderwidth=4, bg="#565656", fg='white',
-                           disabledforeground='white', disabledbackground="#565656")
+                           disabledforeground='white', disabledbackground="#565656", textvariable=tmdb_id_var)
     tmdb_entry_box.grid(row=2, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W)
 
+    # decode tmdb img for use with the buttons
     decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(tmdb_icon))).resize((35, 35))
     tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
 
+    # tmdb clickable icon button in upload window with decoded image
     tmdb_button = Button(imdb_tmdb_frame, image=tmdb_img, borderwidth=0, cursor='hand2', bg="#363636",
-                         activebackground="#363636")
+                         activebackground="#363636", command=open_tmdb_link)
     tmdb_button.grid(row=2, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
     tmdb_button.photo = tmdb_img
 
+    # info frame
     info_frame = LabelFrame(upload_window, text=' Info ', labelanchor="nw")
     info_frame.grid(column=0, row=4, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     info_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
@@ -2085,38 +2474,132 @@ def automatic_workflow_function():
     info_frame.grid_columnconfigure(2, weight=1)
     info_frame.grid_columnconfigure(3, weight=100)
 
-    media_info_button = HoverButton(info_frame, text="MediaInfo", command=None, foreground="white",
+    # function when media info video file is dropped/opened, it's given a variable when called
+    def update_media_info_function(m_i_input):
+        # if input is *.txt
+        if pathlib.Path(m_i_input).suffix == '.txt':
+            # open file and set variable
+            with open(pathlib.Path(m_i_input), mode='rt', encoding="utf-8") as m_i_file:
+                encode_media_info.set(m_i_file.read())
+        # if input is *.mp4
+        elif pathlib.Path(m_i_input).suffix == '.mp4':
+            # parse file with mediainfo to txt and set variable
+            m_i_dropped = MediaInfo.parse(pathlib.Path(m_i_input), full=False, output="")  # parse mediainfo
+            encode_media_info.set(m_i_dropped)
+        media_info_entry.config(state=NORMAL) # enable entry box
+        media_info_entry.delete(0, END)  # clear entry box
+        media_info_entry.insert(END, 'MediaInfo loaded from file')  # insert string
+        media_info_entry.config(state=DISABLED)  # disable entry box
+
+    # function for dropped/open nfo input from txt/nfo file
+    def update_nfo_desc_function(nfo_desc_input):
+        # open nfo file and set it as variable
+        with open(pathlib.Path(nfo_desc_input), mode='rt', encoding="utf-8") as nfo_file_open:
+            nfo_info_var.set(nfo_file_open.read())
+        nfo_desc_entry.config(state=NORMAL)  # enable entry box
+        nfo_desc_entry.delete(0, END)  # clear entry box
+        nfo_desc_entry.insert(END, 'NFO loaded from file')  # insert string
+        nfo_desc_entry.config(state=DISABLED)  # disable entry box
+
+    # torrent drag and drop function for media info and torrent files
+    def media_info_nfo_drop_function(event):
+        m_i_nfo_drop = [x for x in root.splitlist(event.data)][0]  # dropped path to file
+        # if file is *.mp4, call update media info func
+        if pathlib.Path(m_i_nfo_drop).suffix == '.mp4':
+            update_media_info_function(m_i_nfo_drop)
+        # if file is *.nfo or *.txt, call update nfo func
+        elif pathlib.Path(m_i_nfo_drop).suffix == '.nfo' or pathlib.Path(m_i_nfo_drop).suffix == '.txt':
+            update_nfo_desc_function(m_i_nfo_drop)
+
+    # bind frame to drop media info and torrent files
+    info_frame.drop_target_register(DND_FILES)
+    info_frame.dnd_bind('<<Drop>>', media_info_nfo_drop_function)
+
+    # manual media info dialog, this accepts txt and .mp4
+    def open_media_info_text():
+        m_i_t = filedialog.askopenfilename(parent=upload_window, title='Select Mediainfo File', initialdir='/',
+                                           filetypes=[("Text, MP4", "*.txt *.mp4")])
+        if m_i_t:  # if selection is made, run the media info function
+            update_media_info_function(m_i_t)
+
+    # media info button
+    media_info_button = HoverButton(info_frame, text="MediaInfo", command=open_media_info_text, foreground="white",
                                     background="#23272A", borderwidth="3", activeforeground="#3498db", width=15,
                                     activebackground="#23272A")
     media_info_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N)
 
+    # media info entry box
     media_info_entry = Entry(info_frame, borderwidth=4, bg="#565656", fg='white',
-                             disabledforeground='white', disabledbackground="#565656")
+                             disabledforeground='white', disabledbackground="#565656", state=DISABLED)
     media_info_entry.grid(row=0, column=1, columnspan=1, padx=5, pady=(5, 0), sticky=E + W)
+    # if automatic work flow is set and encode media info is not blank, assume it's been automatically loaded
+    if automatic_workflow_boolean and encode_media_info.get() != '':
+        media_info_entry.config(state=NORMAL)  # enable entry box
+        media_info_entry.delete(0, END)  # clear entry box
+        media_info_entry.insert(END, 'MediaInfo Loaded Internally')  # insert string
+        media_info_entry.config(state=DISABLED)  # disable entry box
 
-    nfo_desc_button = HoverButton(info_frame, text="NFO / Description", command=None, foreground="white",
-                                  background="#23272A", borderwidth="3", activeforeground="#3498db", width=15,
-                                  activebackground="#23272A")
+    # manual nfo open dialog, this accepts *.txt and *.nfo files
+    def open_nfo_info_text_nfo():
+        nfo_desc = filedialog.askopenfilename(parent=upload_window, title='Select NFO', initialdir='/',
+                                              filetypes=[("NFO, Text", "*.txt *.nfo")])
+        if nfo_desc:  # if selection is made, run the nfo function
+            update_nfo_desc_function(nfo_desc)
+
+    # nfo load button
+    nfo_desc_button = HoverButton(info_frame, text="NFO / Description", command=open_nfo_info_text_nfo,
+                                  foreground="white", background="#23272A", borderwidth="3",
+                                  activeforeground="#3498db", width=15, activebackground="#23272A")
     nfo_desc_button.grid(row=0, column=2, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
 
+    # nfo entry
     nfo_desc_entry = Entry(info_frame, borderwidth=4, bg="#565656", fg='white',
-                           disabledforeground='white', disabledbackground="#565656")
+                           disabledforeground='white', disabledbackground="#565656", state=DISABLED)
     nfo_desc_entry.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + W)
+    # if automatic work flow is set and nfo info is not blank, assume it's been automatically loaded
+    if automatic_workflow_boolean and nfo_info_var.get() != '':
+        nfo_desc_entry.config(state=NORMAL)
+        nfo_desc_entry.insert(END, 'NFO Loaded Internally')
+        nfo_desc_entry.config(state=DISABLED)
 
+    # misc options frame
     misc_options_frame = LabelFrame(upload_window, text=' Upload Options ', labelanchor="nw")
     misc_options_frame.grid(column=0, row=5, columnspan=3, padx=5, pady=(5, 3), sticky=E + W)
-    misc_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
+    misc_options_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, set_font_size + 1, 'bold'))
     misc_options_frame.grid_rowconfigure(0, weight=1)
     for m_o_f in range(3):
         misc_options_frame.grid_columnconfigure(m_o_f, weight=1)
 
+    # live checkbox, set to on, this is a permanent choice
+    def update_checkbutton_info():
+        chk_button_parser = ConfigParser()
+        chk_button_parser.read(config_file)
+        if live_boolean.get():
+            save_checkbutton = 1
+        elif not live_boolean.get():
+            save_checkbutton = 0
+        chk_button_parser.set('live_release', 'value', str(save_checkbutton))
+        with open(config_file, 'w') as c_b_config:
+            chk_button_parser.write(c_b_config)
+
     live_checkbox = Checkbutton(misc_options_frame, text='Send to Drafts', variable=live_boolean, state=DISABLED,
-                                onvalue=0, offvalue=1)
+                                onvalue=0, offvalue=1, command=update_checkbutton_info)
     live_checkbox.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=E + W)
     live_checkbox.configure(background="#363636", foreground="white", activebackground="#363636",
                             activeforeground="white", selectcolor="#363636",
                             font=(set_font, set_font_size + 1))
     live_boolean.set(0)
+
+    # parser to check for password and remember settings if enabled
+    live_temp_parser = ConfigParser()
+    live_temp_parser.read(config_file)
+    # if sticky gives users the password to live release
+    if live_temp_parser['live_release']['password'] == "StickySaidSo":
+        live_checkbox.config(state=NORMAL)  # enable check button
+        try:  # try to set check button based off of config
+            live_boolean.set(int(live_temp_parser['live_release']['value']))
+        except ValueError:  # if check button is blank or value error
+            live_boolean.set(0)  # set it to the default 0
 
     anonymous_checkbox = Checkbutton(misc_options_frame, text='Anonymous', variable=anonymous_boolean, onvalue=1,
                                      offvalue=0)
@@ -2126,31 +2609,119 @@ def automatic_workflow_function():
                                  font=(set_font, set_font_size + 1))
     anonymous_boolean.set(0)
 
+    # upload to beyond hd api function
     def upload_to_api():
-        pass
+        # set config parser
+        api_parser = ConfigParser()
+        api_parser.read(config_file)
 
-        # api_upl = "https://beyond-hd.me/api/upload/a2faa6489d9ddb6268450ee140bcc989"
-        #
-        # def upload(tor_f, name, mi_file, nfo, imdb, tmdb, live=0, anon=0):
-        #     params = {"name": name, "category_id": 1, "type": "720p", "source": "Blu-ray",
-        #               "imdb_id": imdb, "tmdb_id": tmdb, "description": nfo, "nfo": nfo, "live": live,
-        #               "anon": anon, "stream": "optimized", "promo": 2, "internal": 1}
-        #     req = requests.post(api_upl, params, files={'file': open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", 'rb'),
-        #                                                 "mediainfo": open(r"C:\Users\jlw_4\Desktop\torrent.test.txt",
-        #                                                                   "rb")})
-        #     return req
-        #
-        # name = "2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio"
-        # imdb = 472582
-        # tmdb = 2168
-        # tor_file = open(r"C:\Users\jlw_4\Desktop\2.37.2006.BluRay.1080p.DD2.0.x264-BHDStudio.mp4.torrent", "rb")
-        # mi_file = open(r"C:\Users\jlw_4\Desktop\torrent.test.txt", "rb")
+        # upload status window
+        upload_status_window = Toplevel()
+        upload_status_window.configure(background="#363636")
+        upload_status_window.geometry(f'{460}x{200}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
+                                      f'{str(int(upload_window.geometry().split("+")[2]) + 230)}')
+        upload_status_window.resizable(0, 0)
+        upload_status_window.grab_set()
+        upload_status_window.wm_overrideredirect(True)
+        upload_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+        upload_status_window.grid_rowconfigure(0, weight=1)
+        upload_status_window.grid_columnconfigure(0, weight=1)
 
-        # req = upload(tor_file, name, mi_file, collect_parsed_nfo, imdb, tmdb)
-        # print(req.status_code)
-        # print(req.json())
-        # req.raise_for_status()
-        #
+        # encoder name frame
+        upload_output_frame = Frame(upload_status_window, highlightbackground="white", highlightthickness=2,
+                                    bg="#363636", highlightcolor='white')
+        upload_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+        for e_n_f in range(3):
+            upload_output_frame.grid_columnconfigure(e_n_f, weight=1)
+            upload_output_frame.grid_rowconfigure(e_n_f, weight=1)
+
+        # create label
+        upload_status_info = scrolledtextwidget.ScrolledText(upload_output_frame, height=7, bg='#565656',
+                                                             fg='white', bd=4)
+        upload_status_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
+        upload_status_info.insert(END, 'Uploading, please wait...')
+        upload_status_info.config(state=DISABLED)
+
+        # function to save new name to config.ini
+        def encoder_okay_func():
+            upload_window.wm_attributes('-alpha', 1.0)  # restore transparency
+            upload_status_window.destroy()  # close window
+
+        # create 'OK' button
+        uploader_okay_btn = HoverButton(upload_output_frame, text="OK", command=encoder_okay_func,
+                                        foreground="white", background="#23272A", borderwidth="3",
+                                        activeforeground="#3498db", width=8, activebackground="#23272A")
+        uploader_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+
+        # if live boolean is True
+        if live_boolean.get():
+            live_release = 1
+        # if live boolean is False
+        elif not live_boolean.get():
+            live_release = 0
+
+        # if anon boolean is True
+        if anonymous_boolean.get():
+            anonymous_release = 1
+        # if anon boolean is False
+        elif not anonymous_boolean.get():
+            anonymous_release = 0
+
+        # api link
+        api_link = f"https://beyond-hd.me/api/upload/{api_parser['bhd_upload_api']['key']}"
+
+        # define upload params for BHD
+        upload_payload_params = {"name": title_input_entry_box.get().strip(),
+                                 "category_id": 1, "type": type_choices[type_var.get()],
+                                 "source": source_choices[source_var.get()], "internal": 1,
+                                 "imdb_id": imdb_id_var.get(), "tmdb_id": tmdb_id_var.get(),
+                                 "description": nfo_info_var.get(), "nfo": nfo_info_var.get(),
+                                 "live": live_release, "anon": anonymous_release,
+                                 "stream": "optimized", "promo": 2}
+
+        # if any preset edition selections are selected add the params and value
+        if edition_var.get() != 'N/A':
+            upload_payload_params.update({"edition": edition_choices[edition_var.get()]})
+
+        # if a custom edition is typed add the params and value
+        if edition_entry_box.get().strip() != '':
+            upload_payload_params.update({"custom_edition": edition_entry_box.get().strip()})
+
+        # upload function in a different thread
+        def run_upload_in_different_thread():
+            try:  # try to upload
+                upload_job = requests.post(api_link, upload_payload_params,
+                                           files={'file': open(pathlib.Path(torrent_file_path.get()), 'rb'),
+                                                  "mediainfo": encode_media_info.get()})
+            except requests.exceptions.ConnectionError:  # if there is a connection error show function
+                encoder_okay_func()  # this runs the okay button function to close the window and restore transparency
+                messagebox.showerror(parent=upload_window, title='Error', message='There is a connection error, check '
+                                                                                  'your internet connection')
+                return  # exit the function
+
+            upload_status_info.config(state=NORMAL)  # enable scrolled text box
+            upload_status_info.delete("1.0", END)  # delete all contents of the box
+            if upload_job.status_code == 200:  # if upload returns a status code '200', assume success
+                if upload_job.json()['status_code'] == 1 and 'saved' in upload_job.json()['status_message'] \
+                        and upload_job.json()['success']:
+                    upload_status_info.insert(END, 'Upload is successful!\n\nUpload has been successfully '
+                                                   'saved as a draft on site')
+                else:
+                    upload_status_info.insert(END, f"There was an error:\n\n{upload_job.json()['status_message']}")
+            elif upload_job.status_code == 404:  # if upload returns a status code '400', site error
+                upload_status_info.insert(END, f"Upload failed! This is likely a problem with the site\n\n"
+                                               f"{upload_job.json()['status_message']}")
+            elif upload_job.status_code == 500:  # if upload returns a status code '400', critical site error
+                upload_status_info.insert(END, "Error!\n\nThe site isn't returning the upload status.\n"
+                                               "This is a critical error from the site.\n"
+                                               f"Status code:{str(upload_job.status_code)}")
+            else:  # if it returns any other status code, raise a pythonic error to be shown and print unknown error
+                upload_status_info.insert(END, 'Unknown error!')
+                upload_job.raise_for_status()
+            upload_status_info.config(state=DISABLED)  # disable scrolled textbox
+
+        # start upload in a thread
+        threading.Thread(target=run_upload_in_different_thread).start()
 
     # enabled upload img
     decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(bhd_upload_icon))).resize((120, 45))
@@ -2160,18 +2731,84 @@ def automatic_workflow_function():
     decode_resize_tmdb_image2 = Image.open(BytesIO(base64.b64decode(bhd_upload_icon_disabled))).resize((120, 45))
     upload_img_disabled = ImageTk.PhotoImage(decode_resize_tmdb_image2)
 
-    upload_button = HoverButton(upload_window, text="Upload", command=upload_to_api, image=upload_img_disabled,
+    upload_button = HoverButton(upload_window, text="Upload", image=upload_img_disabled,
                                 background="#363636", borderwidth=0, activebackground="#363636",
                                 cursor='question_arrow')
     upload_button.grid(row=5, column=3, padx=(5, 10), pady=(5, 10), sticky=E + S)
     upload_button.image = upload_img_disabled
 
-    # if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get().strip()).is_file():
-    #     search_movie_db_ids_function()
+    # function to define and display missing inputs
+    def show_missing_input():
+        missing_list = []  # create empty missing list
+        if torrent_file_path.get() == '':
+            missing_list.append('Torrent Input')
+        if title_input_entry_box.get().strip() == '':
+            missing_list.append('Title')
+        if type_var.get() == '':
+            missing_list.append('Type')
+        if source_var.get() == '':
+            missing_list.append('Source')
+        if imdb_id_var.get().strip() == '':
+            missing_list.append('IMDB ID')
+        if tmdb_id_var.get().strip() == '':
+            missing_list.append('TMDB ID')
+        if encode_media_info.get() == '':
+            missing_list.append('MediaInfo')
+        if nfo_info_var.get() == '':
+            missing_list.append('NFO/Description')
+
+        # open messagebox with all the missing inputs
+        messagebox.showinfo(parent=upload_window, title='Missing Input',
+                            message=f"Missing inputs:\n\n{', '.join(missing_list)}")
+
+    # function to check for missing variables and enable/change button and button commands
+    def enable_disable_upload_button():
+        # if everything is needed in the window, enable upload button
+        if torrent_file_path.get() != '' and title_input_entry_box.get().strip() != '' and type_var.get() != '' and \
+                source_var.get() != '' and imdb_id_var.get().strip() != '' and tmdb_id_var.get().strip() != '' and \
+                encode_media_info.get() != '' and nfo_info_var.get() != '':
+            upload_button.config(image=upload_img)
+            upload_button.image = upload_img
+            upload_button.config(command=upload_to_api, cursor='hand2')
+        else:  # if 1 item is missing, disable upload button and enable show missing input function
+            upload_button.config(image=upload_img_disabled)
+            upload_button.image = upload_img_disabled
+            upload_button.config(command=show_missing_input, cursor='question_arrow')
+        upload_window.after(50, enable_disable_upload_button)  # loop to check this constantly
+
+    # start loop
+    enable_disable_upload_button()
+
+
+# open torrent window button
+open_uploader_button = HoverButton(manual_workflow, text="Uploader", state=DISABLED,
+                                   command=lambda: [automatic_workflow_boolean.set(False),
+                                                    open_uploader_window('manual')],
+                                   foreground="white", background="#23272A", borderwidth="3", width=12,
+                                   activeforeground="#3498db", activebackground="#23272A")
+open_uploader_button.grid(row=0, column=2, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
 
 
 # automatic work flow button
-parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", command=automatic_workflow_function,
+def auto_workflow():
+    # check screens
+    check_screens = parse_screen_shots()
+    if not check_screens:  # if returned false, show error message and exit this function
+        messagebox.showerror(parent=root, title='Error!', message='Missing or incorrectly formatted screenshots\n\n'
+                                                                  'Screen shots need to be in multiples of 2')
+        return
+    torrent_function_window()  # if passed run torrent function
+    if not automatic_workflow_boolean.get():  # if returned false, exit this function back to main GUI
+        return
+    open_nfo_viewer()  # if passed run nfo viewer function
+    if not automatic_workflow_boolean.get():  # if returned false, exit this function back to main GUI
+        return
+    open_uploader_window('auto')  # if it passes all the automatic requirements, open upload window in 'auto' mode
+
+
+# parse and upload button
+parse_and_upload = HoverButton(automatic_workflow, text="Parse & Upload", state=DISABLED,
+                               command=lambda: [automatic_workflow_boolean.set(True), auto_workflow()],
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", width=1, activebackground="#23272A")
 parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
@@ -2208,6 +2845,7 @@ def reset_gui():
     delete_source_entry()
     delete_encode_entry()
     screenshot_scrolledtext.delete("1.0", END)
+    clear_all_variables()
 
 
 # ----------------------------------------------------------------------------------------------------------- reset gui
@@ -2250,14 +2888,18 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
     custom_input_parser = ConfigParser()
     custom_input_parser.read(config_file)
 
+    def custom_input_window_exit():
+        encoder_okay_func()
+
     # encoder name window
     custom_input_window = Toplevel()
+    custom_input_window.title('')
     custom_input_window.configure(background="#363636")
     custom_input_window.geometry(f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
                                  f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
     custom_input_window.resizable(0, 0)
     custom_input_window.grab_set()
-    custom_input_window.wm_overrideredirect(True)
+    custom_input_window.protocol('WM_DELETE_WINDOW', custom_input_window_exit)
     parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
     custom_input_window.grid_rowconfigure(0, weight=1)
     custom_input_window.grid_columnconfigure(0, weight=1)
@@ -2303,6 +2945,51 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
                                      activebackground="#23272A")
     encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
+    custom_input_window.wait_window()
+
+
+# # custom messagebox window that accepts parent window and text info
+# def custom_input_prompt(parent_window, text_input):
+#     # encoder name window
+#     custom_input_window = Toplevel()
+#     custom_input_window.configure(background="#363636")
+#     custom_input_window.geometry(f'{460}x{200}+{str(int(parent_window.geometry().split("+")[1]) + 156)}+'
+#                                  f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
+#     custom_input_window.resizable(0, 0)
+#     custom_input_window.grab_set()
+#     custom_input_window.wm_overrideredirect(True)
+#     parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+#     custom_input_window.grid_rowconfigure(0, weight=1)
+#     custom_input_window.grid_columnconfigure(0, weight=1)
+#
+#     # encoder name frame
+#     custom_input_frame = Frame(custom_input_window, highlightbackground="white", highlightthickness=2, bg="#363636",
+#                                highlightcolor='white')
+#     custom_input_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+#     for e_n_f in range(3):
+#         custom_input_frame.grid_columnconfigure(e_n_f, weight=1)
+#         custom_input_frame.grid_rowconfigure(e_n_f, weight=1)
+#
+#     # create label
+#     custom_info_scrolled = scrolledtextwidget.ScrolledText(custom_input_frame, height=7, bg='#565656', fg='white',
+#                                                            bd=4)
+#     custom_info_scrolled.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
+#     custom_info_scrolled.insert(END, text_input)
+#     custom_info_scrolled.config(state=DISABLED)
+#
+#     # function to save new name to config.ini
+#     def encoder_okay_func():
+#         parent_window.wm_attributes('-alpha', 1.0)  # restore transparency
+#         custom_input_window.destroy()  # close window
+#
+#     # create 'OK' button
+#     encoder_okay_btn = HoverButton(custom_input_frame, text="OK", command=encoder_okay_func, foreground="white",
+#                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+#                                    activebackground="#23272A")
+#     encoder_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+#
+#     custom_input_window.wait_window()
+
 
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
@@ -2312,6 +2999,12 @@ options_menu.add_command(label='API Key',
                          command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')])
 options_menu.add_separator()
 options_menu.add_command(label='Reset Configuration File', command=reset_config)
+
+tools_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
+my_menu_bar.add_cascade(label='Tools', menu=tools_menu)
+tools_menu.add_command(label='Manual Uploader', accelerator="[Ctrl+U]",
+                       command=lambda: open_uploader_window('custom_advanced'))
+root.bind("<Control-u>", lambda event: open_uploader_window('custom_advanced'))
 
 help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Help", menu=help_menu)
@@ -2332,11 +3025,16 @@ def generate_button_checker():
     if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
         generate_nfo_button.config(state=NORMAL)
         open_torrent_window_button.config(state=NORMAL)
-        # parse_and_upload.config(state=NORMAL)
+        check_screens = parse_screen_shots()
+        if check_screens:
+            parse_and_upload.config(state=NORMAL)
+            if nfo_info_var.get() != '':
+                open_uploader_button.config(state=NORMAL)
     else:  # if source/encode is empty stringsN
         generate_nfo_button.config(state=DISABLED)
         open_torrent_window_button.config(state=DISABLED)
-        # parse_and_upload.config(state=DISABLED)
+        parse_and_upload.config(state=DISABLED)
+        open_uploader_button.config(state=DISABLED)
     root.after(50, generate_button_checker)  # loop to constantly check
 
 
