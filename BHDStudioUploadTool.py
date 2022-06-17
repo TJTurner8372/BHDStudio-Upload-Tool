@@ -33,7 +33,7 @@ from Packages.tmdb_key import tmdb_api_key
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.0"
+main_root_title = "BHDStudio Upload Tool v1.1 Beta"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -163,6 +163,8 @@ class HoverButton(Button):
 detect_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
 set_font = detect_font.actual().get("family")
 set_font_size = detect_font.actual().get("size")
+detect_fixed_font = font.nametofont("TkFixedFont")
+set_fixed_font = detect_fixed_font.actual().get("family")
 color1 = "#434547"
 
 # Custom Tkinter Theme-----------------------------------------
@@ -836,7 +838,7 @@ for rl_f in range(3):
 def update_forced_var():
     release_notes_scrolled.config(state=NORMAL)
     if forced_subtitles_burned_var.get() == 'on':
-        release_notes_scrolled.insert(END, '\n-Forced English subtitle embedded for non English dialogue')
+        release_notes_scrolled.insert(END, '\n-Forced English subtitles embedded for non English dialogue')
     elif forced_subtitles_burned_var.get() == 'off':
         delete_forced = release_notes_scrolled.search(
             "-Forced English subtitles embedded for non English dialogue", '1.0', END)
@@ -1412,7 +1414,8 @@ def open_nfo_viewer():
 
     # Create Text Box
     nfo_pad_text_box = Text(nfo_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
-                            xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
+                            xscrollcommand=bottom_scrollbar.set, background='#c0c0c0',
+                            font=(set_fixed_font, set_font_size + 1))
     nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
 
     # add scrollbars to the textbox
