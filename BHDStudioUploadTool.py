@@ -33,7 +33,7 @@ from Packages.tmdb_key import tmdb_api_key
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.0"
+main_root_title = "BHDStudio Upload Tool v1.2 Beta"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -163,6 +163,8 @@ class HoverButton(Button):
 detect_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
 set_font = detect_font.actual().get("family")
 set_font_size = detect_font.actual().get("size")
+detect_fixed_font = font.nametofont("TkFixedFont")
+set_fixed_font = detect_fixed_font.actual().get("family")
 color1 = "#434547"
 
 # Custom Tkinter Theme-----------------------------------------
@@ -836,7 +838,7 @@ for rl_f in range(3):
 def update_forced_var():
     release_notes_scrolled.config(state=NORMAL)
     if forced_subtitles_burned_var.get() == 'on':
-        release_notes_scrolled.insert(END, '\n-Forced English subtitle embedded for non English dialogue')
+        release_notes_scrolled.insert(END, '\n-Forced English subtitles embedded for non English dialogue')
     elif forced_subtitles_burned_var.get() == 'off':
         delete_forced = release_notes_scrolled.search(
             "-Forced English subtitles embedded for non English dialogue", '1.0', END)
@@ -1073,32 +1075,24 @@ def open_nfo_viewer():
     # nfo formatter
     def run_nfo_formatter():
         nfo_b64 = """
-        W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0NCg0KU291cmNlICAgICAgICAgICAg
-        ICAgICAgOiB7Ymx1cmF5X3NvdXJjZX0gKFRoYW5rcyEpDQpDaGFwdGVycyAgICAgICAgICAgICAg
-        ICA6IHtjaGFwdGVyX3R5cGV9DQpGaWxlIFNpemUgICAgICAgICAgICAgICA6IHtlbmNvZGVfZmls
-        ZV9zaXplfQ0KRHVyYXRpb24gICAgICAgICAgICAgICAgOiB7ZW5jb2RlX2ZpbGVfZHVyYXRpb259
-        DQpWaWRlbyAgICAgICAgICAgICAgICAgICA6IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30g
-        VmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWxlfQ0K
-        UmVzb2x1dGlvbiAgICAgICAgICAgICAgOiB7dl93aWR0aH0geCB7dl9oZWlnaHR9ICh7dl9hc3Bl
-        Y3RfcmF0aW99KQ0KQXVkaW8gICAgICAgICAgICAgICAgICAgOiB7YV9sbmd9IC8ge2FfY29tbWVy
-        Y2lhbH0gQXVkaW8gLyB7YV9jaG5sX3N9IC8ge2FfZnJlcX0gLyB7YV9iaXRyYXRlfSBrYnBzIHtv
-        cHRpb25hbF9zdWJfc3RyaW5nfQ0KRW5jb2RlciAgICAgICAgICAgICAgICAgOiBbY29sb3I9I2Y1
-        YzcwYV17ZW5jb2RlZF9ieX1bL2NvbG9yXQ0KDQpbY29sb3I9I2Y1YzcwYV1SRUxFQVNFIE5PVEVT
-        Wy9jb2xvcl0NCg0Ke25mb19yZWxlYXNlX25vdGVzfQ0KDQpbY29sb3I9I2Y1YzcwYV1TQ1JFRU5T
-        SE9UU1svY29sb3JdDQpbY2VudGVyXQ0KW2NvbG9yPSNmNWM3MGFdU09VUkNFWy9jb2xvcl08PDw8
-        PDw8PDw8PDw8PDw8PC0tLS0tLS0tLS0tLS0tLS0tLS1bY29sb3I9I2Y1YzcwYV1WU1svY29sb3Jd
-        LS0tLS0tLS0tLS0tLS0tLS0tLT4+Pj4+Pj4+Pj4+Pj4+Pj4+W2NvbG9yPSNmNWM3MGFdRU5DT0RF
-        Wy9jb2xvcl0NCntuZm9fc2NyZWVuX3Nob3RzfQ0KWy9jZW50ZXJdDQpbY29sb3I9I2Y1YzcwYV1H
-        UkVFVFpbL2NvbG9yXQ0KDQpBbGwgdGhvc2Ugd2hvIHN1cHBvcnQgb3VyIGdyb3VwLCBvdXIgZW5j
-        b2RlcnMsIGFuZCBvdXIgY29tbXVuaXR5LiANCg0KW2NvbG9yPSNmNWM3MGFdR1JPVVAgTk9URVNb
-        L2NvbG9yXQ0KDQpFbmpveSENCg0KV2UgYXJlIGN1cnJlbnRseSBsb29raW5nIGZvciBub3RoaW5n
-        IGluIHBhcnRpY3VsYXIuIElmIHlvdSBmZWVsIHlvdSBoYXZlIHNvbWV0aGluZyB0byBvZmZlciwg
-        Y29udGFjdCB1cyENCg0KW2NlbnRlcl1baW1nXWh0dHBzOi8vYmV5b25kaGQuY28vaW1hZ2VzLzIw
-        MjEvMDMvMzAvNjJiY2E4ZDU4N2I3MTczMTIxMDA4ODg3ZWJlMDVhNDIucG5nWy9pbWddWy9jZW50
-        ZXJdDQoNCg==
+        W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0KClNvdXJjZSAgICAgICAgICAgICAgICAgIDoge2JsdXJheV9zb3VyY2V9IChUaG
+        Fua3MhKQpDaGFwdGVycyAgICAgICAgICAgICAgICA6IHtjaGFwdGVyX3R5cGV9CkZpbGUgU2l6ZSAgICAgICAgICAgICAgIDoge2VuY29kZV9ma
+        WxlX3NpemV9CkR1cmF0aW9uICAgICAgICAgICAgICAgIDoge2VuY29kZV9maWxlX2R1cmF0aW9ufQpWaWRlbyAgICAgICAgICAgICAgICAgICA6
+        IHtjb250YWluZXJfZm9ybWF0fSB7dl9jb2RlY30gVmlkZW8gLyB7dl9iaXRyYXRlfSBrYnBzIC8ge3ZfZnBzfSAvIHt2X2Zvcm1hdF9wcm9maWx
+        lfQpSZXNvbHV0aW9uICAgICAgICAgICAgICA6IHt2X3dpZHRofSB4IHt2X2hlaWdodH0gKHt2X2FzcGVjdF9yYXRpb30pCkF1ZGlvICAgICAgIC
+        AgICAgICAgICAgIDoge2FfbG5nfSAvIHthX2NvbW1lcmNpYWx9IEF1ZGlvIC8ge2FfY2hubF9zfSAvIHthX2ZyZXF9IC8ge2FfYml0cmF0ZX0ga
+        2JwcyB7b3B0aW9uYWxfc3ViX3N0cmluZ30KRW5jb2RlciAgICAgICAgICAgICAgICAgOiBbY29sb3I9I2Y1YzcwYV17ZW5jb2RlZF9ieX1bL2Nv
+        bG9yXQoKW2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBOT1RFU1svY29sb3JdCgp7bmZvX3JlbGVhc2Vfbm90ZXN9CgpbY29sb3I9I2Y1YzcwYV1TQ1J
+        FRU5TSE9UU1svY29sb3JdCltjZW50ZXJdCltjb2xvcj0jZjVjNzBhXVNPVVJDRVsvY29sb3JdPDw8PDw8PDw8PDw8PDw8PDwtLS0tLS0tLS0tLS
+        0tLS0tLS0tW2NvbG9yPSNmNWM3MGFdVlNbL2NvbG9yXS0tLS0tLS0tLS0tLS0tLS0tLS0+Pj4+Pj4+Pj4+Pj4+Pj4+Pltjb2xvcj0jZjVjNzBhX
+        UVOQ09ERVsvY29sb3JdCntuZm9fc2NyZWVuX3Nob3RzfQpbL2NlbnRlcl0KW2NvbG9yPSNmNWM3MGFdR1JFRVRaWy9jb2xvcl0KCkFsbCB0aG9z
+        ZSB3aG8gc3VwcG9ydCBvdXIgZ3JvdXAsIG91ciBlbmNvZGVycywgYW5kIG91ciBjb21tdW5pdHkuIAoKW2NvbG9yPSNmNWM3MGFdR1JPVVAgTk9
+        URVNbL2NvbG9yXQoKRW5qb3khCgpXZSBhcmUgY3VycmVudGx5IGxvb2tpbmcgZm9yIG5vdGhpbmcgaW4gcGFydGljdWxhci4gSWYgeW91IGZlZW
+        wgeW91IGhhdmUgc29tZXRoaW5nIHRvIG9mZmVyLCBjb250YWN0IHVzIQoKW2NlbnRlcl1baW1nXWh0dHBzOi8vYmV5b25kaGQuY28vaW1hZ2VzL
+        zIwMjEvMDMvMzAvNjJiY2E4ZDU4N2I3MTczMTIxMDA4ODg3ZWJlMDVhNDIucG5nWy9pbWddWy9jZW50ZXJdCgo=
         """
 
-        decoded_nfo = base64.b64decode(nfo_b64).decode("ascii")
+        decoded_nfo = base64.b64decode(nfo_b64).decode("utf-8")
 
         # parse encoded file
         media_info_encode = MediaInfo.parse(pathlib.Path(encode_file_path.get()))
@@ -1412,7 +1406,8 @@ def open_nfo_viewer():
 
     # Create Text Box
     nfo_pad_text_box = Text(nfo_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
-                            xscrollcommand=bottom_scrollbar.set, background='#c0c0c0')
+                            xscrollcommand=bottom_scrollbar.set, background='#c0c0c0',
+                            font=(set_fixed_font, set_font_size + 1))
     nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
 
     # add scrollbars to the textbox
@@ -1466,9 +1461,13 @@ def open_nfo_viewer():
     nfo_pad.bind('<Control-A>', select_all)
     nfo_pad.bind('<Control-a>', select_all)
 
+    # format nfo via function
     nfo = run_nfo_formatter()
 
+    # delete any text (shouldn't be any)
     nfo_pad_text_box.delete("1.0", END)
+
+    # insert new nfo
     nfo_pad_text_box.insert(END, nfo)
 
     # if program is in automatic workflow mode
@@ -2486,7 +2485,7 @@ def open_uploader_window(job_mode):
             # parse file with mediainfo to txt and set variable
             m_i_dropped = MediaInfo.parse(pathlib.Path(m_i_input), full=False, output="")  # parse mediainfo
             encode_media_info.set(m_i_dropped)
-        media_info_entry.config(state=NORMAL) # enable entry box
+        media_info_entry.config(state=NORMAL)  # enable entry box
         media_info_entry.delete(0, END)  # clear entry box
         media_info_entry.insert(END, 'MediaInfo loaded from file')  # insert string
         media_info_entry.config(state=DISABLED)  # disable entry box
@@ -3026,11 +3025,13 @@ def generate_button_checker():
         generate_nfo_button.config(state=NORMAL)
         open_torrent_window_button.config(state=NORMAL)
         check_screens = parse_screen_shots()
+        # if check screens was not False
         if check_screens:
             parse_and_upload.config(state=NORMAL)
-            if nfo_info_var.get() != '':
+            # if nfo is not blank and torrent file is exists
+            if nfo_info_var.get() != '' and pathlib.Path(torrent_file_path.get()).is_file():
                 open_uploader_button.config(state=NORMAL)
-    else:  # if source/encode is empty stringsN
+    else:  # if source/encode is empty strings
         generate_nfo_button.config(state=DISABLED)
         open_torrent_window_button.config(state=DISABLED)
         parse_and_upload.config(state=DISABLED)
