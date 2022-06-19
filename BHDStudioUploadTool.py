@@ -48,20 +48,32 @@ if not config.has_section('torrent_settings'):
     config.add_section('torrent_settings')
 if not config.has_option('torrent_settings', 'tracker_url'):
     config.set('torrent_settings', 'tracker_url', '')
+
 if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
 if not config.has_option('encoder_name', 'name'):
     config.set('encoder_name', 'name', '')
+
 if not config.has_section('bhd_upload_api'):
     config.add_section('bhd_upload_api')
 if not config.has_option('bhd_upload_api', 'key'):
     config.set('bhd_upload_api', 'key', '')
+
 if not config.has_section('live_release'):
     config.add_section('live_release')
 if not config.has_option('live_release', 'password'):
     config.set('live_release', 'password', '')
 if not config.has_option('live_release', 'value'):
     config.set('live_release', 'value', '')
+
+if not config.has_section('nfo_pad_font_settings'):
+    config.add_section('nfo_pad_font_settings')
+if not config.has_option('nfo_pad_font_settings', 'font'):
+    config.set('nfo_pad_font_settings', 'font', '')
+if not config.has_option('nfo_pad_font_settings', 'style'):
+    config.set('nfo_pad_font_settings', 'style', '')
+if not config.has_option('nfo_pad_font_settings', 'size'):
+    config.set('nfo_pad_font_settings', 'size', '')
 
 # window location settings
 if not config.has_section('save_window_locations'):
@@ -130,8 +142,6 @@ if config['save_window_locations']['bhdstudiotool'] == '':
 elif config['save_window_locations']['bhdstudiotool'] != '':
     root.geometry(config['save_window_locations']['bhdstudiotool'])
 root.protocol('WM_DELETE_WINDOW', root_exit_function)
-
-# root_pid = os.getpid()  # Get root process ID
 
 # Block of code to fix DPI awareness issues on Windows 7 or higher
 try:
@@ -270,6 +280,7 @@ def start_logger():
         sys.stderr = Logger()  # Start the Logger() class to write to console and file
 
 
+# start logger
 threading.Thread(target=start_logger).start()
 
 # variables to be used within the program
@@ -339,6 +350,12 @@ def source_input_function(*args):
     audio_pop_up_var = StringVar()  # audio pop up var
 
     media_info = MediaInfo.parse(pathlib.Path(*args))
+
+    # check to ensure file dropped has a video track
+    if not media_info.general_tracks[0].count_of_video_streams:
+        messagebox.showerror(parent=root, title='Error', message='Incorrect file format or missing video stream')
+        return  # exit the function
+
     video_track = media_info.video_tracks[0]
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
@@ -1397,8 +1414,203 @@ def open_nfo_viewer():
     def clear_all():
         nfo_pad_text_box.delete(1.0, END)
 
-    def fixed_font_chooser():
-        pass
+    # fixed font chooser
+    fixed_font_chooser_opened = BooleanVar()
+
+    def fixed_font_chooser(*e):
+        # check if window is already opened
+        if fixed_font_chooser_opened.get():
+            return  # if opened exit the function
+        else:  # if not opened set to opened
+            fixed_font_chooser_opened.set(True)
+
+        # font parser
+        font_parser = ConfigParser()
+        font_parser.read(config_file)
+
+        font_chooser_win = Toplevel()
+        font_chooser_win.title('BHDStudio Upload Tool - Font')
+        font_chooser_win.configure(background="#363636")
+        font_chooser_win.geometry(f'{700}x{320}+{str(int(nfo_pad.geometry().split("+")[1]) + 108)}+'
+                                  f'{str(int(nfo_pad.geometry().split("+")[2]) + 80)}')
+        font_chooser_win.grab_set()  # grab set
+
+        font_chooser_win.rowconfigure(0, weight=1)
+        font_chooser_win.rowconfigure(1, weight=60)
+        font_chooser_win.rowconfigure(2, weight=1)
+        font_chooser_win.rowconfigure(3, weight=1)
+        font_chooser_win.columnconfigure(0, weight=1)
+        font_chooser_win.columnconfigure(1, weight=1)
+
+        # start font instance
+        font_instance = font.Font()
+        available_fonts = font.families()
+
+        # create a list of fixed fonts only
+        mono_spaced_fonts = []
+        for fonts in available_fonts:
+            get_fixed_fonts = font.Font(family=fonts)
+            if get_fixed_fonts.metrics("fixed"):
+                mono_spaced_fonts.append(fonts)
+
+        # some needed font variables
+        default_font_size = font_instance.actual().get("size")  # get default font size
+        define_font_type = font.nametofont("TkFixedFont")  # get default font value into Font object
+        default_font_name = define_font_type.actual().get("family")  # get font name
+        # default_style = font_instance.cget("weight")  # get weight as a variable
+
+        # get index of default mono font name
+        if font_parser['nfo_pad_font_settings']['font'].strip() != '':
+            get_font_index = mono_spaced_fonts.index(font_parser['nfo_pad_font_settings']['font'].strip())
+        else:
+            get_font_index = mono_spaced_fonts.index(default_font_name)
+
+        # fonts frame
+        fonts_frame = LabelFrame(font_chooser_win, text=' Fonts ', labelanchor="nw", fg="#3498db", bg="#363636", bd=3,
+                                 font=(set_font, set_font_size + 1, 'bold'))
+        fonts_frame.grid(column=0, row=0, rowspan=3, pady=5, padx=5, sticky=W + E + N + S)
+        fonts_frame.grid_columnconfigure(0, weight=1)
+        for f_f in range(3):
+            fonts_frame.grid_rowconfigure(f_f, weight=1)
+
+        # fonts listbox
+        fonts_right_scrollbar = Scrollbar(fonts_frame, orient=VERTICAL)  # scrollbar
+        fonts_listbox = Listbox(fonts_frame, selectbackground="#c0c0c0", background="#c0c0c0",
+                                selectforeground="#3498db", exportselection=False,
+                                yscrollcommand=fonts_right_scrollbar.set, selectmode=SINGLE, bd=2, activestyle="none",
+                                width=20, height=12)
+        fonts_listbox.grid(row=0, column=0, rowspan=3, sticky=N + E + S + W)
+        fonts_right_scrollbar.config(command=fonts_listbox.yview)
+        fonts_right_scrollbar.grid(row=0, column=1, rowspan=3, sticky=N + W + S)
+
+        # add fixed fonts to list box
+        for fixed_fonts in mono_spaced_fonts:
+            fonts_listbox.insert(END, fixed_fonts)
+
+        # select current default font
+        fonts_listbox.selection_set(get_font_index)
+
+        # fonts frame
+        style_frame = LabelFrame(font_chooser_win, text=' Style ', labelanchor="nw", fg="#3498db", bg="#363636", bd=3,
+                                 font=(set_font, set_font_size + 1, 'bold'))
+        style_frame.grid(column=1, row=0, pady=5, padx=5, sticky=E + W + N)
+        style_frame.grid_columnconfigure(0, weight=1)
+        style_frame.grid_rowconfigure(0, weight=1)
+
+        # style combo box
+        style_combo_box = ttk.Combobox(style_frame,
+                                       values=['Normal', 'Bold', 'Italic', 'Roman', 'Underline', 'Overstrike'],
+                                       state="readonly")
+        style_combo_box.grid(column=0, row=0, padx=2, pady=2, sticky=E + W)
+
+        # set weight
+        if font_parser['nfo_pad_font_settings']['style'].strip() != '':
+            style_combo_box.set(font_parser['nfo_pad_font_settings']['style'].strip())
+        else:
+            style_combo_box.set('Normal')
+
+        # set size list
+        values_list = []
+        for x in range(8, 74, 2):
+            values_list.append(x)
+
+        # fonts frame
+        size_frame = LabelFrame(font_chooser_win, text=' Size ', labelanchor="nw", fg="#3498db", bg="#363636", bd=3,
+                                font=(set_font, set_font_size + 1, 'bold'))
+        size_frame.grid(column=1, row=1, pady=5, padx=5, sticky=E + W + N)
+        size_frame.grid_columnconfigure(0, weight=1)
+        size_frame.grid_rowconfigure(0, weight=1)
+
+        # size combo box
+        size_combo_box = ttk.Combobox(size_frame, values=values_list)
+        size_combo_box.grid(column=0, row=0, padx=2, pady=2, sticky=E + W)
+
+        # set size
+        if font_parser['nfo_pad_font_settings']['size'].strip() != '':
+            size_combo_box.set(nfo_pad_parser['nfo_pad_font_settings']['size'].strip())
+        else:
+            size_combo_box.set(default_font_size)
+
+        # sample label
+        sample_label = Label(font_chooser_win, text="Aa", background="#363636", foreground="white")
+        sample_label.grid(column=1, row=2, pady=5, padx=5, sticky=E + W + N + S)
+
+        # constant loop to update the sample label
+        def sample_label_loop():
+            sample_label.config(font=(mono_spaced_fonts[fonts_listbox.curselection()[0]], size_combo_box.get(),
+                                      str(style_combo_box.get()).lower()))
+            font_chooser_win.after(30, sample_label_loop)
+
+        # start sample label loop
+        sample_label_loop()
+
+        # font chooser button frame
+        font_button_frame = LabelFrame(font_chooser_win, bg="#363636", bd=0)
+        font_button_frame.grid(column=0, row=3, columnspan=2, padx=5, pady=(5, 3), sticky=E + W)
+        font_button_frame.grid_rowconfigure(0, weight=1)
+        font_button_frame.grid_columnconfigure(0, weight=1)
+        font_button_frame.grid_columnconfigure(1, weight=60)
+        font_button_frame.grid_columnconfigure(2, weight=1)
+
+        # reset command
+        def reset_font_to_default():
+            # define parser
+            nfo_reset_parser = ConfigParser()
+            nfo_reset_parser.read(config_file)
+
+            # define settings
+            nfo_reset_parser.set('nfo_pad_font_settings', 'font', '')
+            nfo_reset_parser.set('nfo_pad_font_settings', 'style', '')
+            nfo_reset_parser.set('nfo_pad_font_settings', 'size', '')
+            with open(config_file, 'w') as font_configfile_reset:
+                nfo_reset_parser.write(font_configfile_reset)
+
+            # apply settings to nfo pad
+            nfo_pad_text_box.config(font=(set_fixed_font, set_font_size + 1))
+
+            # reset all the selections in the font chooser window
+            fonts_listbox.selection_clear(0, END)  # clear selection
+            fonts_listbox.selection_set(mono_spaced_fonts.index(default_font_name))  # set default value
+            style_combo_box.set('Normal')  # set default value
+            size_combo_box.set(default_font_size)  # set default value
+
+        # once function is exited set starting boolean to false
+        fixed_font_chooser_opened.set(False)
+
+        # reset button
+        font_reset_button = HoverButton(font_button_frame, text="Reset", command=reset_font_to_default,
+                                        foreground="white", background="#23272A", borderwidth="3", width=8,
+                                        activeforeground="#3498db", activebackground="#23272A")
+        font_reset_button.grid(row=0, column=0, columnspan=1, padx=3, pady=5, sticky=W)
+
+        # cancel button
+        font_cancel_button = HoverButton(font_button_frame, text="Close", command=font_chooser_win.destroy,
+                                         foreground="white", background="#23272A", borderwidth="3", width=8,
+                                         activeforeground="#3498db", activebackground="#23272A")
+        font_cancel_button.grid(row=0, column=1, columnspan=1, padx=3, pady=5, sticky=E)
+
+        # change the font for the nfo pad
+        def apply_command():
+            # define parser
+            nfo_apply_parser = ConfigParser()
+            nfo_apply_parser.read(config_file)
+
+            # define settings
+            nfo_apply_parser.set('nfo_pad_font_settings', 'font', mono_spaced_fonts[fonts_listbox.curselection()[0]])
+            nfo_apply_parser.set('nfo_pad_font_settings', 'size', str(size_combo_box.get()))
+            nfo_apply_parser.set('nfo_pad_font_settings', 'style', str(style_combo_box.get()))
+            with open(config_file, 'w') as font_configfile_apply:
+                nfo_apply_parser.write(font_configfile_apply)
+
+            # apply settings to nfo pad
+            nfo_pad_text_box.config(font=(mono_spaced_fonts[fonts_listbox.curselection()[0]], size_combo_box.get(),
+                                    str(style_combo_box.get()).lower()))
+
+        # apply button
+        font_apply_button = HoverButton(font_button_frame, text="Apply", command=apply_command,
+                                        foreground="white", background="#23272A", borderwidth="3", width=8,
+                                        activeforeground="#3498db", activebackground="#23272A")
+        font_apply_button.grid(row=0, column=2, columnspan=1, padx=3, pady=5, sticky=E)
 
     # create main frame
     nfo_frame = Frame(nfo_pad)
@@ -1407,10 +1619,10 @@ def open_nfo_viewer():
     nfo_frame.grid_rowconfigure(0, weight=1)
 
     # scroll bars
-    right_scrollbar = Scrollbar(nfo_frame, orient=VERTICAL)  # Scrollbars
+    right_scrollbar = Scrollbar(nfo_frame, orient=VERTICAL)  # scrollbars
     bottom_scrollbar = Scrollbar(nfo_frame, orient=HORIZONTAL)
 
-    # Create Text Box
+    # create text box
     nfo_pad_text_box = Text(nfo_frame, undo=True, yscrollcommand=right_scrollbar.set, wrap="none",
                             xscrollcommand=bottom_scrollbar.set, background='#c0c0c0',
                             font=(set_fixed_font, set_font_size + 1))
@@ -1421,6 +1633,14 @@ def open_nfo_viewer():
     right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
     bottom_scrollbar.config(command=nfo_pad_text_box.xview)
     bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+    # define starting font
+    if nfo_pad_parser['nfo_pad_font_settings']['font'].strip() != '' and \
+            nfo_pad_parser['nfo_pad_font_settings']['style'].strip() != '' and \
+            nfo_pad_parser['nfo_pad_font_settings']['size'].strip() != '':
+        nfo_pad_text_box.config(font=(nfo_pad_parser['nfo_pad_font_settings']['font'].strip(),
+                                      int(nfo_pad_parser['nfo_pad_font_settings']['size'].strip()),
+                                      nfo_pad_parser['nfo_pad_font_settings']['style'].strip().lower()))
 
     # Create Menu
     nfo_main_menu = Menu(nfo_pad)
@@ -1449,6 +1669,11 @@ def open_nfo_viewer():
     edit_menu.add_command(label="Select All", command=lambda: select_all(True), accelerator="(Ctrl+a)")
     edit_menu.add_command(label="Clear", command=clear_all)
 
+    # add options menu
+    options_menu = Menu(nfo_main_menu, tearoff=False)
+    nfo_main_menu.add_cascade(label="Options", menu=options_menu)
+    options_menu.add_command(label="Font Settings", command=fixed_font_chooser, accelerator="(Ctrl+o)")
+
     # Add Color Menu
     color_menu = Menu(nfo_main_menu, tearoff=False)
     nfo_main_menu.add_cascade(label="Colors", menu=color_menu)
@@ -1459,11 +1684,12 @@ def open_nfo_viewer():
     status_bar = Label(nfo_pad, text='Ready', anchor=E, bg="#565656", fg="white", relief=SUNKEN)
     status_bar.grid(column=0, columnspan=2, row=2, pady=1, padx=1, sticky=E + W)
 
-    # Edit Bindings
+    # edit bindings
     nfo_pad.bind('<Control-Key-x>', cut_text)
     nfo_pad.bind('<Control-Key-c>', copy_text)
     nfo_pad.bind('<Control-Key-v>', paste_text)
-    # Select Binding
+    nfo_pad.bind('<Control-Key-o>', fixed_font_chooser)
+    # select binding
     nfo_pad.bind('<Control-A>', select_all)
     nfo_pad.bind('<Control-a>', select_all)
 
