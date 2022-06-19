@@ -33,7 +33,7 @@ from Packages.tmdb_key import tmdb_api_key
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.2 Beta"
+main_root_title = "BHDStudio Upload Tool v1.3 Beta"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -177,8 +177,8 @@ custom_style.theme_create('jlw_style', parent='alt', settings={
         "map": {"background": [("selected", '#434547')], "expand": [("selected", [1, 1, 1, 0])]}},
     # Notebook Theme Settings -------------------
     # ComboBox Theme Settings -------------------
-    'TCombobox': {'configure': {'selectbackground': '#23272A', 'fieldbackground': '#23272A',
-                                'background': 'white', 'foreground': 'white'}}},
+    'TCombobox': {'configure': {'selectbackground': "#c0c0c0", 'fieldbackground': "#c0c0c0", "lightcolor": "green",
+                                'background': "white", 'foreground': "black", 'selectforeground': "black"}}},
                           # ComboBox Theme Settings -------------------
                           )
 custom_style.theme_use('jlw_style')  # Enable the use of the custom theme
@@ -190,9 +190,10 @@ custom_style.layout('text.Horizontal.TProgressbar',
                      ('Horizontal.Progressbar.label', {'sticky': 'nswe'})])
 # set initial text
 custom_style.configure('text.Horizontal.TProgressbar', text='', anchor='center', background="#3498db")
+custom_style.master.option_add('*TCombobox*Listbox.background', "grey")
+custom_style.master.option_add('*TCombobox*Listbox.selectBackground', "grey")
+custom_style.master.option_add('*TCombobox*Listbox.selectForeground', "#3498db")
 
-
-# custom_style.configure("custom.Horizontal.TProgressbar", background="#3498db")
 
 # ------------------------------------------ Custom Tkinter Theme
 
@@ -498,25 +499,27 @@ def encode_input_function(*args):
         delete_encode_entry()
 
     # detect resolution and check miss match bit rates
+    encode_settings_used_bit_rate = int(str(video_track.encoding_settings).split('bitrate=')[1].split('/')[0].strip())
     if video_track.width <= 1280 and video_track.height <= 720:  # 720p
         encoded_source_resolution = '720p'
-        if calculate_average_video_bit_rate <= 3000 or calculate_average_video_bit_rate >= 5000:
-            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
-                                                 f'Bit rate for 720p encodes should be @ 4000 kbps')
+        if encode_settings_used_bit_rate != 4000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 720p encodes should be 4000 kbps')
             return
     elif video_track.width <= 1920 and video_track.height <= 1080:  # 1080p
         encoded_source_resolution = '1080p'
-        if calculate_average_video_bit_rate <= 7000 or calculate_average_video_bit_rate >= 9000:
-            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
-                                                 f'Bit rate for 1080p encodes should be @ 8000 kbps')
+        if encode_settings_used_bit_rate != 8000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 1080p encodes should be 8000 kbps')
             return
     elif video_track.width <= 3840 and video_track.height <= 2160:  # 2160p
         encoded_source_resolution = '2160p'
-        if calculate_average_video_bit_rate <= 15000 or calculate_average_video_bit_rate >= 17000:
-            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(calculate_average_video_bit_rate)} kbps\n\n'
-                                                 f'Bit rate for 2160p encodes should be @ 16000 kbps')
+        if encode_settings_used_bit_rate != 16000:
+            resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
+                                                 f'Bit rate for 2160p encodes should be 16000 kbps')
             return
-    # set encode file resolution stringvar
+
+    # set encode file resolution string var
     encode_file_resolution.set(encoded_source_resolution)
 
     # check for source resolution vs encode resolution (do not allow 2160p encode on a 1080p source)
@@ -1373,28 +1376,31 @@ def open_nfo_viewer():
                 position = nfo_pad_text_box.index(INSERT)
                 nfo_pad_text_box.insert(position, str(selected))
 
-    # Change bg color
+    # change bg color
     def bg_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
         if my_color:
             nfo_pad_text_box.config(bg=my_color)
 
-    # Change ALL Text Color
+    # change all text color
     def all_text_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
         if my_color:
             nfo_pad_text_box.config(fg=my_color)
 
-    # Select all Text
+    # select all text
     def select_all(e):
         # Add sel tag to select all text
         nfo_pad_text_box.tag_add('sel', '1.0', 'end')
 
-    # Clear All Text
+    # clear all text
     def clear_all():
         nfo_pad_text_box.delete(1.0, END)
 
-    # Create Main Frame
+    def fixed_font_chooser():
+        pass
+
+    # create main frame
     nfo_frame = Frame(nfo_pad)
     nfo_frame.grid(column=0, columnspan=2, row=0, pady=(5, 0), padx=5, sticky=N + S + E + W)
     nfo_frame.grid_columnconfigure(0, weight=1)
@@ -1859,8 +1865,8 @@ def open_uploader_window(job_mode):
         # save window position/geometry
         if upload_window.wm_state() == 'normal':
             if uploader_exit_parser['save_window_locations']['uploader'] != upload_window.geometry():
-                if int(upload_window.geometry().split('x')[0]) >= upload_window_window_width or \
-                        int(upload_window.geometry().split('x')[1].split('+')[0]) >= upload_window_window_height:
+                if int(upload_window.geometry().split('x')[0]) >= upload_window_width or \
+                        int(upload_window.geometry().split('x')[1].split('+')[0]) >= upload_window_height:
                     uploader_exit_parser.set('save_window_locations', 'uploader', upload_window.geometry())
                     with open(config_file, 'w') as uploader_exit_config_file:
                         uploader_exit_parser.write(uploader_exit_config_file)
@@ -1879,14 +1885,14 @@ def open_uploader_window(job_mode):
     upload_window.title('BHDStudio - Uploader')
     upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
     upload_window.configure(background="#363636")
-    upload_window_window_height = 660
-    upload_window_window_width = 720
+    upload_window_height = 660
+    upload_window_width = 720
     if uploader_window_config_parser['save_window_locations']['uploader'] == '':
         uploader_screen_width = upload_window.winfo_screenwidth()
         uploader_screen_height = upload_window.winfo_screenheight()
-        uploader_x_coordinate = int((uploader_screen_width / 2) - (upload_window_window_width / 2))
-        uploader_y_coordinate = int((uploader_screen_height / 2) - (upload_window_window_height / 2))
-        upload_window.geometry(f"{upload_window_window_width}x{upload_window_window_height}+"
+        uploader_x_coordinate = int((uploader_screen_width / 2) - (upload_window_width / 2))
+        uploader_y_coordinate = int((uploader_screen_height / 2) - (upload_window_height / 2))
+        upload_window.geometry(f"{upload_window_width}x{upload_window_height}+"
                                f"{uploader_x_coordinate}+{uploader_y_coordinate}")
     elif uploader_window_config_parser['save_window_locations']['uploader'] != '':
         upload_window.geometry(uploader_window_config_parser['save_window_locations']['uploader'])
@@ -2129,7 +2135,7 @@ def open_uploader_window(job_mode):
                 if 't' in imdb_id_var.get():
                     imdb_module = Cinemagoer()
                     movie = imdb_module.get_movie(str(imdb_id_var.get()).replace('t', ''))
-                    imdb_movie_name = str(movie['long imdb title']).replace(')', '').replace('(', '')
+                    imdb_movie_name = f"{str(movie['title'])} {str(movie['year'])}"
                 else:
                     return
 
