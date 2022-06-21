@@ -57,6 +57,8 @@ if not config.has_section('torrent_settings'):
     config.add_section('torrent_settings')
 if not config.has_option('torrent_settings', 'tracker_url'):
     config.set('torrent_settings', 'tracker_url', '')
+if not config.has_option('torrent_settings', 'default_path'):
+    config.set('torrent_settings', 'default_path', '')
 
 if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
@@ -474,9 +476,14 @@ def source_input_function(*args):
 
 
 def encode_input_function(*args):
+    # define parser
+    encode_input_function_parser = ConfigParser()
+    encode_input_function_parser.read(config_file)
+
+    # check if source is loaded
     if source_loaded.get() == '':
         messagebox.showinfo(parent=root, title='Info', message='You must open a source file first')
-        return
+        return  # exit function
 
     # code to check input extension
     if pathlib.Path(*args).suffix != '.mp4':
@@ -485,7 +492,7 @@ def encode_input_function(*args):
                                      f'BHDStudio encodes are muxed into MP4 containers and should have a '
                                      f'".mp4" extension')
         delete_encode_entry()
-        return
+        return  # exit function
 
     # if file has the correct extension type parse it
     media_info = MediaInfo.parse(pathlib.Path(*args))
@@ -501,13 +508,13 @@ def encode_input_function(*args):
     # if encode is missing the video track
     if not media_info.general_tracks[0].count_of_video_streams:
         encode_input_error_box('0', 'video', 'BHDStudio encodes should have 1 video track')
-        return
+        return  # exit function
 
     # if encode has more than 1 video track
     if int(media_info.general_tracks[0].count_of_video_streams) > 1:
         encode_input_error_box(media_info.general_tracks[0].count_of_video_streams, 'video',
                                'BHDStudio encodes should only have 1 video track')
-        return
+        return  # exit function
 
     # select video track for parsing
     video_track = media_info.video_tracks[0]
@@ -524,7 +531,7 @@ def encode_input_function(*args):
                              message=f'Resolution: "{str(video_track.width)}x{str(video_track.height)}"\n\n'
                                      f'BHDStudio encodes should only be cropped in even numbers')
         delete_encode_entry()
-        return
+        return  # exit function
 
     # error function for resolution check and miss match bit rates
     def resolution_bit_rate_miss_match_error(res_error_string):
@@ -538,19 +545,19 @@ def encode_input_function(*args):
         if encode_settings_used_bit_rate != 4000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 720p encodes should be 4000 kbps')
-            return
+            return  # exit function
     elif video_track.width <= 1920 and video_track.height <= 1080:  # 1080p
         encoded_source_resolution = '1080p'
         if encode_settings_used_bit_rate != 8000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 1080p encodes should be 8000 kbps')
-            return
+            return  # exit function
     elif video_track.width <= 3840 and video_track.height <= 2160:  # 2160p
         encoded_source_resolution = '2160p'
         if encode_settings_used_bit_rate != 16000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 2160p encodes should be 16000 kbps')
-            return
+            return  # exit function
 
     # set encode file resolution string var
     encode_file_resolution.set(encoded_source_resolution)
@@ -570,19 +577,19 @@ def encode_input_function(*args):
                                      f'Encode resolution {encoded_source_resolution}\n\n'
                                      f'Allowed encode resolutions based on source:\n'
                                      f'"{", ".join(allowed_encode_resolutions)}"')
-        return
+        return  # exit function
 
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
     if not media_info.general_tracks[0].count_of_audio_streams:
         encode_input_error_box('0', 'audio', 'BHDStudio encodes should have 1 audio track')
-        return
+        return  # exit function
 
     # if encode has more than 1 audio track
     if int(media_info.general_tracks[0].count_of_audio_streams) > 1:
         encode_input_error_box(media_info.general_tracks[0].count_of_audio_streams, 'audio',
                                'BHDStudio encodes should only have 1 audio track')
-        return
+        return  # exit function
 
     # select audio track #1
     audio_track = media_info.audio_tracks[0]
@@ -592,7 +599,7 @@ def encode_input_function(*args):
         messagebox.showerror(parent=root, title='Error',
                              message=f'Audio format "{str(audio_track.format)}" '
                                      f'is not correct.\n\nBHDStudio encodes should be in "Dolby Digital (AC-3)" only')
-        return
+        return  # exit function
 
     # check if audio channels was properly encoded from source
     source_audio_channels = int(source_file_information["source_selected_audio_info"]["channel_s"])
@@ -641,7 +648,7 @@ def encode_input_function(*args):
                              message=f'Source audio is {source_audio_string}\n\n'
                                      f'{encoded_source_resolution} BHDStudio audio should be Dolby Digital '
                                      f'{encode_audio_string}')
-        return
+        return  # exit function
 
     # update audio channel string var for use with the uploader
     if bhd_accepted_audio_channels == 1:
@@ -663,7 +670,7 @@ def encode_input_function(*args):
                              message=f'Incorrect audio channel format {str(audio_track.channel_s)}:\n\nBHDStudio '
                                      f'encodes audio channels should be 1.0, 2.0 (dplII), or 5.1')
         delete_encode_entry()
-        return
+        return  # exit function
 
     calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
@@ -702,7 +709,11 @@ def encode_input_function(*args):
     enable_clear_all_checkbuttons()
 
     # set torrent name
-    torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
+    if encode_input_function_parser['torrent_settings']['default_path'] != '':
+        torrent_file_path.set(str(pathlib.Path(encode_input_function_parser['torrent_settings']['default_path']) /
+                                  pathlib.Path(pathlib.Path(*args).stem).with_suffix('.torrent')))
+    else:
+        torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
 
     # set media info memory file
     media_info_original = MediaInfo.parse(pathlib.Path(*args), full=False, output="")  # parse identical to mediainfo
@@ -1812,7 +1823,6 @@ def torrent_function_window():
     torrent_path_frame.grid(column=0, row=0, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S)
     torrent_path_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
     torrent_path_frame.grid_rowconfigure(0, weight=1)
-    torrent_path_frame.grid_rowconfigure(1, weight=1)
     for t_f in range(10):
         torrent_path_frame.grid_columnconfigure(t_f, weight=1)
 
@@ -3119,24 +3129,23 @@ root.config(menu=my_menu_bar)
 file_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='File', menu=file_menu)
 
-file_menu.add_command(label='Open Source File   [CTRL + O]', command=manual_source_input)
+file_menu.add_command(label='Open Source File', command=manual_source_input, accelerator="[Ctrl+O]")
 root.bind("<Control-s>", lambda event: manual_source_input())
-file_menu.add_command(label='Open Encode File   [CTRL + E]', command=manual_encode_input)
+file_menu.add_command(label='Open Encode File', command=manual_encode_input, accelerator="[Ctrl+E]")
 root.bind("<Control-e>", lambda event: manual_encode_input())
 file_menu.add_separator()
-file_menu.add_command(label='Reset GUI              [CTRL + R]', command=reset_gui)
+file_menu.add_command(label='Reset GUI', command=reset_gui, accelerator="[Ctrl+R]")
 root.bind("<Control-r>", lambda event: reset_gui())
-file_menu.add_command(label='Exit                        [ALT + F4]', command=root_exit_function)
+file_menu.add_command(label='Exit', command=root_exit_function, accelerator="[Alt+F4]")
 
 
 # custom input box that accepts parent window, label, config option, and config key
 def custom_input_prompt(parent_window, label_input, config_option, config_key):
+    # hide all top levels if they are opened
+    hide_all_toplevels()
     # set parser
     custom_input_parser = ConfigParser()
     custom_input_parser.read(config_file)
-
-    def custom_input_window_exit():
-        encoder_okay_func()
 
     # encoder name window
     custom_input_window = Toplevel()
@@ -3146,7 +3155,7 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
                                  f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
     custom_input_window.resizable(0, 0)
     custom_input_window.grab_set()
-    custom_input_window.protocol('WM_DELETE_WINDOW', custom_input_window_exit)
+    custom_input_window.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
     parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
     custom_input_window.grid_rowconfigure(0, weight=1)
     custom_input_window.grid_columnconfigure(0, weight=1)
@@ -3170,7 +3179,7 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
     custom_entry_box.insert(END, custom_input_parser[config_option][config_key])
 
     # function to save new name to config.ini
-    def encoder_okay_func():
+    def custom_okay_func():
         if custom_input_parser[config_option][config_key] != custom_entry_box.get().strip():
             custom_input_parser.set(config_option, config_key, custom_entry_box.get().strip())
             with open(config_file, 'w') as encoder_name_config_file:
@@ -3179,71 +3188,151 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
         custom_input_window.destroy()  # close window
 
     # create 'OK' button
-    encoder_okay_btn = HoverButton(custom_input_frame, text="OK", command=encoder_okay_func, foreground="white",
-                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
-                                   activebackground="#23272A")
-    encoder_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+    custom_okay_btn = HoverButton(custom_input_frame, text="OK", command=custom_okay_func, foreground="white",
+                                  background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+                                  activebackground="#23272A")
+    custom_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
     # create 'Cancel' button
-    encoder_cancel_btn = HoverButton(custom_input_frame, text="Cancel", activeforeground="#3498db", width=8,
-                                     command=lambda: [custom_input_window.destroy(),
-                                                      root.wm_attributes('-alpha', 1.0)],
-                                     foreground="white", background="#23272A", borderwidth="3",
-                                     activebackground="#23272A")
-    encoder_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+    custom_cancel_btn = HoverButton(custom_input_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                    command=lambda: [custom_input_window.destroy(),
+                                                     root.wm_attributes('-alpha', 1.0)],
+                                    foreground="white", background="#23272A", borderwidth="3",
+                                    activebackground="#23272A")
+    custom_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
-    custom_input_window.wait_window()
+    custom_input_window.wait_window()  # wait for window to be closed
+    open_all_toplevels()  # re-open all top levels if they exist
 
 
-# # custom messagebox window that accepts parent window and text info
-# def custom_input_prompt(parent_window, text_input):
-#     # encoder name window
-#     custom_input_window = Toplevel()
-#     custom_input_window.configure(background="#363636")
-#     custom_input_window.geometry(f'{460}x{200}+{str(int(parent_window.geometry().split("+")[1]) + 156)}+'
-#                                  f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
-#     custom_input_window.resizable(0, 0)
-#     custom_input_window.grab_set()
-#     custom_input_window.wm_overrideredirect(True)
-#     parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
-#     custom_input_window.grid_rowconfigure(0, weight=1)
-#     custom_input_window.grid_columnconfigure(0, weight=1)
-#
-#     # encoder name frame
-#     custom_input_frame = Frame(custom_input_window, highlightbackground="white", highlightthickness=2, bg="#363636",
-#                                highlightcolor='white')
-#     custom_input_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
-#     for e_n_f in range(3):
-#         custom_input_frame.grid_columnconfigure(e_n_f, weight=1)
-#         custom_input_frame.grid_rowconfigure(e_n_f, weight=1)
-#
-#     # create label
-#     custom_info_scrolled = scrolledtextwidget.ScrolledText(custom_input_frame, height=7, bg='#565656', fg='white',
-#                                                            bd=4)
-#     custom_info_scrolled.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
-#     custom_info_scrolled.insert(END, text_input)
-#     custom_info_scrolled.config(state=DISABLED)
-#
-#     # function to save new name to config.ini
-#     def encoder_okay_func():
-#         parent_window.wm_attributes('-alpha', 1.0)  # restore transparency
-#         custom_input_window.destroy()  # close window
-#
-#     # create 'OK' button
-#     encoder_okay_btn = HoverButton(custom_input_frame, text="OK", command=encoder_okay_func, foreground="white",
-#                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
-#                                    activebackground="#23272A")
-#     encoder_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
-#
-#     custom_input_window.wait_window()
+# define default torrent path window
+def torrent_path_window_function(*t_args):
+    # hide all top levels if they are opened
+    hide_all_toplevels()
+    # define parser
+    torrent_window_path_parser = ConfigParser()
+    torrent_window_path_parser.read(config_file)
+
+    # torrent path window
+    torrent_path_window = Toplevel()
+    torrent_path_window.title('')
+    torrent_path_window.configure(background="#363636")
+    torrent_path_window.geometry(f'{460}x{160}+{str(int(root.geometry().split("+")[1]) + 156)}+'
+                                 f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    torrent_path_window.resizable(0, 0)
+    torrent_path_window.grab_set()
+    torrent_path_window.protocol('WM_DELETE_WINDOW', lambda: torrent_path_okay_func())
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    torrent_path_window.grid_rowconfigure(0, weight=1)
+    torrent_path_window.grid_columnconfigure(0, weight=1)
+
+    # encoder name frame
+    torrent_path_frame = Frame(torrent_path_window, highlightbackground="white", highlightthickness=2, bg="#363636",
+                               highlightcolor='white')
+    torrent_path_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+
+    # grid and row config
+    for e_n_f in range(4):
+        torrent_path_frame.grid_columnconfigure(e_n_f, weight=1)
+        torrent_path_frame.grid_rowconfigure(e_n_f, weight=1)
+    torrent_path_frame.grid_columnconfigure(1, weight=100)
+    torrent_path_frame.grid_rowconfigure(2, weight=50)
+
+    # create label
+    torrent_label = Label(torrent_path_frame, text="Torrent Output Path", background='#363636', fg="#3498db",
+                          font=(set_font, set_font_size, "bold"))
+    torrent_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 8))
+
+    # set torrent default path function
+    def save_default_torrent_path():
+        # save directory dialog box
+        torrent_path_dialogue = filedialog.askdirectory(parent=torrent_path_window, title="Set Default Path")
+        # if directory is defined
+        if torrent_path_dialogue:
+            # define parser/settings then write to config file
+            torrent_path_update_parser = ConfigParser()
+            torrent_path_update_parser.read(config_file)
+            torrent_path_update_parser.set('torrent_settings', 'default_path', str(pathlib.Path(torrent_path_dialogue)))
+            with open(config_file, 'w') as t_p_configfile:
+                torrent_path_update_parser.write(t_p_configfile)
+            # update entry box
+            torrent_path_entry_box.config(state=NORMAL)
+            torrent_path_entry_box.delete(0, END)
+            torrent_path_entry_box.insert(END, str(pathlib.Path(torrent_path_dialogue)))
+            torrent_path_entry_box.config(state=DISABLED)
+            # update torrent_file_path string var
+            if torrent_file_path.get() != '':
+                torrent_file_path.set(str(pathlib.Path(torrent_path_update_parser['torrent_settings']['default_path'])
+                                          / pathlib.Path(pathlib.Path(torrent_file_path.get()).stem
+                                                         ).with_suffix('.torrent')))
+
+    # create torrent path button
+    torrent_path_btn = HoverButton(torrent_path_frame, text="Path", command=save_default_torrent_path,
+                                   background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+                                   activebackground="#23272A", foreground="white")
+    torrent_path_btn.grid(row=1, column=0, columnspan=1, padx=(5, 2), pady=5, sticky=W)
+
+    # create entry box
+    torrent_path_entry_box = Entry(torrent_path_frame, borderwidth=4, bg="#565656", fg='white',
+                                   disabledbackground="#565656", disabledforeground="light grey")
+    torrent_path_entry_box.grid(row=1, column=1, columnspan=2, padx=0, pady=5, sticky=E + W)
+    torrent_path_entry_box.insert(END, torrent_window_path_parser['torrent_settings']['default_path'])
+    torrent_path_entry_box.config(state=DISABLED)
+
+    # reset path function
+    def reset_torrent_path_function():
+        # confirm reset
+        confirm_reset = messagebox.askyesno(parent=torrent_path_window, title='Confirm',
+                                            message='Are you sure you want to reset path back to default?\n'
+                                                    '(Encode file input path)')
+        # if user presses yes
+        if confirm_reset:
+            # define parser/settings then write to config file
+            reset_path_parser = ConfigParser()
+            reset_path_parser.read(config_file)
+            reset_path_parser.set('torrent_settings', 'default_path', '')
+            with open(config_file, 'w') as t_r_configfile:
+                reset_path_parser.write(t_r_configfile)
+            # update entry box
+            torrent_path_entry_box.config(state=NORMAL)
+            torrent_path_entry_box.delete(0, END)
+            torrent_path_entry_box.config(state=DISABLED)
+            # update torrent_file_path string var if encode_file_path is loaded
+            if encode_file_path.get() != '':
+                torrent_file_path.set(str(pathlib.Path(encode_file_path.get()).with_suffix('.torrent')))
+                print(torrent_file_path.get())
+
+    # create torrent reset path button
+    torrent_path_reset_btn = HoverButton(torrent_path_frame, text="X", command=reset_torrent_path_function,
+                                         background="#23272A", borderwidth="3", activeforeground="#3498db", width=3,
+                                         activebackground="#23272A", foreground="white")
+    torrent_path_reset_btn.grid(row=1, column=3, columnspan=1, padx=(2, 5), pady=5, sticky=E)
+
+    # function to exit torrent path window
+    def torrent_path_okay_func():
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        torrent_path_window.destroy()  # close window
+
+    # create 'OK' button
+    torrent_path_okay_btn = HoverButton(torrent_path_frame, text="OK", command=torrent_path_okay_func,
+                                        foreground="white", background="#23272A", borderwidth="3",
+                                        activeforeground="#3498db", width=8, activebackground="#23272A")
+    torrent_path_okay_btn.grid(row=2, column=2, columnspan=2, padx=7, pady=(5, 3), sticky=E + S)
+
+    torrent_path_window.wait_window()  # wait for window to be closed
+    open_all_toplevels()  # re-open all top levels if they exist
 
 
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
-options_menu.add_command(label='Encoder Name',
+options_menu.add_command(label='Encoder Name', accelerator="[Ctrl+E]",
                          command=lambda: [custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name')])
-options_menu.add_command(label='API Key',
+root.bind('<Control-e>', lambda event: custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name'))
+options_menu.add_command(label='API Key', accelerator="[Ctrl+A]",
                          command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')])
+root.bind('<Control-a>', lambda event: custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key'))
+options_menu.add_command(label='Torrent Output Path', command=torrent_path_window_function, accelerator="[Ctrl+T]")
+root.bind("<Control-t>", torrent_path_window_function)
 options_menu.add_separator()
 
 # auto update options menu
