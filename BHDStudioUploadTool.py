@@ -3,23 +3,26 @@ import math
 import os
 import pathlib
 import re
+import subprocess
 import sys
 import threading
 import tkinter.scrolledtext as scrolledtextwidget
 import webbrowser
+import zipfile
 from configparser import ConfigParser
 from ctypes import windll
 from idlelib.tooltip import Hovertip
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
-    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE, CENTER, WORD, LEFT
 
 import pyperclip
 import requests
 import torf
 from PIL import Image, ImageTk
 from TkinterDnD2 import *
+from bs4 import BeautifulSoup
 from imdb import Cinemagoer
 from pymediainfo import MediaInfo
 from torf import Torrent
@@ -29,11 +32,17 @@ from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, b
 from Packages.show_streams import stream_menu
 from Packages.tmdb_key import tmdb_api_key
 
+# check if program had a file dropped/any commands on the .exe or .pyscript upon launch
+try:  # if it does set dropped file/command to a variable
+    cli_command = sys.argv[1]
+except IndexError:  # if it doesn't set variable to None
+    cli_command = None
+
 # Set variable to True if you want errors to pop up in window + console, False for console only
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.3 Beta"
+main_root_title = "BHDStudio Upload Tool v1.1"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -74,6 +83,13 @@ if not config.has_option('nfo_pad_font_settings', 'style'):
     config.set('nfo_pad_font_settings', 'style', '')
 if not config.has_option('nfo_pad_font_settings', 'size'):
     config.set('nfo_pad_font_settings', 'size', '')
+
+if not config.has_section('check_for_updates'):
+    config.add_section('check_for_updates')
+if not config.has_option('check_for_updates', 'value'):
+    config.set('check_for_updates', 'value', 'True')
+if not config.has_option('check_for_updates', 'ignore_version'):
+    config.set('check_for_updates', 'ignore_version', '')
 
 # window location settings
 if not config.has_section('save_window_locations'):
@@ -1604,7 +1620,7 @@ def open_nfo_viewer():
 
             # apply settings to nfo pad
             nfo_pad_text_box.config(font=(mono_spaced_fonts[fonts_listbox.curselection()[0]], size_combo_box.get(),
-                                    str(style_combo_box.get()).lower()))
+                                          str(style_combo_box.get()).lower()))
 
         # apply button
         font_apply_button = HoverButton(font_button_frame, text="Apply", command=apply_command,
@@ -3229,6 +3245,34 @@ options_menu.add_command(label='Encoder Name',
 options_menu.add_command(label='API Key',
                          command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')])
 options_menu.add_separator()
+
+# auto update options menu
+auto_update_var = StringVar()
+auto_update_var.set(config['check_for_updates']['value'])
+if auto_update_var.get() == 'True':
+    auto_update_var.set('True')
+elif auto_update_var.get() == 'False':
+    auto_update_var.set(config['check_for_updates']['value'])
+
+
+# function to save to config
+def auto_update_func():
+    # parser
+    a_u_parser = ConfigParser()
+    a_u_parser.read(config_file)
+    # write
+    a_u_parser.set('check_for_updates', 'value', auto_update_var.get())
+    with open(config_file, 'w') as au_configfile:
+        a_u_parser.write(au_configfile)
+
+
+auto_update_func()
+options_submenu2 = Menu(root, tearoff=0, activebackground='dim grey')
+options_menu.add_cascade(label='Auto Update', menu=options_submenu2)
+options_submenu2.add_radiobutton(label='On', variable=auto_update_var, value='True', command=auto_update_func)
+options_submenu2.add_radiobutton(label='Off', variable=auto_update_var, value='False', command=auto_update_func)
+options_menu.add_separator()
+
 options_menu.add_command(label='Reset Configuration File', command=reset_config)
 
 tools_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
@@ -3247,6 +3291,8 @@ help_menu.add_command(label="Project Page",  # Open GitHub project page
 help_menu.add_command(label="Report Error / Feature Request",  # Open GitHub tracker link
                       command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool'
                                                       '/issues/new/choose'))
+help_menu.add_command(label="Download Latest Release",  # Open GitHub release link
+                      command=lambda: webbrowser.open('https://github.com/jlw4049/BHDStudio-Upload-Tool/releases'))
 help_menu.add_separator()
 help_menu.add_command(label="Info", command=lambda: openaboutwindow(main_root_title))  # Opens about window
 
@@ -3271,6 +3317,211 @@ def generate_button_checker():
     root.after(50, generate_button_checker)  # loop to constantly check
 
 
+# start button checker loop
 generate_button_checker()
 
+
+# check for updates
+def check_for_latest_program_updates():
+    def error_message_open_browser():
+        auto_error = messagebox.askyesno(parent=root, title='Error',
+                                         message='There was an error automatically getting the download, would you '
+                                                 'like to manually update? ')
+        # if user selects yes
+        if auto_error:
+            webbrowser.open(release_link)  # open link to the latest release page
+            update_window.destroy()  # close update window
+
+    # update parser
+    check_for_update_parser = ConfigParser()
+    check_for_update_parser.read(config_file)
+
+    # if check for updates is disabled
+    if check_for_update_parser['check_for_updates']['value'] == "False":
+        return  # exit function
+
+    release_link = 'https://github.com/jlw4049/BHDStudio-Upload-Tool/releases'
+
+    # parse release page without GitHub api
+    try:
+        parse_release_page = requests.get(release_link, timeout=10)
+    except requests.exceptions.ConnectionError:
+        error_message_open_browser()
+        return  # exit function
+
+    # split program json string up to get the latest release version
+    search_for_version = re.search(r'class="Link--primary">(.*?)</a></h1>', parse_release_page.text, re.MULTILINE)
+    if search_for_version:
+        parsed_version = search_for_version.group(1)
+    elif not search_for_version:
+        error_message_open_browser()
+        return  # exit function
+
+    # if extracted version is equal to current version exit this function
+    if parsed_version == main_root_title:
+        return  # program is up-to-date, exit the function
+
+    # if extracted version is the same as skipped version exit this function
+    if check_for_update_parser['check_for_updates']['ignore_version'] == parsed_version:
+        return  # newest version is set to be skipped
+
+    # search for update link
+    find_update_link = re.search(r'"(.*?\.zip)"', parse_release_page.text, re.MULTILINE)
+    if find_update_link:
+        update_download_link = find_update_link.group(1)
+    elif not find_update_link:
+        error_message_open_browser()
+        return  # exit the function
+
+    # search for latest patch notes
+    get_release_notes = re.search(r'<div data-pjax="true" data-test-selector="body-content" data-view-component="true" '
+                                  r'class="markdown-body(?s:.*?)<div data-view-component="true" class="Box-footer">',
+                                  parse_release_page.text, re.MULTILINE)
+    if get_release_notes:
+        convert_release_notes = re.search(r"<.*>(.*)<.*>", get_release_notes.group(), re.MULTILINE)
+    elif not get_release_notes:
+        convert_release_notes = "Could not parse release notes"
+
+    # updater window
+    update_window = Toplevel()
+    update_window.title('Update')
+    update_window.configure(background="#363636")
+    update_window.geometry(f'{800}x{540}+{root.geometry().split("+")[1]}+{root.geometry().split("+")[2]}')
+    for e_w in range(4):
+        update_window.grid_columnconfigure(e_w, weight=1)
+    update_window.grid_rowconfigure(0, weight=1)
+    update_window.grid_rowconfigure(1, weight=1)
+    update_window.grid_rowconfigure(2, weight=1)
+
+    # basic update label to show parsed version
+    update_label = Label(update_window, text=parsed_version, bd=0, relief=SUNKEN,
+                         background='#363636', foreground="#3498db", font=(set_font, set_font_size + 4, 'bold'))
+    update_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W + E)
+
+    # scrolled update window
+    update_scrolled = scrolledtextwidget.ScrolledText(update_window, bg="#565656", fg="white", bd=4, wrap=WORD)
+    update_scrolled.grid(row=1, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S)
+    update_scrolled.tag_configure('bold_color', background="#565656", foreground="#3498db", font=12, justify=CENTER)
+    update_scrolled.tag_configure('version_color', background="#565656", foreground="white",
+                                  font=(set_fixed_font, set_font_size), justify=LEFT)
+    update_scrolled.insert(END, f"Current version: {main_root_title}\nVersion found: {parsed_version}\n\n",
+                           "version_color")
+    update_scrolled.insert(END, "Patch Notes\n", 'bold_color')
+    update_scrolled.tag_configure('highlight_color', background="#40444b", foreground="white", font=(set_fixed_font,
+                                                                                                     set_font_size))
+    html_to_string = BeautifulSoup(get_release_notes.group(), features="lxml")
+    update_scrolled.insert(END, html_to_string.get_text(), 'highlight_color')
+    update_scrolled.config(state=DISABLED)
+
+    # update button frame
+    update_frame = Frame(update_window, bg="#363636", bd=0)
+    update_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+    update_frame.grid_rowconfigure(0, weight=1)
+    update_frame.grid_columnconfigure(0, weight=1)
+    update_frame.grid_columnconfigure(1, weight=50)
+    update_frame.grid_columnconfigure(2, weight=50)
+    update_frame.grid_columnconfigure(3, weight=1)
+
+    # close updater button
+    close_updater_btn = HoverButton(update_frame, text='Close', command=update_window.destroy,
+                                    foreground='white', background='#23272A', borderwidth='3',
+                                    activeforeground="#3498db", activebackground="#23272A", width=14)
+    close_updater_btn.grid(row=0, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W)
+
+    # ignore update function
+    def ignore_update_function():
+        # parser
+        i_a_u_parser = ConfigParser()
+        i_a_u_parser.read(config_file)
+        # write
+        i_a_u_parser.set('check_for_updates', 'value', 'False')
+        with open(config_file, 'w') as au_configfile:
+            i_a_u_parser.write(au_configfile)
+        # close update window
+        update_window.destroy()
+
+    # ignore updates button
+    ignore_updates = HoverButton(update_frame, text='Ignore Updates', command=ignore_update_function,
+                                 foreground='white', background='#23272A', borderwidth='3',
+                                 activeforeground="#3498db", activebackground="#23272A", width=14)
+    ignore_updates.grid(row=0, column=1, columnspan=1, padx=10, pady=(5, 4), sticky=S + W)
+
+    # ignore update function
+    def skip_version_function():
+        # parser
+        skip_version_parser = ConfigParser()
+        skip_version_parser.read(config_file)
+
+        # write the version to skip
+        if skip_version_parser['check_for_updates']['ignore_version'] != parsed_version:
+            skip_version_parser.set('check_for_updates', 'ignore_version', parsed_version)
+            with open(config_file, 'w') as version_config:
+                skip_version_parser.write(version_config)
+
+        # close update window
+        update_window.destroy()
+
+    # skip version button
+    skip_version = HoverButton(update_frame, text='Skip Version', command=skip_version_function,
+                               foreground='white', background='#23272A', borderwidth='3',
+                               activeforeground="#3498db", activebackground="#23272A", width=14)
+    skip_version.grid(row=0, column=2, columnspan=1, padx=10, pady=(5, 4), sticky=S + E)
+
+    # update button function
+    def update_program():
+        # get the download
+        try:
+            request_download = requests.get(f"https://github.com{update_download_link}", timeout=10)
+        except requests.exceptions.ConnectionError:
+            messagebox.showerror(parent=update_window, title='Error', message='Automatic update failed')
+            return  # exit function
+
+        # if requests passes internet check but for some reason timeouts
+        if not request_download:
+            messagebox.showerror(parent=update_window, title='Error', message='Automatic update failed')
+            return  # exit function
+
+        # if download was successful
+        if request_download.ok:
+            # use zipfile module to unzip file and get just the exe
+            with zipfile.ZipFile(BytesIO(request_download.content)) as dl_zipfile:
+                for zip_info in dl_zipfile.infolist():
+                    if zip_info.filename[-1] == '/':
+                        continue
+                    zip_info.filename = os.path.basename(zip_info.filename)
+                    dl_zipfile.extract(zip_info, pathlib.Path().cwd())
+
+            # if downloaded exe is not detected
+            if not pathlib.Path(pathlib.Path().cwd() / "BHDStudioUploadTool.exe").is_file():
+                # open message box failed message
+                messagebox.showinfo(parent=update_window, title='Update Status',
+                                    message="Update failed! Opening link to manual update")
+                webbrowser.open(f"https://github.com{update_download_link}")  # open browser for manual download
+                return  # exit function
+
+            # if download exe is detected
+            elif pathlib.Path(pathlib.Path().cwd() / "BHDStudioUploadTool.exe").is_file():
+                messagebox.showinfo(parent=update_window, title='Update Status',
+                                    message=f"Updated to {parsed_version}\n\nProgram will automatically restart")
+                update_window.destroy()  # close update window
+                root_exit_function()  # call the main gui exit function
+                subprocess.run(pathlib.Path().cwd() / "BHDStudioUploadTool.exe")  # use subprocess.run to restart
+
+    # update button
+    update_button = HoverButton(update_frame, text='Update', command=update_program, foreground='white',
+                                background='#23272A', borderwidth='3', activeforeground="#3498db",
+                                activebackground="#23272A", width=14)
+    update_button.grid(row=0, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E)
+
+    update_window.grab_set()  # Brings attention to this window until it's closed
+
+
+# start check for updates function in a new thread
+threading.Thread(target=check_for_latest_program_updates).start()
+
+# if program was opened with a dropped video file load it into the source function
+if cli_command:
+    source_input_function(cli_command)
+
+# tkinter mainloop
 root.mainloop()
