@@ -1978,7 +1978,7 @@ def torrent_function_window():
         try:
             build_torrent = Torrent(path=pathlib.Path(encode_file_path.get()),
                                     trackers=str(torrent_tracker_url_entry_box.get()).strip(),
-                                    private=True, source=source_entry_box.get().strip(),
+                                    private=True, source=torrent_source_entry_box.get().strip(),
                                     piece_size=torrent_piece_choices[torrent_piece.get()])
         except torf.URLError:  # if tracker url is invalid
             messagebox.showerror(parent=torrent_window, title='Error', message='Invalid Tracker URL')
