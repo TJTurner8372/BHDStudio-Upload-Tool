@@ -1,4 +1,5 @@
 import base64
+import glob
 import math
 import os
 import pathlib
@@ -149,7 +150,7 @@ root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
-root_window_height = 660
+root_window_height = 700
 root_window_width = 720
 if config['save_window_locations']['bhdstudiotool'] == '':
     screen_width = root.winfo_screenwidth()
@@ -199,7 +200,7 @@ color1 = "#434547"
 custom_style = ttk.Style()
 custom_style.theme_create('jlw_style', parent='alt', settings={
     # Notebook Theme Settings -------------------
-    "TNotebook": {"configure": {"tabmargins": [5, 5, 5, 0], 'background': "#565656"}},
+    "TNotebook": {"configure": {"tabmargins": [5, 5, 5, 0], 'background': "#363636"}},
     "TNotebook.Tab": {
         "configure": {"padding": [5, 1], "background": 'grey', 'foreground': 'white', 'focuscolor': ''},
         "map": {"background": [("selected", '#434547')], "expand": [("selected", [1, 1, 1, 0])]}},
@@ -948,7 +949,7 @@ fill_borders = Checkbutton(release_notes_frame, text='Fill Borders',
 fill_borders.grid(row=0, column=2, columnspan=1, rowspan=1, padx=5, pady=0, sticky=S + E + W + N)
 fill_borders_var.set('off')
 
-release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, height=5, bg="#565656", bd=8, fg='white')
+release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, height=5, bg="#565656", bd=4, fg='white')
 release_notes_scrolled.grid(row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W)
 release_notes_scrolled.config(state=DISABLED)
 Hovertip(release_notes_scrolled, 'Right click to enable manual edits', hover_delay=1000)  # Hover tip tool-tip
@@ -993,17 +994,189 @@ screenshot_frame = LabelFrame(root, text=' Sreenshots ', labelanchor="nw")
 screenshot_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 screenshot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 screenshot_frame.grid_rowconfigure(0, weight=1)
-screenshot_frame.grid_columnconfigure(0, weight=20)
-screenshot_frame.grid_columnconfigure(1, weight=20)
-screenshot_frame.grid_columnconfigure(2, weight=20)
-screenshot_frame.grid_columnconfigure(3, weight=1)
+screenshot_frame.grid_columnconfigure(0, weight=1)
+
+# Settings Notebook Frame -----------------------------------------------------------------------------------------
+tabs = ttk.Notebook(screenshot_frame, height=120)
+tabs.grid(row=0, column=0, columnspan=4, sticky=E + W + N + S, padx=0, pady=0)
+tabs.grid_columnconfigure(0, weight=1)
+tabs.grid_rowconfigure(0, weight=1)
+
+# image input tab
+image_tab = Frame(tabs, background='#434547')
+tabs.add(image_tab, text=' Images ')
+image_tab.grid_rowconfigure(0, weight=1)
+image_tab.grid_columnconfigure(0, weight=100)
+image_tab.grid_columnconfigure(3, weight=1)
+
+# image frame
+image_frame = Frame(image_tab, bg="#363636", bd=0)
+image_frame.grid(column=0, columnspan=3, row=0, pady=4, padx=4, sticky=W + E + N + S)
+image_frame.grid_columnconfigure(0, weight=1)
+image_frame.grid_rowconfigure(0, weight=1)
+
+# image listbox
+image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
+image_listbox = Listbox(image_frame, selectbackground="#565656", background="#565656", disabledforeground="white",
+                        selectforeground="#3498db", foreground="white", height=12, state=DISABLED, highlightthickness=0,
+                        yscrollcommand=image_right_scrollbar.set, selectmode=SINGLE, bd=4, activestyle="none")
+image_listbox.grid(row=0, column=0, rowspan=3, sticky=N + E + S + W)
+image_right_scrollbar.config(command=image_listbox.yview)
+image_right_scrollbar.grid(row=0, column=1, rowspan=3, sticky=N + W + S)
+
+# image button frame
+image_btn_frame = Frame(image_tab, bg='#434547', bd=0)
+image_btn_frame.grid(column=3, row=0, padx=5, pady=(5, 3), sticky=E + W + N + S)
+image_btn_frame.grid_rowconfigure(0, weight=1)
+image_btn_frame.grid_rowconfigure(1, weight=1)
+image_btn_frame.grid_rowconfigure(2, weight=1)
+image_btn_frame.grid_columnconfigure(0, weight=1)
+image_btn_frame.grid_columnconfigure(1, weight=1)
+
+
+# function to add images to listbox
+def update_image_listbox(list_of_images):
+    # check dropped data to ensure files are .png and correct size
+    for dropped_files in list_of_images:
+        # png check
+        if pathlib.Path(dropped_files).suffix != ".png":
+            messagebox.showerror(parent=root, title='Error', message='Can only drop .PNG files')
+            return  # exit this function
+        # size check
+        if os.stat(pathlib.Path(dropped_files)).st_size > 30000000:
+            messagebox.showerror(parent=root, title='Error', message='File must be under 30MB')
+            return  # exit this function
+
+    # check that screenshots are in multiples of 2
+    if not len(list_of_images) % 2 == 0:  # if not multiples of 2
+        messagebox.showerror(parent=root, title='Error', message='Screen shots must be even numbers')
+        return  # exit this function
+
+    # add images to the list box
+    image_listbox.config(state=NORMAL)
+    image_listbox.delete(0, END)
+    for img_num, png_img in enumerate(list_of_images, start=1):
+        image_listbox.insert(END, f"{img_num}) {png_img}")
+    image_listbox.config(state=DISABLED)
+
+    # enable upload button
+    upload_ss_button.config(state=NORMAL)
+
+
+# open screenshot directory function
+def open_ss_directory():
+    # file dialog to get directory of input files
+    ss_dir = filedialog.askdirectory(parent=root, title='Select Directory', mustexist=True)
+
+    if ss_dir:
+        # disable upload button
+        upload_ss_button.config(state=DISABLED)
+
+        # create empty list to be filled
+        ss_dir_files_list = []
+
+        # get all .png files from directory
+        for ss_files in glob.glob(str(pathlib.Path(ss_dir)) + '/*.png'):
+            ss_dir_files_list.append(pathlib.Path(ss_files))
+
+        # call update image listbox function
+        update_image_listbox(ss_dir_files_list)
+
+
+# open directory button
+open_ss_dir_button = HoverButton(image_btn_frame, text="Open Directory", command=open_ss_directory,
+                                 foreground="white", background="#23272A", borderwidth="3",
+                                 activeforeground="#3498db", activebackground="#23272A", width=12)
+open_ss_dir_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + W)
+
+
+# open files function
+def open_ss_files():
+    # file dialog to get directory of input files
+    ss_files_input = filedialog.askopenfilenames(parent=root, title='Select Files', filetypes=[("PNG", "*.png")])
+
+    # if user opens files
+    if ss_files_input:
+        # disable upload button
+        upload_ss_button.config(state=DISABLED)
+
+        # create empty list to be filled
+        ss_files_input_files_list = []
+
+        for ss_files in ss_files_input:
+            ss_files_input_files_list.append(pathlib.Path(ss_files))
+
+        # call update image listbox function
+        update_image_listbox(ss_files_input_files_list)
+
+
+# open file(s) button
+open_ss_files_button = HoverButton(image_btn_frame, text="Open Files", command=open_ss_files,
+                                   foreground="white", background="#23272A", borderwidth="3",
+                                   activeforeground="#3498db", activebackground="#23272A", width=12)
+open_ss_files_button.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
+
+
+# png and drop function for image list box
+def png_file_drag_and_drop(event):
+    # disable upload button
+    upload_ss_button.config(state=DISABLED)
+
+    # get dropped data
+    png_file_dropped = [x for x in root.splitlist(event.data)]
+
+    # call update image listbox function
+    update_image_listbox(png_file_dropped)
+
+
+# bind frame to drop images into listbox
+image_frame.drop_target_register(DND_FILES)
+image_frame.dnd_bind('<<Drop>>', png_file_drag_and_drop)
+
+
+# clear button function
+def clear_image_list():
+    # remove everything from image listbox
+    image_listbox.config(state=NORMAL)
+    image_listbox.delete(0, END)
+    image_listbox.config(state=DISABLED)
+    # disable upload button
+    upload_ss_button.config(state=DISABLED)
+
+
+# clear button
+clear_ss_win_btn = HoverButton(image_btn_frame, text="Clear", command=clear_image_list,
+                               foreground="white", background="#23272A", borderwidth="3",
+                               activeforeground="#3498db", activebackground="#23272A", width=12)
+clear_ss_win_btn.grid(row=1, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=S + W)
+
+
+# upload pictures to beyond.co and return medium linked images
+def upload_to_beyond_hd_co():
+    pass
+
+
+# upload button
+upload_ss_button = HoverButton(image_btn_frame, text="Upload", command=upload_to_beyond_hd_co, state=DISABLED,
+                               foreground="white", background="#23272A", borderwidth="3",
+                               activeforeground="#3498db", activebackground="#23272A", width=12)
+upload_ss_button.grid(row=1, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=S + E)
+
+# screen shot url tab
+url_tab = Frame(tabs, background='#434547')
+tabs.add(url_tab, text=' URLs ')
+url_tab.grid_rowconfigure(0, weight=1)
+url_tab.grid_columnconfigure(0, weight=20)
+url_tab.grid_columnconfigure(1, weight=20)
+url_tab.grid_columnconfigure(2, weight=20)
+url_tab.grid_columnconfigure(3, weight=1)
 
 # screenshot textbox
-screenshot_scrolledtext = scrolledtextwidget.ScrolledText(screenshot_frame, height=4, bg='#565656', fg='white', bd=8)
-screenshot_scrolledtext.grid(row=0, column=0, columnspan=3, pady=(0, 6), padx=10, sticky=E + W)
+screenshot_scrolledtext = scrolledtextwidget.ScrolledText(url_tab, height=6, bg='#565656', fg='white', bd=4)
+screenshot_scrolledtext.grid(row=0, column=0, columnspan=3, pady=(6, 6), padx=4, sticky=E + W)
 
 # clear screenshot box
-reset_screenshot_box = HoverButton(screenshot_frame, text="X", activebackground="#23272A",
+reset_screenshot_box = HoverButton(url_tab, text="X", activebackground="#23272A",
                                    command=lambda: screenshot_scrolledtext.delete('1.0', END), foreground="white",
                                    background="#23272A", borderwidth="3", activeforeground="#3498db", width=4)
 reset_screenshot_box.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W)
