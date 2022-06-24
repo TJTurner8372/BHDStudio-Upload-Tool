@@ -24,6 +24,7 @@ import torf
 from PIL import Image, ImageTk
 from TkinterDnD2 import *
 from bs4 import BeautifulSoup
+from cryptography.fernet import Fernet
 from imdb import Cinemagoer
 from pymediainfo import MediaInfo
 from torf import Torrent
@@ -32,6 +33,7 @@ from Packages.About import openaboutwindow
 from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, bhd_upload_icon_disabled
 from Packages.show_streams import stream_menu
 from Packages.tmdb_key import tmdb_api_key
+from Packages.user_pw_key import crypto_key
 
 # check if program had a file dropped/any commands on the .exe or .pyscript upon launch
 try:  # if it does set dropped file/command to a variable
@@ -43,7 +45,7 @@ except IndexError:  # if it doesn't set variable to None
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.1"
+main_root_title = "BHDStudio Upload Tool v1.2"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -61,16 +63,19 @@ if not config.has_option('torrent_settings', 'tracker_url'):
 if not config.has_option('torrent_settings', 'default_path'):
     config.set('torrent_settings', 'default_path', '')
 
+# encoder name
 if not config.has_section('encoder_name'):
     config.add_section('encoder_name')
 if not config.has_option('encoder_name', 'name'):
     config.set('encoder_name', 'name', '')
 
+# bhd upload api
 if not config.has_section('bhd_upload_api'):
     config.add_section('bhd_upload_api')
 if not config.has_option('bhd_upload_api', 'key'):
     config.set('bhd_upload_api', 'key', '')
 
+# live release
 if not config.has_section('live_release'):
     config.add_section('live_release')
 if not config.has_option('live_release', 'password'):
@@ -78,6 +83,7 @@ if not config.has_option('live_release', 'password'):
 if not config.has_option('live_release', 'value'):
     config.set('live_release', 'value', '')
 
+# nfo font
 if not config.has_section('nfo_pad_font_settings'):
     config.add_section('nfo_pad_font_settings')
 if not config.has_option('nfo_pad_font_settings', 'font'):
@@ -87,6 +93,7 @@ if not config.has_option('nfo_pad_font_settings', 'style'):
 if not config.has_option('nfo_pad_font_settings', 'size'):
     config.set('nfo_pad_font_settings', 'size', '')
 
+# check for updates
 if not config.has_section('check_for_updates'):
     config.add_section('check_for_updates')
 if not config.has_option('check_for_updates', 'value'):
@@ -110,6 +117,7 @@ if not config.has_option('save_window_locations', 'movie_info'):
 if not config.has_option('save_window_locations', 'about_window'):
     config.set('save_window_locations', 'about_window', '')
 
+# write options to config if they do not exist
 with open(config_file, 'w') as configfile:
     config.write(configfile)
 
@@ -364,6 +372,10 @@ def open_tmdb_link():
 
 
 def source_input_function(*args):
+    image_listbox.config(state=NORMAL)  # enable image list box
+    image_listbox.delete(0, END)  # delete image list box contents
+    image_listbox.config(state=DISABLED)  # disable image list box
+    screenshot_scrolledtext.delete("1.0", END)  # clear contents of url notebook tab
     delete_encode_entry()  # clear encode entry
     source_file_information.clear()  # clear dictionary
     audio_pop_up_var = StringVar()  # audio pop up var
@@ -1036,6 +1048,16 @@ image_btn_frame.grid_columnconfigure(1, weight=1)
 
 # function to add images to listbox
 def update_image_listbox(list_of_images):
+    # check if source is loaded
+    if source_loaded.get() == '':
+        messagebox.showinfo(parent=root, title='Info', message='You must open a source file first')
+        return  # exit function
+
+    # check if source is loaded
+    if encode_file_path.get() == '':
+        messagebox.showinfo(parent=root, title='Info', message='You must open a encode file first')
+        return  # exit function
+
     # check dropped data to ensure files are .png and correct size
     for dropped_files in list_of_images:
         # png check
@@ -1046,6 +1068,37 @@ def update_image_listbox(list_of_images):
         if os.stat(pathlib.Path(dropped_files)).st_size > 30000000:
             messagebox.showerror(parent=root, title='Error', message='File must be under 30MB')
             return  # exit this function
+
+    # check for resolution miss-match
+    for opened_image_file in list_of_images:
+        # get opened file resolution
+        media_info = MediaInfo.parse(pathlib.Path(opened_image_file))
+        image_track_width = media_info.image_tracks[0].width
+        image_track_height = media_info.image_tracks[0].height
+
+        # check if both image files and encode resolution is 720p
+        if image_track_width <= 1280 and image_track_height <= 720:  # 720p
+            if encode_file_resolution.get() != '720p':
+                messagebox.showinfo(parent=root, title='Resolution Error',
+                                    message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
+                                            f"screenshots should be the same resolution")
+                return  # exit this function
+
+        # check if both image files and encode resolution is 1080p
+        elif image_track_width <= 1920 and image_track_height <= 1080:  # 1080p
+            if encode_file_resolution.get() != '1080p':
+                messagebox.showinfo(parent=root, title='Resolution Error',
+                                    message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
+                                            f"screenshots should be the same resolution")
+                return  # exit this function
+
+        # check if both image files and encode resolution is 2160p
+        elif image_track_width <= 3840 and image_track_height <= 2160:  # 2160p
+            if encode_file_resolution.get() != '2160p':
+                messagebox.showinfo(parent=root, title='Resolution Error',
+                                    message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
+                                            f"screenshots should be the same resolution")
+                return  # exit this function
 
     # check that screenshots are in multiples of 2
     if not len(list_of_images) % 2 == 0:  # if not multiples of 2
@@ -1152,12 +1205,281 @@ clear_ss_win_btn.grid(row=1, column=0, columnspan=1, padx=5, pady=(7, 0), sticky
 
 
 # upload pictures to beyond.co and return medium linked images
-def upload_to_beyond_hd_co():
-    pass
+def upload_to_beyond_hd_co_window():
+    # define upload error variable
+    upload_error = BooleanVar()
+
+    # function to manipulate scrolled text box to reduce code
+    def manipulate_ss_upload_window(update_string):
+        try:
+            upload_ss_info.config(state=NORMAL)
+            upload_ss_info.delete("1.0", END)
+            upload_ss_info.insert(END, update_string)
+            upload_ss_info.config(state=DISABLED)
+        except TclError:
+            return  # exit the function
+
+    # function to upload to beyond hd
+    def upload_to_beyond_hd_co():
+        # if user and pass bin exists
+        if pathlib.Path('Runtime/user.bin').is_file() and pathlib.Path('Runtime/pass.bin').is_file():
+
+            # start fernet instance to convert stored username and password files
+            pass_user_decoder = Fernet(crypto_key)
+
+            # open both user and pass bin files
+            with open('Runtime/user.bin', 'rb') as user_file, open('Runtime/pass.bin', 'rb') as pass_file:
+                # decode and insert user name
+                decode_user = pass_user_decoder.decrypt(user_file.read()).decode('utf-8')
+                # decode and insert password
+                decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode('utf-8')
+
+            # if username or password equals nothing send error
+            if decode_user == '' or decode_pass == '':
+                missing_info = messagebox.askyesno(parent=upload_ss_status, title='Missing credentials',
+                                                   message='Missing user name and password for beyondhd.co\n\nWould '
+                                                           'you like to add these now?')
+                # if user selects yes
+                if missing_info:
+                    # open login window
+                    bhd_co_login_window()
+                    # restart loop
+                    upload_to_beyond_hd_co()
+                else:  # if user selects no
+                    manipulate_ss_upload_window('Missing username and/or password. Cannot continue...')
+                    return  # exit function
+        else:  # if user or path bins do not exist
+            missing_info = messagebox.askyesno(parent=upload_ss_status, title='Missing credentials',
+                                               message='Missing user name and password for beyondhd.co\n\nWould you '
+                                                       'like to add these now?')
+            # if user selects yes
+            if missing_info:
+                # open login window
+                bhd_co_login_window()
+                # restart loop
+                upload_to_beyond_hd_co()
+            else:  # if user selects no
+                manipulate_ss_upload_window('Missing username and/or password. Cannot continue...')
+                return  # exit function
+
+        # create empty list
+        list_of_pngs = []
+
+        # use regex to get only the filename
+        for loaded_images in image_listbox.get(0, END):
+            img = re.search(r"[\d{1,3}]\)\s(.+)", loaded_images)
+            list_of_pngs.append(str(pathlib.Path(img.group(1))))
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # login to beyondhd image host
+        # start requests session
+        session = requests.session()
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # get raw text of web page
+        manipulate_ss_upload_window("Getting auth token from beyondhd.co")
+        try:
+            auth_raw = session.get("https://beyondhd.co/login", timeout=10).text
+        except requests.exceptions.ConnectionError:
+            manipulate_ss_upload_window("No internet connection")
+            return  # exit the function
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # if web page didn't return a response
+        if not auth_raw:
+            manipulate_ss_upload_window("Could not access beyondhd.co")
+            return  # exit the function
+
+        # split auth token out of raw web page for later use
+        auth_code = auth_raw.split('PF.obj.config.auth_token = ')[1].split(';')[0].replace('"', '')
+        manipulate_ss_upload_window("Auth token found")
+        if not auth_code:
+            manipulate_ss_upload_window("Could not find auth token")
+            return  # exit the function
+
+        # login payload
+        login_payload = {'login-subject': decode_user, 'password': decode_pass, 'auth_token': auth_code}
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # login post
+        manipulate_ss_upload_window(f"Logging in to beyondhd.co as {login_payload['login-subject']}")
+        try:
+            login_post = session.post("https://beyondhd.co/login", data=login_payload, timeout=10)
+        except requests.exceptions.ConnectionError:
+            manipulate_ss_upload_window("No internet connection")
+            return  # exit the function
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # find user info from login post
+        confirm_login = re.search(r"CHV.obj.logged_user =(.+);", login_post.text, re.MULTILINE)
+        manipulate_ss_upload_window(f"Successfully logged in as {decode_user}")
+
+        # if post confirm_login is none
+        if not confirm_login:
+            manipulate_ss_upload_window("Incorrect username or password")
+            return  # exit the function
+
+        # generate album name
+        # use regex to find the movie name
+        movie_name = re.finditer(r'\d{4}(?!p)', pathlib.Path(encode_file_path.get()).stem, re.IGNORECASE)
+        movie_name_extraction = []  # create empty list
+        for match in movie_name:  # get the "span" from the movie name
+            movie_name_extraction.append(match.span())
+        # extract the full movie name (removing anything that is not needed from the filename)
+        full_movie_name = pathlib.Path(encode_file_path.get()).stem[0:int(
+            movie_name_extraction[-1][-1])].replace('.', ' ').strip()
+        generated_album_name = f"{encode_file_resolution.get()} | {full_movie_name}"
+
+        # create album payload
+        album_payload = {'auth_token': auth_code, 'action': 'create-album', 'type': 'album',
+                         'album[name]': generated_album_name, 'album[description]': main_root_title,
+                         'album[password]': '', 'album[new]': 'true'}
+
+        # check if status window is closed
+        if upload_error.get():
+            return  # exit function
+
+        # create album post
+        manipulate_ss_upload_window(f"Creating album:\n{generated_album_name}")
+        try:
+            album_post = session.post("https://beyondhd.co/json", data=album_payload, timeout=10)
+        except requests.exceptions.ConnectionError:
+            manipulate_ss_upload_window("No internet connection")
+            return  # exit the function
+        manipulate_ss_upload_window(f"{generated_album_name} album was created")
+
+        # check for success message
+        if not album_post.json()['success']['message'] == "Content added to album":
+            manipulate_ss_upload_window(album_post.json()['success']['message'])
+            return  # exit the function
+
+        # get album_id for later use
+        posted_album_id = album_post.json()['album']['id_encoded']
+
+        # upload files to new album with the album id
+        upload_files_payload = {'type': 'file', 'action': 'upload', 'auth_token': auth_code, 'nsfw': 0,
+                                'album_id': posted_album_id}
+
+        # create empty list to convert png to bytes
+        bytes_converter_png_list = []
+
+        # convert list of png files to bytes and append them to the above list
+        for png_file in list_of_pngs:
+            with open(str(png_file), 'rb') as f:
+                bytes_converter_png_list.append({'source': (str(pathlib.Path(png_file).name), f.read())})
+
+        # get length of list
+        images_len = len(bytes_converter_png_list)
+
+        # set empty string to update
+        description_info = ''
+
+        # clear screenshot info window
+        manipulate_ss_upload_window('')
+
+        # upload image 1 at a time
+        for (png_num, current_image) in enumerate(bytes_converter_png_list, start=1):
+            if not upload_error.get():
+                upload_ss_info.config(state=NORMAL)
+                upload_ss_info.insert(END, f'Uploading image {png_num}/{images_len}\n')
+                upload_ss_info.see(END)
+                upload_ss_info.config(state=DISABLED)
+                # upload files
+                try:
+                    upload_file_post = session.post("https://beyondhd.co/json", files=current_image,
+                                                    data=upload_files_payload)
+                except requests.exceptions.ConnectionError:  # if there is a connection error show an error
+                    manipulate_ss_upload_window('Upload connection error')
+                    upload_error.set(True)  # set error to True
+                    return  # exit the function
+
+                # if upload file returns an 'ok' status
+                if upload_file_post.ok:
+                    # add uploaded image and returned url to description info string
+                    description_info += f"[url={upload_file_post.json()['image']['url_viewer']}]" \
+                                        f"[img]{upload_file_post.json()['image']['medium']['url']}[/img][/url]\n"
+
+                    # upload status was a success
+                    if upload_file_post.json()['success']['message'] != 'image uploaded':
+                        upload_error.set(True)  # set error to True
+
+                else:
+                    upload_error.set(True)  # set error to True
+                    manipulate_ss_upload_window(f"Error code from beyondhd.co {str(upload_file_post.status_code)}")
+                    return  # exit the function
+
+        # if images are uploaded/returned, change tabs to 'URLs' and insert the image description string
+        if not upload_error.get():
+            # clear screenshot box
+            screenshot_scrolledtext.delete("1.0", END)
+            # add description string to screenshot box
+            screenshot_scrolledtext.insert(END, description_info)
+            tabs.select(url_tab)  # swap tab
+            # add success message to upload status window
+            manipulate_ss_upload_window(f'Upload is successful!\n\nImages are upload to album:\n'
+                                        f'{generated_album_name}\n\nClick OK to continue')
+
+    # upload status window
+    upload_ss_status = Toplevel()
+    upload_ss_status.configure(background="#363636")
+    upload_ss_status.geometry(f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 156)}+'
+                              f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    upload_ss_status.resizable(0, 0)
+    upload_ss_status.grab_set()
+    upload_ss_status.wm_overrideredirect(True)
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    upload_ss_status.grid_rowconfigure(0, weight=1)
+    upload_ss_status.grid_columnconfigure(0, weight=1)
+
+    # encoder name frame
+    upload_ss_frame = Frame(upload_ss_status, highlightbackground="white", highlightthickness=2,
+                            bg="#363636", highlightcolor='white')
+    upload_ss_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    for e_n_f in range(3):
+        upload_ss_frame.grid_columnconfigure(e_n_f, weight=1)
+        upload_ss_frame.grid_rowconfigure(e_n_f, weight=1)
+
+    # create scrolled window
+    upload_ss_info = scrolledtextwidget.ScrolledText(upload_ss_frame, height=9, bg='#565656', state=DISABLED,
+                                                     fg='white', bd=4, wrap=WORD)
+    upload_ss_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
+
+    # function to exit the screenshot upload window
+    def upload_ss_exit_func():
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        upload_error.set(True)  # exit function at next chance
+        upload_ss_status.destroy()  # close window
+
+    # create 'OK' button
+    ss_okay_btn = HoverButton(upload_ss_frame, text="OK", command=upload_ss_exit_func,
+                              foreground="white", background="#23272A", borderwidth="3",
+                              activeforeground="#3498db", width=8, activebackground="#23272A")
+    ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+
+    # ensure error is set to False
+    upload_error.set(False)
+
+    # start upload in another thread
+    threading.Thread(target=upload_to_beyond_hd_co).start()
 
 
 # upload button
-upload_ss_button = HoverButton(image_btn_frame, text="Upload", command=upload_to_beyond_hd_co, state=DISABLED,
+upload_ss_button = HoverButton(image_btn_frame, text="Upload", state=DISABLED, command=upload_to_beyond_hd_co_window,
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", activebackground="#23272A", width=12)
 upload_ss_button.grid(row=1, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=S + E)
@@ -3280,20 +3602,25 @@ def reset_gui():
 
 # ----------------------------------------------------------------------------------------------------------- reset gui
 
-# reset config --------------------------------------------------------------------------------------------------------
-def reset_config():
-    ask_reset_config = messagebox.askyesno(title='Prompt', message='Are you sure you want to reset the config file?\n'
-                                                                   'Note: This will remove all saved settings')
-    if ask_reset_config:
-        try:
-            pathlib.Path(config_file).unlink()
-            messagebox.showinfo(title='Prompt', message='Config is reset, please restart the program')
-        except FileNotFoundError:
-            messagebox.showerror(title='Error!', message='Config is already deleted, please restart the program')
+# reset settings ------------------------------------------------------------------------------------------------------
+def reset_all_settings():
+    reset_settings = messagebox.askyesno(title='Prompt', message='Are you sure you want to reset all settings?')
+
+    # if user presses yes
+    if reset_settings:
+        pathlib.Path(config_file).unlink(missing_ok=True)
+        pathlib.Path('Runtime/user.bin').unlink(missing_ok=True)
+        pathlib.Path('Runtime/pass.bin').unlink(missing_ok=True)
+        messagebox.showinfo(title='Prompt', message='Settings are reset, program will restart automatically')
+
+        # close root window
         root.destroy()
 
+        # re-open the program
+        subprocess.run(pathlib.Path().cwd() / "BHDStudioUploadTool.exe")  # use subprocess.run to restart
 
-# --------------------------------------------------------------------------------------------------------- reset config
+
+# ------------------------------------------------------------------------------------------------------ reset settings
 
 # menu Items and Sub-Bars ---------------------------------------------------------------------------------------------
 my_menu_bar = Menu(root, tearoff=0)
@@ -3496,6 +3823,154 @@ def torrent_path_window_function(*t_args):
     open_all_toplevels()  # re-open all top levels if they exist
 
 
+# beyondhd.co login credentials
+def bhd_co_login_window():
+    # hide all top levels if they are opened
+    hide_all_toplevels()
+
+    # function to save new name to config.ini
+    def save_exit_function():
+        # get user and pass to encrypt and save
+        user_pass_encoder = Fernet(crypto_key)
+        encode_user = user_pass_encoder.encrypt(str(user_entry_box.get()).strip().encode())
+        encode_password = user_pass_encoder.encrypt(str(pass_entry_box.get()).strip().encode())
+
+        # write encrypted data to config
+        with open('Runtime/user.bin', 'wb') as user_bin, open('Runtime/pass.bin', 'wb') as pass_bin:
+            # write info to user and password bins
+            user_bin.write(encode_user)
+            pass_bin.write(encode_password)
+
+        # restore transparency
+        root.wm_attributes('-alpha', 1.0)
+        # close window
+        bhd_login_win.destroy()
+
+    # encoder name window
+    bhd_login_win = Toplevel()
+    bhd_login_win.title('')
+    bhd_login_win.configure(background="#363636")
+    bhd_login_win.geometry(f'{300}x{210}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+                           f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    bhd_login_win.resizable(0, 0)
+    bhd_login_win.grab_set()
+    bhd_login_win.protocol('WM_DELETE_WINDOW', save_exit_function)
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    bhd_login_win.grid_rowconfigure(0, weight=1)
+    bhd_login_win.grid_columnconfigure(0, weight=1)
+
+    # encoder name frame
+    bhd_login_frame = Frame(bhd_login_win, highlightbackground="white", highlightthickness=2, bg="#363636",
+                            highlightcolor='white')
+    bhd_login_frame.grid(column=0, row=0, columnspan=5, sticky=N + S + E + W)
+    for e_n_f in range(5):
+        bhd_login_frame.grid_columnconfigure(e_n_f, weight=1)
+        bhd_login_frame.grid_rowconfigure(e_n_f, weight=1)
+
+    # create label
+    user_label = Label(bhd_login_frame, text='Username', background='#363636', fg="#3498db",
+                       font=(set_font, set_font_size, "bold"))
+    user_label.grid(row=0, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
+
+    # create username entry box
+    user_entry_box = Entry(bhd_login_frame, borderwidth=4, bg="#565656", fg='white')
+    user_entry_box.grid(row=1, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W)
+
+    # create label
+    pass_label = Label(bhd_login_frame, text='Password', background='#363636', fg="#3498db",
+                       font=(set_font, set_font_size, "bold"))
+    pass_label.grid(row=2, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
+
+    # create password entry box
+    pass_entry_box = Entry(bhd_login_frame, borderwidth=4, bg="#565656", fg='white', show='*')
+    pass_entry_box.grid(row=3, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W)
+    pass_entry_box.bind('<Enter>', lambda event: pass_entry_box.config(show=''))
+    pass_entry_box.bind('<Leave>', lambda event: pass_entry_box.config(show='*'))
+
+    # custom_entry_box.insert(END, custom_input_parser[config_option][config_key])
+
+    # function to check login credentials
+    def check_bhd_login():
+        # login to beyondhd image host to confirm username and password
+        # start requests session
+        session = requests.session()
+
+        # get raw text of web page
+        try:
+            auth_raw = session.get("https://beyondhd.co/login", timeout=10).text
+        except requests.exceptions.ConnectionError:
+            messagebox.showerror(parent=bhd_login_win, title='Error', message='No internet connection')
+            session.close()  # end session
+            return  # exit the function
+
+        # if web page didn't return a response
+        if not auth_raw:
+            messagebox.showerror(parent=bhd_login_win, title='Error', message="Could not access beyondhd.co")
+            session.close()  # end session
+            return  # exit the function
+
+        # split auth token out of raw web page for later use
+        auth_code = auth_raw.split('PF.obj.config.auth_token = ')[1].split(';')[0].replace('"', '')
+        if not auth_code:
+            messagebox.showerror(parent=bhd_login_win, title='Error', message="Could not find auth token")
+            session.close()  # end session
+            return  # exit the function
+
+        # login payload
+        login_payload = {'login-subject': str(user_entry_box.get()).strip(),
+                         'password': str(pass_entry_box.get()).strip(), 'auth_token': auth_code}
+
+        # login post
+        try:
+            login_post = session.post("https://beyondhd.co/login", data=login_payload, timeout=10)
+        except requests.exceptions.ConnectionError:
+            session.close()  # end session
+            return  # exit the function
+
+        # find user info from login post
+        confirm_login = re.search(r"CHV.obj.logged_user =(.+);", login_post.text, re.MULTILINE)
+        if confirm_login:
+            messagebox.showinfo(parent=bhd_login_win, title='Success', message="Successfully logged in")
+            session.close()  # end session
+
+        # if post confirm_login is none
+        if not confirm_login:
+            messagebox.showerror(parent=bhd_login_win, title='Error', message="Incorrect username and/or password")
+            session.close()  # end session
+            return  # exit the function
+
+    # create 'Login' button
+    login_okay_btn = HoverButton(bhd_login_frame, text="Check Login", command=check_bhd_login, foreground="white",
+                                 background="#23272A", borderwidth="3", activeforeground="#3498db", width=10,
+                                 activebackground="#23272A")
+    login_okay_btn.grid(row=4, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+
+    # create 'Save' button
+    custom_cancel_btn = HoverButton(bhd_login_frame, text="Save", activeforeground="#3498db", width=10,
+                                    command=save_exit_function, foreground="white", background="#23272A",
+                                    borderwidth="3", activebackground="#23272A")
+    custom_cancel_btn.grid(row=4, column=4, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+    # decode user and password
+    if pathlib.Path('Runtime/user.bin').is_file() and pathlib.Path('Runtime/pass.bin').is_file():
+        # start fernet instance
+        pass_user_decoder = Fernet(crypto_key)
+        # open both user and pass bin files
+        with open('Runtime/user.bin', 'rb') as user_file, open('Runtime/pass.bin', 'rb') as pass_file:
+            # decode and insert user name
+            decode_user = pass_user_decoder.decrypt(user_file.read())
+            user_entry_box.delete(0, END)
+            user_entry_box.insert(END, decode_user.decode('utf-8'))
+            # decode and insert password
+            decode_pass = pass_user_decoder.decrypt(pass_file.read())
+            pass_entry_box.delete(0, END)
+            pass_entry_box.insert(END, decode_pass.decode('utf-8'))
+
+    bhd_login_win.wait_window()  # wait for window to be closed
+
+    open_all_toplevels()  # re-open all top levels if they exist
+
+
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
 options_menu.add_command(label='Encoder Name', accelerator="[Ctrl+E]",
@@ -3506,6 +3981,8 @@ options_menu.add_command(label='API Key', accelerator="[Ctrl+A]",
 root.bind('<Control-a>', lambda event: custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key'))
 options_menu.add_command(label='Torrent Output Path', command=torrent_path_window_function, accelerator="[Ctrl+T]")
 root.bind("<Control-t>", torrent_path_window_function)
+options_menu.add_command(label='BeyondHD.co', command=bhd_co_login_window, accelerator="[Ctrl+I]")
+root.bind("<Control-i>", bhd_co_login_window)
 options_menu.add_separator()
 
 # auto update options menu
@@ -3535,7 +4012,7 @@ options_submenu2.add_radiobutton(label='On', variable=auto_update_var, value='Tr
 options_submenu2.add_radiobutton(label='Off', variable=auto_update_var, value='False', command=auto_update_func)
 options_menu.add_separator()
 
-options_menu.add_command(label='Reset Configuration File', command=reset_config)
+options_menu.add_command(label='Reset All Settings', command=reset_all_settings)
 
 tools_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Tools', menu=tools_menu)
