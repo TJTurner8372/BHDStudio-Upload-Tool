@@ -1,5 +1,4 @@
 import base64
-import glob
 import math
 import os
 import pathlib
@@ -45,7 +44,7 @@ except IndexError:  # if it doesn't set variable to None
 enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.2"
+main_root_title = "BHDStudio Upload Tool v1.21"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -724,7 +723,7 @@ def encode_input_function(*args):
     # set torrent name
     if encode_input_function_parser['torrent_settings']['default_path'] != '':
         torrent_file_path.set(str(pathlib.Path(encode_input_function_parser['torrent_settings']['default_path']) /
-                                  pathlib.Path(pathlib.Path(*args).stem).with_suffix('.torrent')))
+                                  pathlib.Path(pathlib.Path(*args).name).with_suffix('.torrent')))
     else:
         torrent_file_path.set(str(pathlib.Path(*args).with_suffix('.torrent')))
 
@@ -1119,7 +1118,7 @@ def update_image_listbox(list_of_images):
 # open screenshot directory function
 def open_ss_directory():
     # file dialog to get directory of input files
-    ss_dir = filedialog.askdirectory(parent=root, title='Select Directory', mustexist=True)
+    ss_dir = filedialog.askdirectory(parent=root, title='Select Directory')
 
     if ss_dir:
         # disable upload button
@@ -1129,7 +1128,7 @@ def open_ss_directory():
         ss_dir_files_list = []
 
         # get all .png files from directory
-        for ss_files in glob.glob(str(pathlib.Path(ss_dir)) + '/*.png'):
+        for ss_files in pathlib.Path(ss_dir).glob('*.png'):
             ss_dir_files_list.append(pathlib.Path(ss_files))
 
         # call update image listbox function
@@ -2347,7 +2346,7 @@ def torrent_function_window():
     torrent_entry_box = Entry(torrent_path_frame, borderwidth=4, bg="#565656", fg='white',
                               disabledforeground='white', disabledbackground="#565656")
     torrent_entry_box.grid(row=0, column=1, columnspan=9, padx=5, pady=(5, 5), sticky=N + S + E + W)
-    torrent_entry_box.insert(END, pathlib.Path(torrent_file_path.get()).with_suffix('.torrent'))
+    torrent_entry_box.insert(END, pathlib.Path(torrent_file_path.get()))
     torrent_entry_box.config(state=DISABLED)
 
     # torrent piece frame
@@ -3800,7 +3799,6 @@ def torrent_path_window_function(*t_args):
             # update torrent_file_path string var if encode_file_path is loaded
             if encode_file_path.get() != '':
                 torrent_file_path.set(str(pathlib.Path(encode_file_path.get()).with_suffix('.torrent')))
-                print(torrent_file_path.get())
 
     # create torrent reset path button
     torrent_path_reset_btn = HoverButton(torrent_path_frame, text="X", command=reset_torrent_path_function,
@@ -4039,11 +4037,11 @@ help_menu.add_command(label="Info", command=lambda: openaboutwindow(main_root_ti
 # function to enable/disable main GUI buttons
 def generate_button_checker():
     if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
-        generate_nfo_button.config(state=NORMAL)
         open_torrent_window_button.config(state=NORMAL)
         check_screens = parse_screen_shots()
         # if check screens was not False
         if check_screens:
+            generate_nfo_button.config(state=NORMAL)
             parse_and_upload.config(state=NORMAL)
             # if nfo is not blank and torrent file is exists
             if nfo_info_var.get() != '' and pathlib.Path(torrent_file_path.get()).is_file():
@@ -4256,7 +4254,7 @@ def check_for_latest_program_updates():
 
 
 # start check for updates function in a new thread
-threading.Thread(target=check_for_latest_program_updates).start()
+# threading.Thread(target=check_for_latest_program_updates).start()
 
 # if program was opened with a dropped video file load it into the source function
 if cli_command:
