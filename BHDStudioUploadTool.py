@@ -102,6 +102,14 @@ if not config.has_option('nfo_pad_font_settings', 'style'):
 if not config.has_option('nfo_pad_font_settings', 'size'):
     config.set('nfo_pad_font_settings', 'size', '')
 
+# # nfo color scheme
+if not config.has_section('nfo_pad_color_settings'):
+    config.add_section('nfo_pad_color_settings')
+if not config.has_option('nfo_pad_color_settings', 'text'):
+    config.set('nfo_pad_color_settings', 'text', '')
+if not config.has_option('nfo_pad_color_settings', 'background'):
+    config.set('nfo_pad_color_settings', 'background', '')
+
 # check for updates
 if not config.has_section('check_for_updates'):
     config.add_section('check_for_updates')
@@ -1930,11 +1938,25 @@ def open_nfo_viewer():
         if my_color:
             nfo_pad_text_box.config(bg=my_color)
 
+            # save scheme to config
+            bg_parser = ConfigParser()
+            bg_parser.read(config_file)
+            bg_parser.set('nfo_pad_color_settings', 'background', my_color)
+            with open(config_file, 'w') as bg_config:
+                bg_parser.write(bg_config)
+
     # change all text color
     def all_text_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
         if my_color:
             nfo_pad_text_box.config(fg=my_color)
+
+            # save scheme to config
+            txt_parser = ConfigParser()
+            txt_parser.read(config_file)
+            txt_parser.set('nfo_pad_color_settings', 'text', my_color)
+            with open(config_file, 'w') as bg_config:
+                txt_parser.write(bg_config)
 
     # select all text
     def select_all(e):
@@ -1947,6 +1969,19 @@ def open_nfo_viewer():
 
     # fixed font chooser
     fixed_font_chooser_opened = BooleanVar()
+
+    # reset nfo pad color scheme
+    def reset_colors():
+        # define parser and clear
+        nfo_reset_parser = ConfigParser()
+        nfo_reset_parser.read(config_file)
+        nfo_reset_parser.set('nfo_pad_color_settings', 'background', '')
+        nfo_reset_parser.set('nfo_pad_color_settings', 'text', '')
+        with open(config_file, 'w') as nfo_cf_reset:
+            nfo_reset_parser.write(nfo_cf_reset)
+
+        # set default colors
+        nfo_pad_text_box.config(bg='#c0c0c0', fg='black')
 
     def fixed_font_chooser(*e):
         # check if window is already opened
@@ -2159,6 +2194,11 @@ def open_nfo_viewer():
                             font=(set_fixed_font, set_font_size + 1))
     nfo_pad_text_box.grid(column=0, row=0, sticky=N + S + E + W)
 
+    if nfo_pad_parser['nfo_pad_color_settings']['background'] != '':
+        nfo_pad_text_box.config(bg=nfo_pad_parser['nfo_pad_color_settings']['background'])
+    if nfo_pad_parser['nfo_pad_color_settings']['text'] != '':
+        nfo_pad_text_box.config(fg=nfo_pad_parser['nfo_pad_color_settings']['text'])
+
     # add scrollbars to the textbox
     right_scrollbar.config(command=nfo_pad_text_box.yview)
     right_scrollbar.grid(row=0, column=1, sticky=N + W + S)
@@ -2210,6 +2250,8 @@ def open_nfo_viewer():
     nfo_main_menu.add_cascade(label="Colors", menu=color_menu)
     color_menu.add_command(label="Text Color", command=all_text_color)
     color_menu.add_command(label="Background", command=bg_color)
+    color_menu.add_separator()
+    color_menu.add_command(label="Reset", command=reset_colors)
 
     # Add Status Bar To Bottom Of App
     status_bar = Label(nfo_pad, text='Ready', anchor=E, bg="#565656", fg="white", relief=SUNKEN)
@@ -4338,7 +4380,6 @@ def clean_update_files():
 
 if app_type == 'bundled':
     root.after(5000, clean_update_files)
-
 
 # tkinter mainloop
 root.mainloop()
