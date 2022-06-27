@@ -2435,8 +2435,10 @@ def torrent_function_window():
 
     # tracker url entry box
     torrent_tracker_url_entry_box = Entry(torrent_entry_frame, borderwidth=4, bg="#565656", fg='white',
-                                          disabledforeground='white', disabledbackground="#565656")
+                                          disabledforeground='white', disabledbackground="#565656", show='*')
     torrent_tracker_url_entry_box.grid(row=0, column=1, columnspan=7, padx=(2, 5), pady=(5, 0), sticky=N + S + E + W)
+    torrent_tracker_url_entry_box.bind('<Enter>', lambda event: torrent_tracker_url_entry_box.config(show=''))
+    torrent_tracker_url_entry_box.bind('<Leave>', lambda event: torrent_tracker_url_entry_box.config(show='*'))
 
     # if tracker url from config.ini is not empty, set it
     if config['torrent_settings']['tracker_url'] != '':
@@ -3639,7 +3641,7 @@ file_menu.add_command(label='Exit', command=root_exit_function, accelerator="[Al
 
 
 # custom input box that accepts parent window, label, config option, and config key
-def custom_input_prompt(parent_window, label_input, config_option, config_key):
+def custom_input_prompt(parent_window, label_input, config_option, config_key, hide_show):
     # hide all top levels if they are opened
     hide_all_toplevels()
     # set parser
@@ -3676,6 +3678,11 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key):
     custom_entry_box = Entry(custom_input_frame, borderwidth=4, bg="#565656", fg='white')
     custom_entry_box.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W)
     custom_entry_box.insert(END, custom_input_parser[config_option][config_key])
+    # if api key is called
+    if hide_show == 'hide':
+        custom_entry_box.config(show='*')
+        custom_entry_box.bind('<Enter>', lambda event: custom_entry_box.config(show=''))
+        custom_entry_box.bind('<Leave>', lambda event: custom_entry_box.config(show='*'))
 
     # function to save new name to config.ini
     def custom_okay_func():
@@ -3972,11 +3979,12 @@ def bhd_co_login_window():
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
 options_menu.add_command(label='Encoder Name', accelerator="[Ctrl+E]",
-                         command=lambda: [custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name')])
-root.bind('<Control-e>', lambda event: custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name'))
+                         command=lambda: [custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name', 'show')])
+root.bind('<Control-e>', lambda event: custom_input_prompt(root, 'Encoder Name:', 'encoder_name', 'name', 'show'))
 options_menu.add_command(label='API Key', accelerator="[Ctrl+A]",
-                         command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')])
-root.bind('<Control-a>', lambda event: custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key'))
+                         command=lambda: [custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key',
+                                                              'hide')])
+root.bind('<Control-a>', lambda event: custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key', 'hide'))
 options_menu.add_command(label='Torrent Output Path', command=torrent_path_window_function, accelerator="[Ctrl+T]")
 root.bind("<Control-t>", torrent_path_window_function)
 options_menu.add_command(label='BeyondHD.co', command=bhd_co_login_window, accelerator="[Ctrl+I]")
