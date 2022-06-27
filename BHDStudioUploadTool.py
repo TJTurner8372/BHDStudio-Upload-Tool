@@ -3597,6 +3597,9 @@ def advanced_root_deiconify():
 def reset_gui():
     delete_source_entry()
     delete_encode_entry()
+    image_listbox.config(state=NORMAL)
+    image_listbox.delete(0, END)
+    image_listbox.config(state=DISABLED)
     screenshot_scrolledtext.delete("1.0", END)
     clear_all_variables()
 
