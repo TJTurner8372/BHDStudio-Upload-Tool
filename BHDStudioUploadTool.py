@@ -3,7 +3,6 @@ import math
 import os
 import pathlib
 import re
-import shutil
 import subprocess
 import sys
 import threading
@@ -4434,61 +4433,56 @@ def check_for_latest_program_updates():
                 for zip_info in dl_zipfile.infolist():
                     if zip_info.filename[-1] == '/':
                         continue
-                    pathlib.Path(pathlib.Path.cwd() / 'temp_update_dir').mkdir(parents=True, exist_ok=True)
-                    temp_update_folder = pathlib.Path('temp_update_dir')
+                    # pathlib.Path(pathlib.Path.cwd() / 'temp_update_dir').mkdir(parents=True, exist_ok=True)
+                    # temp_update_folder = pathlib.Path('temp_update_dir')
+
+                    # delete old exe if it exists (it shouldn't)
+                    pathlib.Path('OLD.exe').unlink(missing_ok=True)
+
+                    # rename current running exe
+                    pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
+
+                    # extract downloaded exe
                     zip_info.filename = os.path.basename(zip_info.filename)
-                    dl_zipfile.extract(zip_info, temp_update_folder)
+                    dl_zipfile.extract(zip_info, pathlib.Path.cwd())
 
-            # if download exe is detected
-            if pathlib.Path(temp_update_folder / "BHDStudioUploadTool.exe").is_file():
-                # delete old exe if it exists (it shouldn't)
-                pathlib.Path('OLD.exe').unlink(missing_ok=True)
+            # check to ensure new exe is moved
+            if pathlib.Path("BHDStudioUploadTool.exe").is_file():
+                # prompt update message box
+                messagebox.showinfo(parent=update_window, title='Update Status',
+                                    message='Update complete, program will now restart and automatically clean '
+                                            'update files')
 
-                # rename current running exe
-                pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
+                # use subprocess to open the new download
+                subprocess.Popen(pathlib.Path(pathlib.Path.cwd() / "BHDStudioUploadTool.exe"))
 
-                # move new exe to main directory
-                pathlib.Path(temp_update_folder / "BHDStudioUploadTool.exe").rename("BHDStudioUploadTool.exe")
+                # close update window
+                update_window.destroy()
 
-                # check to ensure new exe is moved
-                if pathlib.Path("BHDStudioUploadTool.exe").is_file():
-                    messagebox.showinfo(parent=update_window, title='Update Status',
-                                        message='Update complete, program will now restart and automatically clean '
-                                                'update files')
+                # close main gui
+                root.destroy()
 
-                    # use subprocess to open the new download
-                    subprocess.Popen(pathlib.Path(pathlib.Path.cwd() / "BHDStudioUploadTool.exe"))
+                # exit function to kill thread
+                return
+            else:
+                # if program couldn't move new exe
+                messagebox.showinfo(parent=update_window, title='Update Status',
+                                    message='Could not move updated exe to main directory, please do this manually')
 
-                    # close update window
-                    update_window.destroy()
+                # open main directory
+                webbrowser.open(str(pathlib.Path.cwd()))
 
-                    # close main gui
-                    root.destroy()
+                # close update window
+                update_window.destroy()
 
-                    # exit function to kill thread
-                    return
-                else:
-                    # if program couldn't move new exe
-                    messagebox.showinfo(parent=update_window, title='Update Status',
-                                        message='Could not move updated exe to main directory, please do this manually')
+                # close main gui
+                root.destroy()
 
-                    # open main directory
-                    webbrowser.open(str(pathlib.Path.cwd()))
-
-                    # open update directory
-                    webbrowser.open(str(pathlib.Path(temp_update_folder.resolve())))
-
-                    # close update window
-                    update_window.destroy()
-
-                    # close main gui
-                    root.destroy()
-
-                    # exit function to kill thread
-                    return
+                # exit function to kill thread
+                return
 
             # if downloaded exe is not detected
-            if not pathlib.Path(temp_update_folder / "BHDStudioUploadTool.exe").is_file():
+            if not pathlib.Path("BHDStudioUploadTool.exe").is_file():
                 # open message box failed message
                 messagebox.showinfo(parent=update_window, title='Update Status',
                                     message="Update failed! Opening link to manual update")
@@ -4520,8 +4514,6 @@ def clean_update_files():
             pathlib.Path('OLD.exe').unlink(missing_ok=True)  # delete old exe
         except PermissionError:
             pass
-
-    shutil.rmtree("temp_update_dir", ignore_errors=True)  # delete update directory
 
 
 if app_type == 'bundled':
