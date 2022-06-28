@@ -760,13 +760,20 @@ def encode_input_function(*args):
 
 def drop_function(event):
     file_input = [x for x in root.splitlist(event.data)][0]
-    widget_source = str(event.widget.cget('text')).strip()
 
-    if widget_source == 'Source':
-        source_input_function(file_input)
+    # directory is dropped run the staxrip function
+    if pathlib.Path(file_input).is_dir():
+        staxrip_working_directory(file_input)
 
-    elif widget_source == 'Encode':
-        encode_input_function(file_input)
+    # if a file is dropped run the manual function
+    elif pathlib.Path(file_input).is_file():
+        widget_source = str(event.widget.cget('text')).strip()
+        # if widget is in source frame run source input function
+        if widget_source == 'Source':
+            source_input_function(file_input)
+        # if the widget is in encode frame run encode input function
+        elif widget_source == 'Encode':
+            encode_input_function(file_input)
 
 
 # source --------------------------------------------------------------------------------------------------------------
@@ -900,6 +907,142 @@ reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_e
                                  background="#23272A", borderwidth="3", activeforeground="#3498db",
                                  activebackground="#23272A")
 reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
+
+
+# staxrip directory ---------------------------------------------------------------------------------------------------
+def staxrip_working_directory(stax_dir_path):
+    # get source and encode paths
+    def get_source_and_encode_paths(log_path):
+        # open log path file
+        with open(pathlib.Path(log_path), 'rt') as source_log:
+            # find source file path
+            get_source_path = re.search(r"Media Info Source File.+\n\n(.+?)\n\nGeneral", source_log.read())
+            # move back to the top of file
+            source_log.seek(0)
+            # find encode file output path
+            get_encode_path = re.search(r"Saving\s(.+\.mp4):", source_log.read())
+
+        # if both paths are located
+        if get_source_path and get_encode_path:
+            # run source input function
+            source_input_function(get_source_path.group(1))
+            # run encode input function
+            encode_input_function(get_encode_path.group(1))
+            # restore transparency
+            root.wm_attributes('-alpha', 1.0)
+
+        # if both paths are not located
+        else:
+            messagebox.showerror(parent=stax_log_win, title='Error',
+                                 message='Could not locate source and/or encode path.\n\nLoad these manually.')
+            return  # exit function
+
+    # create empty dictionary
+    dict_of_stax_logs = {}
+
+    # check for log files with filters
+    for log_file in pathlib.Path(stax_dir_path).glob("*.log"):
+        if '720p' in log_file.name.lower() and 'bhdstudio' in log_file.name.lower():
+            dict_of_stax_logs.update({str(pathlib.Path(log_file).name): str(pathlib.Path(log_file))})
+        if '1080p' in log_file.name.lower() and 'bhdstudio' in log_file.name.lower():
+            dict_of_stax_logs.update({str(pathlib.Path(log_file).name): str(pathlib.Path(log_file))})
+        if '2160p' in log_file.name.lower() and 'bhdstudio' in log_file.name.lower():
+            dict_of_stax_logs.update({str(pathlib.Path(log_file).name): str(pathlib.Path(log_file))})
+
+    # if "bhd" log files was not found remove filters and search again
+    if not dict_of_stax_logs:
+        for log_file in pathlib.Path(stax_dir_path).glob("*.log"):
+            dict_of_stax_logs.update({str(pathlib.Path(log_file).name): str(pathlib.Path(log_file))})
+
+    # check if any logs exist now...
+    # if logs are not found
+    if not dict_of_stax_logs:
+        messagebox.showinfo(parent=root, title='Info', message='Unable to find any log files. Please manually '
+                                                               'open source and encode files.')
+        return  # exit this function
+
+    # if logs are found
+    elif dict_of_stax_logs:
+        # if there is more than 1 log file
+        if len(dict_of_stax_logs) >= 2:
+            stax_log_win = Toplevel()  # Toplevel window
+            stax_log_win.configure(background='#363636')  # Set color of stax_log_win background
+            stax_log_win.title('Log Files')
+            # Open on top left of root window
+            stax_log_win.geometry(f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
+                                  f'{str(int(root.geometry().split("+")[2]) + 80)}')
+            stax_log_win.resizable(0, 0)  # makes window not resizable
+            stax_log_win.grab_set()  # forces stax_log_win to stay on top of root
+            stax_log_win.wm_overrideredirect(True)
+            root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+            stax_log_win.grid_rowconfigure(0, weight=1)
+            stax_log_win.grid_columnconfigure(0, weight=1)
+
+            stax_frame = Frame(stax_log_win, highlightbackground="white", highlightthickness=2, bg="#363636",
+                               highlightcolor='white')
+            stax_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+            for e_n_f in range(3):
+                stax_frame.grid_columnconfigure(e_n_f, weight=1)
+                stax_frame.grid_rowconfigure(e_n_f, weight=1)
+
+            # create label
+            stax_info_label = Label(stax_frame, text='Select logfile to parse information from:',
+                                    background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
+            stax_info_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+
+            # create menu
+            log_pop_up_var = StringVar()
+            log_pop_up_var.set(next(iter(reversed(dict_of_stax_logs))))
+            log_pop_up_menu = OptionMenu(stax_frame, log_pop_up_var, *reversed(dict_of_stax_logs.keys()))
+            log_pop_up_menu.config(background="#23272A", foreground="white", highlightthickness=1,
+                                   width=48, anchor='w', activebackground="#23272A", activeforeground="#3498db")
+            log_pop_up_menu.grid(row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E)
+            log_pop_up_menu["menu"].configure(background="#23272A", foreground="white", activebackground="#23272A",
+                                              activeforeground="#3498db")
+
+            # create 'OK' button
+            def stax_ok_function():
+                # close stax_log_window
+                stax_log_win.destroy()
+                # run function to parse log file
+                get_source_and_encode_paths(dict_of_stax_logs[log_pop_up_var.get()])
+
+            stax_okay_btn = HoverButton(stax_frame, text="OK", command=stax_ok_function, foreground="white",
+                                        background="#23272A", borderwidth="3", width=8, activeforeground="#3498db",
+                                        activebackground="#23272A")
+            stax_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+            # create 'Cancel' button
+            def stax_cancel_function():
+                # restore transparency
+                root.wm_attributes('-alpha', 1.0)
+                # close window
+                stax_log_win.destroy()
+                # reset main gui
+                reset_gui()
+
+            stax_cancel_btn = HoverButton(stax_frame, text="Cancel", command=stax_cancel_function,
+                                          foreground="white", background="#23272A", borderwidth="3", width=8,
+                                          activeforeground="#3498db", activebackground="#23272A")
+            stax_cancel_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+
+            # wait for the window to be closed to do anything else
+            stax_log_win.wait_window()
+
+        # if there is only 1 log file
+        else:
+            # get the only value in the dictionary
+            get_source_and_encode_paths(next(iter(dict_of_stax_logs.values())))
+
+
+# staxrip manual open
+def staxrip_manual_open():
+    # open filedialog
+    parse_stax_temp_dir = filedialog.askdirectory(parent=root, title='StaxRip Working Directory')
+
+    if parse_stax_temp_dir:
+        staxrip_working_directory(parse_stax_temp_dir)
+
 
 # release notes -------------------------------------------------------------------------------------------------------
 release_notes_frame = LabelFrame(root, text=' Release Notes ', labelanchor="nw")
@@ -3689,6 +3832,9 @@ file_menu.add_command(label='Open Source File', command=manual_source_input, acc
 root.bind("<Control-s>", lambda event: manual_source_input())
 file_menu.add_command(label='Open Encode File', command=manual_encode_input, accelerator="[Ctrl+E]")
 root.bind("<Control-e>", lambda event: manual_encode_input())
+file_menu.add_separator()
+file_menu.add_command(label='Open StaxRip Temp', command=staxrip_manual_open, accelerator="[Ctrl+S]")
+root.bind("<Control-s>", lambda event: staxrip_manual_open())
 file_menu.add_separator()
 file_menu.add_command(label='Reset GUI', command=reset_gui, accelerator="[Ctrl+R]")
 root.bind("<Control-r>", lambda event: reset_gui())
