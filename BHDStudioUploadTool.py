@@ -278,8 +278,7 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
             for e_w in range(4):
                 error_window.grid_columnconfigure(e_w, weight=1)
             error_window.grid_rowconfigure(0, weight=1)
-            info_scrolled = scrolledtextwidget.ScrolledText(error_window, tabs=10, spacing2=3, spacing1=2,
-                                                            spacing3=3)
+            info_scrolled = scrolledtextwidget.ScrolledText(error_window, wrap=WORD)
             info_scrolled.grid(row=0, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S)
             info_scrolled.configure(bg='black', fg='#CFD2D1', bd=8)
             info_scrolled.insert(END, message)
@@ -1295,13 +1294,6 @@ def open_ss_directory():
         update_image_listbox(ss_dir_files_list)
 
 
-# open directory button
-open_ss_dir_button = HoverButton(image_btn_frame, text="Open Directory", command=open_ss_directory,
-                                 foreground="white", background="#23272A", borderwidth="3",
-                                 activeforeground="#3498db", activebackground="#23272A", width=12)
-open_ss_dir_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + W)
-
-
 # open files function
 def open_ss_files():
     # file dialog to get directory of input files
@@ -1322,11 +1314,21 @@ def open_ss_files():
         update_image_listbox(ss_files_input_files_list)
 
 
-# open file(s) button
-open_ss_files_button = HoverButton(image_btn_frame, text="Open Files", command=open_ss_files,
-                                   foreground="white", background="#23272A", borderwidth="3",
-                                   activeforeground="#3498db", activebackground="#23272A", width=12)
-open_ss_files_button.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
+# multiple input button and pop up menu
+def input_popup_menu(*args):  # Menu for input button
+    input_menu = Menu(image_btn_frame, tearoff=False, font=(set_font, set_font_size + 1), background="#23272A",
+                      foreground="white", activebackground="#23272A", activeforeground="#3498db")  # Menu
+    input_menu.add_command(label='Open Files', command=open_ss_files)
+    input_menu.add_separator()
+    input_menu.add_command(label='Open Directory', command=open_ss_directory)
+    input_menu.tk_popup(input_button.winfo_rootx(), input_button.winfo_rooty() + 5)
+
+
+input_button = HoverButton(image_btn_frame, text="Open...", command=input_popup_menu,
+                           foreground="white", background="#23272A", borderwidth="3",
+                           activeforeground="#3498db", activebackground="#23272A", width=12)
+input_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + W)
+input_button.bind('<Button-3>', input_popup_menu)  # Right click to pop up menu in frame
 
 
 # png and drop function for image list box
@@ -1360,7 +1362,322 @@ def clear_image_list():
 clear_ss_win_btn = HoverButton(image_btn_frame, text="Clear", command=clear_image_list,
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", activebackground="#23272A", width=12)
-clear_ss_win_btn.grid(row=1, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=S + W)
+clear_ss_win_btn.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
+
+
+# function to automatically generate screenshots
+def automatic_screenshot_generator():
+    # create image viewer
+    image_viewer = Toplevel()
+    image_viewer.title('Image Viewer')
+    image_viewer.configure(background="#434547")
+    window_height = 720
+    window_width = 1400
+    # image_viewer.geometry(f'{window_width}x{window_height}+{root.geometry().split("+")[1]}+'
+    #                       f'{root.geometry().split("+")[2]}')
+    # image_viewer.state('zoomed')
+    # for e_w in range(4):
+    #     image_viewer.grid_columnconfigure(e_w, weight=1)
+    # image_viewer.grid_rowconfigure(0, weight=1)
+    for i_v_r in range(3):
+        image_viewer.grid_rowconfigure(i_v_r, weight=1)
+    for i_v_c in range(5):
+        image_viewer.grid_columnconfigure(i_v_c, weight=1)
+
+    # image info frame
+    image_info_frame = LabelFrame(image_viewer, bg="#434547", text=' Image Info ', labelanchor="nw",
+                                  fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
+    image_info_frame.grid(column=0, row=0, columnspan=4, pady=2, padx=2, sticky=N + S + E + W)
+    image_info_frame.grid_columnconfigure(0, weight=1)
+    image_info_frame.grid_columnconfigure(1, weight=100)
+    image_info_frame.grid_columnconfigure(2, weight=1)
+    image_info_frame.grid_rowconfigure(0, weight=1)
+
+    # create name label
+    image_name_label = Label(image_info_frame, background="#434547", fg="white",
+                         font=(set_font, set_font_size - 1))
+    image_name_label.grid(row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0))
+
+    image_resolution_label = Label(image_info_frame, background="#434547", fg="white",
+                             font=(set_font, set_font_size - 1))
+    image_resolution_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=10, pady=(2, 0))
+
+    image_number_label = Label(image_info_frame, background="#434547", fg="white",
+                                   font=(set_font, set_font_size - 1))
+    image_number_label.grid(row=0, column=2, columnspan=1, sticky=E, padx=5, pady=(2, 0))
+
+    track_frame = LabelFrame(image_viewer, bg="#434547", text=' Image Preview ', labelanchor="nw",
+                             fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
+    track_frame.grid(column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W)
+    track_frame.grid_columnconfigure(0, weight=1)
+    track_frame.grid_rowconfigure(0, weight=1)
+    # track_frame2 = Frame(image_viewer, bg="#434547", width=600, height=338)
+    # track_frame2.grid(column=1, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
+    # for e_n_f in range(1):
+    #     track_frame2.grid_columnconfigure(e_n_f, weight=1)
+    #     track_frame2.grid_rowconfigure(e_n_f, weight=1)
+
+    # create emtpy image list
+    comparison_img_list = []
+
+    # loop through comparison directory and get all images
+    # CHANGE THIS TO GENERATED DIRECTORY
+    for x in pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob("*.png"):
+        comparison_img_list.append(x)
+
+    # set index variable
+    comparison_index = 0
+
+    # update image name label with first image from list
+    image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
+
+    # parse first image from list to get resolution
+    media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+    image_track = media_info_img.image_tracks[0]
+
+    # update image resolution label
+    image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+
+    # label to print what photo of amount of total photos you are on
+    image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+
+    # create image instance and resize the photo
+    loaded_image = Image.open(comparison_img_list[comparison_index])
+    loaded_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+    resized_image = ImageTk.PhotoImage(loaded_image)
+
+    # put resized image into label
+    image_preview_label = Label(track_frame, image=resized_image, background="#434547", cursor='hand2')
+    image_preview_label.image = resized_image
+    image_preview_label.grid(column=0, row=0, columnspan=1)
+    # add a left click function to open the photo in your default os viewer
+    image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+
+    # create image button frame
+    img_button_frame = Frame(image_viewer, bg="#434547")
+    img_button_frame.grid(column=0, row=2, columnspan=4, pady=2, padx=2, sticky=N + S + E + W)
+    img_button_frame.grid_columnconfigure(0, weight=1000)
+    img_button_frame.grid_columnconfigure(1, weight=1000)
+    img_button_frame.grid_rowconfigure(0, weight=1)
+
+    # function to load next image
+    def load_next_image(*e_right):
+        nonlocal image_preview_label, comparison_index
+        if next.cget('state') != DISABLED:
+            comparison_index += 1
+            im = Image.open(comparison_img_list[comparison_index])
+            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(im)
+            image_preview_label.config(image=photo)
+            image_preview_label.image = photo  # keep a reference!
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+
+            image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
+            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track = media_info_img.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+
+    # button to run next image function
+    next = HoverButton(img_button_frame, text=">>", command=load_next_image,
+                               foreground="white", background="#23272A", borderwidth="3",
+                               activeforeground="#3498db", activebackground="#23272A", width=4)
+    next.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
+    image_viewer.bind("<KeyRelease-Right>", load_next_image)
+
+
+    # function to load last image
+    def load_last_image(*e_left):
+        nonlocal image_preview_label, comparison_index
+        if back.cget('state') != DISABLED:
+            comparison_index -= 1
+            im = Image.open(comparison_img_list[comparison_index])
+            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(im)
+            image_preview_label.config(image=photo)
+            image_preview_label.image = photo  # keep a reference!
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+
+            image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
+            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track = media_info_img.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+
+    # button to run last image function
+    back = HoverButton(img_button_frame, text="<<", command=load_last_image,
+                       foreground="white", background="#23272A", borderwidth="3",
+                       activeforeground="#3498db", activebackground="#23272A", width=4)
+    back.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
+    image_viewer.bind("<KeyRelease-Left>", load_last_image)
+
+
+    set_info_frame = LabelFrame(image_viewer, bg="#434547", text=' Info ', labelanchor="nw",
+                                fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
+    set_info_frame.grid(column=4, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
+    set_info_frame.grid_columnconfigure(0, weight=1)
+    set_info_frame.grid_columnconfigure(1, weight=100)
+    set_info_frame.grid_columnconfigure(2, weight=1)
+    set_info_frame.grid_rowconfigure(0, weight=1)
+
+    # image frame
+    image_frame = Frame(image_viewer, bg="#434547", bd=0)
+    image_frame.grid(column=4, columnspan=1, row=1, rowspan=1, pady=3, padx=4, sticky=W + E + N + S)
+    image_frame.grid_columnconfigure(0, weight=1)
+    image_frame.grid_rowconfigure(0, weight=200)
+    image_frame.grid_rowconfigure(1, weight=200)
+    image_frame.grid_rowconfigure(1, weight=1)
+
+    image_name_label2 = Label(set_info_frame, text="0 sets (0 images)", background="#434547", fg="white",
+                         font=(set_font, set_font_size - 1))
+    image_name_label2.grid(row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0))
+
+    image_name1_label = Label(set_info_frame, text="6 sets (12 images) required", background="#434547", fg="white",
+                         font=(set_font, set_font_size - 1, "italic"))
+    image_name1_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0))
+
+    # image listbox
+    image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
+    image_listbox = Listbox(image_frame, selectbackground="#565656", background="#565656", disabledforeground="white",
+                            selectforeground="#3498db", foreground="white",
+                            highlightthickness=0, width=40,
+                            yscrollcommand=image_right_scrollbar.set, selectmode=SINGLE, bd=4, activestyle="none")
+    image_listbox.grid(row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0))
+    image_right_scrollbar.config(command=image_listbox.yview)
+    image_right_scrollbar.grid(row=0, column=2, rowspan=2, sticky=N + W + S, pady=(8, 0))
+
+    img_button2_frame = Frame(image_viewer, bg="#434547")
+    img_button2_frame.grid(column=4, row=2, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
+    img_button2_frame.grid_columnconfigure(0, weight=100)
+    img_button2_frame.grid_columnconfigure(1, weight=100)
+    img_button2_frame.grid_columnconfigure(2, weight=1)
+    img_button2_frame.grid_rowconfigure(0, weight=1)
+
+    def remove_pair_from_listbox():
+        nonlocal comparison_index, comparison_img_list
+        if image_listbox.curselection():
+            for i in image_listbox.curselection():
+                get_selection = image_listbox.get(i)
+            for images_with_prefix in image_listbox.get(0, END):
+                get_pair = re.findall(rf"{get_selection[:2]}.+", images_with_prefix)
+                # print(get_pair)
+
+                if get_pair:
+                    pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected") / get_pair[0]).rename(pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons") / get_pair[0]))
+
+            image_listbox.delete(0, END)
+            for x in pathlib.Path(
+                    r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected").glob(
+                    "*.png"):
+                image_listbox.insert(END, x.name)
+
+            # update image info and preview info
+            comparison_img_list.clear()
+            for x in pathlib.Path(
+                    r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob(
+                "*.png"):
+                comparison_img_list.append(x)
+            if comparison_img_list:
+                comparison_index = 0
+                im = Image.open(comparison_img_list[comparison_index])
+                im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(im)
+                image_preview_label.grid()
+                image_preview_label.config(image=photo)
+                image_preview_label.image = photo  # keep a reference!
+                image_preview_label.bind("<Button-1>",
+                                         lambda event: Image.open(comparison_img_list[comparison_index]).show())
+
+                image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
+                media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+                image_track = media_info_img.image_tracks[0]
+                image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+                image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+
+                image_name_label2.config(text=f"{int(image_listbox.size() * .5)} sets ({image_listbox.size()} images)")
+
+    minus = HoverButton(img_button2_frame, text="<<<", command=remove_pair_from_listbox,
+                       foreground="white", background="#23272A", borderwidth="3",
+                       activeforeground="#3498db", activebackground="#23272A", width=4)
+    minus.grid(row=0, column=0, padx=5, sticky=E)
+
+    def add_pair_to_listbox():
+        nonlocal comparison_index, comparison_img_list, image_preview_label
+        get_prefix = str(pathlib.Path(comparison_img_list[comparison_index]).name)[:2]
+        for images_with_prefix in comparison_img_list:
+            get_pair = re.findall(rf"{get_prefix}.+", images_with_prefix.name)
+            if get_pair:
+                pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons") / get_pair[0]).rename(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected") / pathlib.Path(get_pair[0]).name)
+
+        # update listbox and get last file index
+        image_listbox.delete(0, END)
+        for x in pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected").glob("*.png"):
+            # insert selection into listbox
+            image_listbox.insert(END, x.name)
+
+        # update image info and preview info
+        comparison_img_list.clear()
+        for x in pathlib.Path(
+                r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob(
+                "*.png"):
+            comparison_img_list.append(x)
+
+        if comparison_img_list:
+            comparison_index = 0
+            im = Image.open(comparison_img_list[comparison_index])
+            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(im)
+            image_preview_label.config(image=photo)
+            image_preview_label.image = photo  # keep a reference!
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+
+            image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
+            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track = media_info_img.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+
+            image_name_label2.config(text=f"{int(image_listbox.size() * .5)} sets ({image_listbox.size()} images)")
+        else:
+            image_preview_label.grid_forget()
+            image_name_label.config(text="")
+            image_resolution_label.config(text="")
+            image_number_label.config(text="")
+
+
+    move = HoverButton(img_button2_frame, text=">>>", command=add_pair_to_listbox,
+                       foreground="white", background="#23272A", borderwidth="3",
+                       activeforeground="#3498db", activebackground="#23272A", width=4)
+    move.grid(row=0, column=1, padx=5, sticky=W)
+
+    apply = HoverButton(img_button2_frame, text="Apply", command=None, state=DISABLED,
+                       foreground="white", background="#23272A", borderwidth="3",
+                       activeforeground="#3498db", activebackground="#23272A", width=10)
+    apply.grid(row=0, column=2, padx=5, sticky=E)
+
+    # loop to enable/disable buttons depending on index
+    def enable_disable_buttons_by_index():
+        # enable or disable back button
+        if comparison_index == 0:
+            back.config(state=DISABLED)
+        else:
+            back.config(state=NORMAL)
+        # enable or next back button
+        if comparison_index == len(comparison_img_list) - 1:
+            next.config(state=DISABLED)
+        else:
+            next.config(state=NORMAL)
+
+        image_viewer.after(50, enable_disable_buttons_by_index)
+    # start loop for button checker
+    enable_disable_buttons_by_index()
+
+
+# auto generate button
+auto_screens = HoverButton(image_btn_frame, text="Generate", command=automatic_screenshot_generator,
+                           foreground="white", background="#23272A", borderwidth="3",
+                           activeforeground="#3498db", activebackground="#23272A", width=12)
+auto_screens.grid(row=1, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=S + W)
 
 
 # upload pictures to beyond.co and return medium linked images
@@ -3870,9 +4187,9 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key, h
         custom_input_frame.grid_rowconfigure(e_n_f, weight=1)
 
     # create label
-    custom_label = Label(custom_input_frame, text=label_input, background='#363636', fg="#3498db",
+    image_name_label3 = Label(custom_input_frame, text=label_input, background='#363636', fg="#3498db",
                          font=(set_font, set_font_size, "bold"))
-    custom_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+    image_name_label3.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
 
     # create entry box
     custom_entry_box = Entry(custom_input_frame, borderwidth=4, bg="#565656", fg='white')
