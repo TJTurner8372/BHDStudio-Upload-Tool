@@ -5252,13 +5252,9 @@ def check_for_latest_program_updates():
             # rename current running exe
             pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
 
-            # use zipfile module to latest update
+            # use zipfile module to unzip latest update
             with zipfile.ZipFile(BytesIO(request_download.content)) as dl_zipfile:
-                for zip_info in dl_zipfile.infolist():
-                    if zip_info.filename[-1] == '/':
-                        continue
-                    # extract archive
-                    dl_zipfile.extractall(pathlib.Path.cwd())
+                dl_zipfile.extractall()
 
             # check to ensure new exe is moved
             if pathlib.Path("BHDStudioUploadTool.exe").is_file():
