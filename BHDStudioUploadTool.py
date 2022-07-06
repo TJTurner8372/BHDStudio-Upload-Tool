@@ -2126,8 +2126,11 @@ def upload_to_beyond_hd_co_window():
                 if missing_info:
                     # open login window
                     bhd_co_login_window()
-                    # restart loop
-                    upload_to_beyond_hd_co()
+                    # update login variables
+                    pass_user_decoder = Fernet(crypto_key)
+                    with open('Runtime/user.bin', 'rb') as user_file, open('Runtime/pass.bin', 'rb') as pass_file:
+                        decode_user = pass_user_decoder.decrypt(user_file.read()).decode('utf-8')
+                        decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode('utf-8')
                 else:  # if user selects no
                     manipulate_ss_upload_window('Missing username and/or password. Cannot continue...')
                     return  # exit function
@@ -2139,8 +2142,11 @@ def upload_to_beyond_hd_co_window():
             if missing_info:
                 # open login window
                 bhd_co_login_window()
-                # restart loop
-                upload_to_beyond_hd_co()
+                # update login variables
+                pass_user_decoder = Fernet(crypto_key)
+                with open('Runtime/user.bin', 'rb') as user_file, open('Runtime/pass.bin', 'rb') as pass_file:
+                    decode_user = pass_user_decoder.decrypt(user_file.read()).decode('utf-8')
+                    decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode('utf-8')
             else:  # if user selects no
                 manipulate_ss_upload_window('Missing username and/or password. Cannot continue...')
                 return  # exit function
