@@ -5246,17 +5246,17 @@ def check_for_latest_program_updates():
 
         # if download was successful
         if request_download.ok:
+            # delete old exe if it exists (it shouldn't)
+            pathlib.Path('OLD.exe').unlink(missing_ok=True)
+
+            # rename current running exe
+            pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
+
             # use zipfile module to latest update
             with zipfile.ZipFile(BytesIO(request_download.content)) as dl_zipfile:
                 for zip_info in dl_zipfile.infolist():
                     if zip_info.filename[-1] == '/':
                         continue
-                    # delete old exe if it exists (it shouldn't)
-                    pathlib.Path('OLD.exe').unlink(missing_ok=True)
-
-                    # rename current running exe
-                    pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
-
                     # extract archive
                     dl_zipfile.extractall(pathlib.Path.cwd())
 
