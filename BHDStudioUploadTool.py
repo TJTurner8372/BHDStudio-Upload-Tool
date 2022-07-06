@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.23"
+main_root_title = "BHDStudio Upload Tool v1.23.2"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -347,6 +347,7 @@ encode_file_resolution = StringVar()
 encode_media_info = StringVar()
 encode_file_audio = StringVar()
 encode_hdr_string = StringVar()
+encode_file_res_w_h = StringVar()
 torrent_file_path = StringVar()
 nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
@@ -372,6 +373,7 @@ def clear_all_variables():
     encode_media_info.set('')
     encode_file_audio.set('')
     encode_hdr_string.set('')
+    encode_file_res_w_h.set('')
     torrent_file_path.set('')
     nfo_info_var.set('')
     automatic_workflow_boolean.set(0)
@@ -412,7 +414,47 @@ def source_input_function(*args):
     source_file_information.clear()  # clear dictionary
     audio_pop_up_var = StringVar()  # audio pop up var
 
-    media_info = MediaInfo.parse(pathlib.Path(*args))
+    # check if script is avisynth
+    if pathlib.Path(*args).suffix == '.avs':
+        script_mode = 'avs'
+    # check if script is vapoursynth
+    elif pathlib.Path(*args).suffix == '.vpy':
+        script_mode = 'vpy'
+    # if input is not a script
+    else:
+        messagebox.showerror(parent=root, title='Incorrect File',
+                             message='Dropped file must be an AviSynth or VapourSynth script')
+        return  # exit the function
+
+    # open avisynth script
+    if script_mode == 'avs':
+        with open(*args, 'rt') as encode_script:
+            search_file = encode_script.read()
+            get_source_file = re.search(r'FFVideoSource\("(.+?)",', search_file)
+            get_crop = re.search(r"Crop\(.+\)", search_file)
+            get_resize = re.search(r"Spline.+\)", search_file)
+    # open vapoursynth script
+    elif script_mode == 'vpy':
+        messagebox.showerror(parent=root, title='WIP',
+                             message='VapourSynth support is not finished')
+        return  # FINISH THIS
+
+    # if we cannot locate the source file
+    if not pathlib.Path(get_source_file.group(1)).is_file():
+        find_source = messagebox.askyesno(parent=root, title='Missing Source',
+                                          message='Cannot locate source file. Would you like to manually find this?')
+        if find_source:
+            source_file_input = filedialog.askopenfilename(parent=root, title='Select Source File', initialdir='/',
+                                                           filetypes=[("Media Files", "*.*")])
+            if source_file_input:
+                loaded_source_file = source_file_input
+        elif not find_source:
+            return  # exit the function
+    # if we find the source file
+    else:
+        loaded_source_file = get_source_file.group(1)
+
+    media_info = MediaInfo.parse(pathlib.Path(loaded_source_file))
 
     # check to ensure file dropped has a video track
     if not media_info.general_tracks[0].count_of_video_streams:
@@ -495,7 +537,7 @@ def source_input_function(*args):
         # create drop down menu set
         audio_stream_track_counter = {}
         for i in range(int(media_info.general_tracks[0].count_of_audio_streams)):
-            audio_stream_track_counter[f'Track #{i + 1}  |  {stream_menu(*args)[i]}'] = i
+            audio_stream_track_counter[f'Track #{i + 1}  |  {stream_menu(loaded_source_file)[i]}'] = i
 
         audio_pop_up_var.set(next(iter(audio_stream_track_counter)))  # set the default option
         audio_pop_up_menu = OptionMenu(track_frame, audio_pop_up_var, *audio_stream_track_counter.keys())
@@ -526,7 +568,7 @@ def source_input_function(*args):
 
     # update dictionary
     # source input path
-    source_file_information.update({"source_path": str(pathlib.Path(*args))})
+    source_file_information.update({"source_path": str(pathlib.Path(loaded_source_file))})
 
     # selected source audio track info
     source_file_information.update(
@@ -538,13 +580,31 @@ def source_input_function(*args):
     # resolution
     source_file_information.update({"resolution": f"{str(video_track.width)}x{str(video_track.height)}"})
 
+    # crop
+    if get_crop:
+        source_file_information.update({"crop": f"{str(get_crop.group())}"})
+    else:
+        source_file_information.update({"crop": "None"})
+
+    # resize
+    if get_resize:
+        source_file_information.update({"resize": f"{str(get_resize.group())}"})
+    else:
+        source_file_information.update({"resize": "None"})
+
+    # hdr
+    if hdr_string != '':
+        source_file_information.update({'hdr': 'True'})
+    else:
+        source_file_information.update({'hdr': 'False'})
+
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
-    source_file_path.set(str(pathlib.Path(*args)))
+    source_file_path.set(str(pathlib.Path(loaded_source_file)))
 
     source_entry_box.config(state=NORMAL)
     source_entry_box.delete(0, END)
-    source_entry_box.insert(END, pathlib.Path(*args).name)
+    source_entry_box.insert(END, pathlib.Path(loaded_source_file).name)
     source_entry_box.config(state=DISABLED)
 
 
@@ -792,6 +852,7 @@ def encode_input_function(*args):
     media_info_original = MediaInfo.parse(pathlib.Path(*args), full=False, output="")  # parse identical to mediainfo
     encode_media_info.set(media_info_original)
 
+    # update labels
     encode_label.config(text=update_source_label)
     encode_hdr_label.config(text=hdr_string)
     encode_file_path.set(str(pathlib.Path(*args)))
@@ -799,6 +860,9 @@ def encode_input_function(*args):
     encode_entry_box.delete(0, END)
     encode_entry_box.insert(END, pathlib.Path(*args).name)
     encode_entry_box.config(state=DISABLED)
+
+    # add encode file resolution to StringVar()
+    encode_file_res_w_h.set(f"{video_track.width},{video_track.height}")
 
 
 def drop_function(event):
@@ -812,15 +876,15 @@ def drop_function(event):
     elif pathlib.Path(file_input).is_file():
         widget_source = str(event.widget.cget('text')).strip()
         # if widget is in source frame run source input function
-        if widget_source == 'Source':
+        if 'source' in widget_source.lower():
             source_input_function(file_input)
         # if the widget is in encode frame run encode input function
-        elif widget_source == 'Encode':
+        elif 'encode' in widget_source.lower():
             encode_input_function(file_input)
 
 
 # source --------------------------------------------------------------------------------------------------------------
-source_frame = LabelFrame(root, text=' Source ', labelanchor="nw")
+source_frame = LabelFrame(root, text=' Source (*.avs / *.vpy) ', labelanchor="nw")
 source_frame.grid(column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 source_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 source_frame.grid_rowconfigure(0, weight=1)
@@ -835,8 +899,8 @@ source_frame.dnd_bind('<<Drop>>', drop_function)
 
 
 def manual_source_input():
-    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source', initialdir='/',
-                                                   filetypes=[("Media Files", "*.*")])
+    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source Script', initialdir='/',
+                                                   filetypes=[("AviSynth, Vapoursynth", "*.avs *.vpy")])
     if source_file_input:
         source_input_function(source_file_input)
 
@@ -882,7 +946,7 @@ reset_source_input = HoverButton(source_frame, text="X", command=delete_source_e
 reset_source_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
 
 # encode --------------------------------------------------------------------------------------------------------------
-encode_frame = LabelFrame(root, text=' Encode ', labelanchor="nw")
+encode_frame = LabelFrame(root, text=' Encode (*.mp4) ', labelanchor="nw")
 encode_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 encode_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 encode_frame.grid_rowconfigure(0, weight=1)
@@ -958,26 +1022,33 @@ def staxrip_working_directory(stax_dir_path):
     def get_source_and_encode_paths(log_path):
         # open log path file
         with open(pathlib.Path(log_path), 'rt') as source_log:
-            # find source file path
-            get_source_path = re.search(r"Media Info Source File.+\n\n(.+?)\n\nGeneral", source_log.read())
-            # move back to the top of file
-            source_log.seek(0)
+            # load logfile into memory
+            log_file_loaded = source_log.read()
+            # check for script type
+            if '- AviSynth Script -' in log_file_loaded:
+                # get source path
+                get_source_path = pathlib.Path(log_path.replace('_staxrip.log', '.avs'))
+            elif '- VapourSynth Script -' in log_file_loaded:
+                # get source path
+                get_source_path = pathlib.Path(log_path.replace('_staxrip.log', '.vpy'))
             # find encode file output path
-            get_encode_path = re.search(r"Saving\s(.+\.mp4):", source_log.read())
+            get_encode_path = re.search(r"Saving\s(.+\.mp4):", log_file_loaded)
 
         # if both paths are located
         if get_source_path and get_encode_path:
-            # run source input function
-            source_input_function(get_source_path.group(1))
-            # run encode input function
-            encode_input_function(get_encode_path.group(1))
             # restore transparency
             root.wm_attributes('-alpha', 1.0)
+            # run source input function
+            source_input_function(get_source_path)
+            # run encode input function
+            encode_input_function(get_encode_path.group(1))
 
         # if both paths are not located
         else:
-            messagebox.showerror(parent=stax_log_win, title='Error',
+            messagebox.showerror(title='Error',
                                  message='Could not locate source and/or encode path.\n\nLoad these manually.')
+            # restore transparency
+            root.wm_attributes('-alpha', 1.0)
             return  # exit function
 
     # create empty dictionary
@@ -1002,6 +1073,8 @@ def staxrip_working_directory(stax_dir_path):
     if not dict_of_stax_logs:
         messagebox.showinfo(parent=root, title='Info', message='Unable to find any log files. Please manually '
                                                                'open source and encode files.')
+        # restore transparency
+        root.wm_attributes('-alpha', 1.0)
         return  # exit this function
 
     # if logs are found
@@ -1976,26 +2049,9 @@ def auto_screen_shot_status_window():
         # Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL,
         # MarginR, MarginV,
 
-        # set subtitle scale depending on source input resolution
-        source_width = str(source_file_information['resolution']).split('x')[0]
-        source_height = str(source_file_information['resolution']).split('x')[1]
-        if int(source_width) <= 1920 and int(source_height) <= 1080:  # 1080p
-            selected_sub_style_source = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                                        "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
-        elif int(source_width) <= 3840 and int(source_height) <= 2160:  # 2160p
-            selected_sub_style_source = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                                        "0,0,0,0,200,200,0,0,1,1,0,7,10,10,10,1"
-
-        # set subtitle scale depending on encode input resolution
-        if encode_file_resolution.get() == "720p":
-            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                                        "0,0,0,0,67,67,0,0,1,1,0,7,10,10,10,1"
-        elif encode_file_resolution.get() == "1080p":
-            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                                        "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
-        elif encode_file_resolution.get() == "2160p":
-            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                                        "0,0,0,0,200,200,0,0,1,1,0,7,10,10,10,1"
+        # set subtitle scale style
+        selected_sub_style = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                             "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
 
         # check for custom user image amount
         if semi_auto_img_parser['screenshot_settings']['semi_auto_count'] != '':
@@ -2052,9 +2108,35 @@ def auto_screen_shot_status_window():
         pathlib.Path(pathlib.Path(image_output_dir) / "img_selected").mkdir(exist_ok=True)
         screenshot_selected_var.set(pathlib.Path(pathlib.Path(image_output_dir) / "img_selected"))
 
+        # crop
+        if str(source_file_information['crop']) != 'None':
+            get_crop_info = str(source_file_information['crop']).replace('Crop(', '').replace(')', '').replace('-', '')
+            left_crop = int(get_crop_info.split(',')[0].strip())
+            top_crop = int(get_crop_info.split(',')[1].strip())
+            right_crop = int(get_crop_info.split(',')[2].strip())
+            bottom_crop = int(get_crop_info.split(',')[3].strip())
+            source_file = core.std.Crop(source_file, top=top_crop, bottom=bottom_crop, left=left_crop, right=right_crop)
+
+        # get dimensions for both source/encode
+        source_width = str(source_file_information['resolution']).split('x')[0]
+        source_height = str(source_file_information['resolution']).split('x')[1]
+        encode_width = str(encode_file_res_w_h.get()).split(',')[0]
+        encode_height = str(encode_file_res_w_h.get()).split(',')[1]
+
+        # if resolutions are not the same, resize the source to match encode resolution
+        if source_width != encode_width and source_height != encode_height:
+            extract_dimension = re.findall(r"(\d+)", str(source_file_information['resize']))
+            source_file = core.resize.Spline36(source_file, width=int(extract_dimension[1]),
+                                               height=int(extract_dimension[2]), dither_type="error_diffusion")
+
+        # hdr tone-map
+        if source_file_information['hdr'] == 'True':
+            source_file = awsmfunc.DynamicTonemap(source_file)
+            encode_file = awsmfunc.DynamicTonemap(encode_file, reference=source_file)
+
         # define the subtitle/frame info for source and encode
-        vs_source_info = core.sub.Subtitle(clip=source_file, text='Source', style=selected_sub_style_source)
-        vs_encode_info = awsmfunc.FrameInfo(clip=encode_file, title='BHDStudio', style=selected_sub_style_encode)
+        vs_source_info = core.sub.Subtitle(clip=source_file, text='Source', style=selected_sub_style)
+        vs_encode_info = awsmfunc.FrameInfo(clip=encode_file, title='BHDStudio', style=selected_sub_style)
 
         # generate comparisons
         awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames,
