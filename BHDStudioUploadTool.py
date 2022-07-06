@@ -2,7 +2,9 @@ import base64
 import math
 import os
 import pathlib
+import random
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -15,11 +17,14 @@ from idlelib.tooltip import Hovertip
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
-    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE, CENTER, WORD, LEFT
+    INSERT, colorchooser, Frame, Scrollbar, VERTICAL, PhotoImage, BooleanVar, Listbox, SINGLE, CENTER, WORD, LEFT, \
+    Spinbox
 
+import awsmfunc
 import pyperclip
 import requests
 import torf
+import vapoursynth as vs
 from PIL import Image, ImageTk
 from TkinterDnD2 import *
 from bs4 import BeautifulSoup
@@ -50,16 +55,16 @@ else:
 if app_type == 'bundled':
     enable_error_logger = True  # Change this to false if you don't want to log errors to pop up window
 elif app_type == 'script':
-    enable_error_logger = False  # Enable this to true for debugging in dev enviorment
+    enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.22"
+main_root_title = "BHDStudio Upload Tool v1.23"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
 
 # define config file and settings
-config_file = 'Runtime/config.ini'  # Creates (if doesn't exist) and defines location of config.ini
+config_file = 'Runtime/config.ini'  # Creates (if it doesn't exist) and defines location of config.ini
 config = ConfigParser()
 config.read(config_file)
 
@@ -132,6 +137,14 @@ if not config.has_option('save_window_locations', 'movie_info'):
     config.set('save_window_locations', 'movie_info', '')
 if not config.has_option('save_window_locations', 'about_window'):
     config.set('save_window_locations', 'about_window', '')
+if not config.has_option('save_window_locations', 'image_viewer'):
+    config.set('save_window_locations', 'image_viewer', '')
+
+# screenshot settings
+if not config.has_section('screenshot_settings'):
+    config.add_section('screenshot_settings')
+if not config.has_option('screenshot_settings', 'semi_auto_count'):
+    config.set('screenshot_settings', 'semi_auto_count', '')
 
 # write options to config if they do not exist
 with open(config_file, 'w') as configfile:
@@ -174,7 +187,7 @@ root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background="#363636")
-root_window_height = 700
+root_window_height = 760
 root_window_width = 720
 if config['save_window_locations']['bhdstudiotool'] == '':
     screen_width = root.winfo_screenwidth()
@@ -345,6 +358,8 @@ tmdb_id_var = StringVar()
 imdb_id_var = StringVar()
 release_date_var = StringVar()
 rating_var = StringVar()
+screenshot_comparison_var = StringVar()
+screenshot_selected_var = StringVar()
 
 
 # function to clear all variables
@@ -368,6 +383,8 @@ def clear_all_variables():
     imdb_id_var.set('')
     release_date_var.set('')
     rating_var.set('')
+    screenshot_comparison_var.set('')
+    screenshot_selected_var.set('')
 
 
 # function to open imdb links with and without the id
@@ -402,13 +419,41 @@ def source_input_function(*args):
         messagebox.showerror(parent=root, title='Error', message='Incorrect file format or missing video stream')
         return  # exit the function
 
+    # set video track
     video_track = media_info.video_tracks[0]
-    calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
-                                            ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+
+    # set general track
+    general_track = media_info.general_tracks[0]
+
+    # calculate average video bitrate
+    if video_track.stream_size and video_track.duration:
+        calculate_average_video_bitrate = round((float(video_track.stream_size) / 1000) /
+                                                ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+
+    # if one of the above metrics is missing attempt to calculate it roughly with the general track info
+    elif general_track.file_size and general_track.duration:
+        calculate_average_video_bitrate = round((float(general_track.file_size) / 1000) /
+                                                ((float(general_track.duration) / 60000) * 0.0075) / 1000 * 0.88)
+
+    # if for some reason neither can produce the bitrate
+    else:
+        calculate_average_video_bitrate = 'N/A'
+
+    # get stream size
+    if video_track.other_stream_size:
+        v_stream_size = video_track.other_stream_size[3]
+    # if video track is missing the above metrics get it from general
+    elif general_track.other_file_size[3]:
+        v_stream_size = general_track.other_file_size[3]
+    # if for some reason general and video are missing the metrics just print it as N/A
+    else:
+        v_stream_size = 'N/A'
+
+    # update source labels
     update_source_label = f"Avg BR:  {str(calculate_average_video_bitrate)} kbps  |  " \
                           f"Res:  {str(video_track.width)}x{str(video_track.height)}  |  " \
                           f"FPS:  {str(video_track.frame_rate)}  |  " \
-                          f"Size:  {str(video_track.other_stream_size[3])}"
+                          f"Size:  {str(v_stream_size)}"
     hdr_string = ''
     if video_track.other_hdr_format:
         hdr_string = f"HDR format:  {str(video_track.hdr_format)} / {str(video_track.hdr_format_compatibility)}"
@@ -1167,7 +1212,7 @@ screenshot_frame.grid_rowconfigure(0, weight=1)
 screenshot_frame.grid_columnconfigure(0, weight=1)
 
 # Settings Notebook Frame -----------------------------------------------------------------------------------------
-tabs = ttk.Notebook(screenshot_frame, height=120)
+tabs = ttk.Notebook(screenshot_frame, height=150)
 tabs.grid(row=0, column=0, columnspan=4, sticky=E + W + N + S, padx=0, pady=0)
 tabs.grid_columnconfigure(0, weight=1)
 tabs.grid_rowconfigure(0, weight=1)
@@ -1187,12 +1232,16 @@ image_frame.grid_rowconfigure(0, weight=1)
 
 # image listbox
 image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
+image_bottom_scrollbar = Scrollbar(image_frame, orient=HORIZONTAL)  # scrollbar
 image_listbox = Listbox(image_frame, selectbackground="#565656", background="#565656", disabledforeground="white",
                         selectforeground="#3498db", foreground="white", height=12, state=DISABLED, highlightthickness=0,
-                        yscrollcommand=image_right_scrollbar.set, selectmode=SINGLE, bd=4, activestyle="none")
-image_listbox.grid(row=0, column=0, rowspan=3, sticky=N + E + S + W)
+                        yscrollcommand=image_right_scrollbar.set, selectmode=SINGLE, bd=4, activestyle="none",
+                        xscrollcommand=image_bottom_scrollbar.set)
+image_listbox.grid(row=0, column=0, rowspan=1, sticky=N + E + S + W)
 image_right_scrollbar.config(command=image_listbox.yview)
-image_right_scrollbar.grid(row=0, column=1, rowspan=3, sticky=N + W + S)
+image_right_scrollbar.grid(row=0, column=1, rowspan=2, sticky=N + W + S)
+image_bottom_scrollbar.config(command=image_listbox.xview)
+image_bottom_scrollbar.grid(row=1, column=0, sticky=E + W + N)
 
 # image button frame
 image_btn_frame = Frame(image_tab, bg='#434547', bd=0)
@@ -1367,18 +1416,26 @@ clear_ss_win_btn.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky
 
 # function to automatically generate screenshots
 def automatic_screenshot_generator():
+    # define parser
+    auto_screenshot_parser = ConfigParser()
+    auto_screenshot_parser.read(config_file)
+
     # create image viewer
     image_viewer = Toplevel()
     image_viewer.title('Image Viewer')
     image_viewer.configure(background="#434547")
-    window_height = 720
-    window_width = 1400
-    # image_viewer.geometry(f'{window_width}x{window_height}+{root.geometry().split("+")[1]}+'
-    #                       f'{root.geometry().split("+")[2]}')
-    # image_viewer.state('zoomed')
-    # for e_w in range(4):
-    #     image_viewer.grid_columnconfigure(e_w, weight=1)
-    # image_viewer.grid_rowconfigure(0, weight=1)
+    iv_window_height = 720
+    iv_window_width = 1400
+    if auto_screenshot_parser['save_window_locations']['image_viewer'] == '':
+        iv_screen_width = root.winfo_screenwidth()
+        iv_screen_height = root.winfo_screenheight()
+        iv_x_coordinate = int((iv_screen_width / 2) - (iv_window_width / 2))
+        iv_y_coordinate = int((iv_screen_height / 2) - (iv_window_height / 2))
+        image_viewer.geometry(f"{iv_window_width}x{iv_window_height}+{iv_x_coordinate}+{iv_y_coordinate}")
+    elif auto_screenshot_parser['save_window_locations']['image_viewer'] != '':
+        image_viewer.geometry(auto_screenshot_parser['save_window_locations']['image_viewer'])
+
+    # row and column configure
     for i_v_r in range(3):
         image_viewer.grid_rowconfigure(i_v_r, weight=1)
     for i_v_c in range(5):
@@ -1394,36 +1451,32 @@ def automatic_screenshot_generator():
     image_info_frame.grid_rowconfigure(0, weight=1)
 
     # create name label
-    image_name_label = Label(image_info_frame, background="#434547", fg="white",
-                         font=(set_font, set_font_size - 1))
+    image_name_label = Label(image_info_frame, background="#434547", fg="white", font=(set_font, set_font_size - 1))
     image_name_label.grid(row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0))
 
+    # create image resolution label
     image_resolution_label = Label(image_info_frame, background="#434547", fg="white",
-                             font=(set_font, set_font_size - 1))
+                                   font=(set_font, set_font_size - 1))
     image_resolution_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=10, pady=(2, 0))
 
+    # create image number label
     image_number_label = Label(image_info_frame, background="#434547", fg="white",
-                                   font=(set_font, set_font_size - 1))
+                               font=(set_font, set_font_size - 1))
     image_number_label.grid(row=0, column=2, columnspan=1, sticky=E, padx=5, pady=(2, 0))
 
-    track_frame = LabelFrame(image_viewer, bg="#434547", text=' Image Preview ', labelanchor="nw",
-                             fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
-    track_frame.grid(column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W)
-    track_frame.grid_columnconfigure(0, weight=1)
-    track_frame.grid_rowconfigure(0, weight=1)
-    # track_frame2 = Frame(image_viewer, bg="#434547", width=600, height=338)
-    # track_frame2.grid(column=1, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
-    # for e_n_f in range(1):
-    #     track_frame2.grid_columnconfigure(e_n_f, weight=1)
-    #     track_frame2.grid_rowconfigure(e_n_f, weight=1)
+    # create image preview frame
+    image_preview_frame = LabelFrame(image_viewer, bg="#434547", text=' Image Preview ', labelanchor="nw",
+                                     fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
+    image_preview_frame.grid(column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W)
+    image_preview_frame.grid_columnconfigure(0, weight=1)
+    image_preview_frame.grid_rowconfigure(0, weight=1)
 
     # create emtpy image list
     comparison_img_list = []
 
     # loop through comparison directory and get all images
-    # CHANGE THIS TO GENERATED DIRECTORY
-    for x in pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob("*.png"):
-        comparison_img_list.append(x)
+    for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
+        comparison_img_list.append(x_img)
 
     # set index variable
     comparison_index = 0
@@ -1447,9 +1500,10 @@ def automatic_screenshot_generator():
     resized_image = ImageTk.PhotoImage(loaded_image)
 
     # put resized image into label
-    image_preview_label = Label(track_frame, image=resized_image, background="#434547", cursor='hand2')
+    image_preview_label = Label(image_preview_frame, image=resized_image, background="#434547", cursor='hand2')
     image_preview_label.image = resized_image
     image_preview_label.grid(column=0, row=0, columnspan=1)
+
     # add a left click function to open the photo in your default os viewer
     image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
 
@@ -1463,55 +1517,74 @@ def automatic_screenshot_generator():
     # function to load next image
     def load_next_image(*e_right):
         nonlocal image_preview_label, comparison_index
-        if next.cget('state') != DISABLED:
+        # if next image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
+        if next_img.cget('state') != DISABLED:
+            # increase the comparison index value by 1
             comparison_index += 1
+
+            # open the image in the viewer
             im = Image.open(comparison_img_list[comparison_index])
             im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             image_preview_label.config(image=photo)
-            image_preview_label.image = photo  # keep a reference!
-            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+            image_preview_label.image = photo
 
+            # update the left click photo to open in OS photo viewer
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(
+                comparison_img_list[comparison_index]).show())
+
+            # update all the labels
             image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
-            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
-            image_track = media_info_img.image_tracks[0]
-            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            media_info_img_next = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track_next = media_info_img_next.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track_next.width}x{image_track_next.height}")
             image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
 
     # button to run next image function
-    next = HoverButton(img_button_frame, text=">>", command=load_next_image,
-                               foreground="white", background="#23272A", borderwidth="3",
-                               activeforeground="#3498db", activebackground="#23272A", width=4)
-    next.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
-    image_viewer.bind("<KeyRelease-Right>", load_next_image)
+    next_img = HoverButton(img_button_frame, text=">>", command=load_next_image, foreground="white",
+                           background="#23272A", borderwidth="3", activeforeground="#3498db",
+                           activebackground="#23272A", width=4)
+    next_img.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
 
+    # bind right arrow key (on key release) to load the next image
+    image_viewer.bind("<KeyRelease-Right>", load_next_image)
 
     # function to load last image
     def load_last_image(*e_left):
         nonlocal image_preview_label, comparison_index
-        if back.cget('state') != DISABLED:
+        # if back image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
+        if back_img.cget('state') != DISABLED:
+            # subtract the comparison index by 1
             comparison_index -= 1
+
+            # update the image in the image viewer
             im = Image.open(comparison_img_list[comparison_index])
             im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             image_preview_label.config(image=photo)
-            image_preview_label.image = photo  # keep a reference!
-            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+            image_preview_label.image = photo
 
+            # load new image to be opened when left clicked in OS native viewer
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(
+                comparison_img_list[comparison_index]).show())
+
+            # update all the labels
             image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
-            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
-            image_track = media_info_img.image_tracks[0]
-            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            media_info_img_back = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track_back = media_info_img_back.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track_back.width}x{image_track_back.height}")
             image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
 
     # button to run last image function
-    back = HoverButton(img_button_frame, text="<<", command=load_last_image,
-                       foreground="white", background="#23272A", borderwidth="3",
-                       activeforeground="#3498db", activebackground="#23272A", width=4)
-    back.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
+    back_img = HoverButton(img_button_frame, text="<<", command=load_last_image, foreground="white",
+                           background="#23272A", borderwidth="3", activeforeground="#3498db",
+                           activebackground="#23272A", width=4)
+    back_img.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
+
+    # bind the left arrow key (on key release)
     image_viewer.bind("<KeyRelease-Left>", load_last_image)
 
-
+    # info frame for the image viewer
     set_info_frame = LabelFrame(image_viewer, bg="#434547", text=' Info ', labelanchor="nw",
                                 fg="#3498db", bd=3, font=(set_font, 10, 'bold'))
     set_info_frame.grid(column=4, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
@@ -1520,32 +1593,37 @@ def automatic_screenshot_generator():
     set_info_frame.grid_columnconfigure(2, weight=1)
     set_info_frame.grid_rowconfigure(0, weight=1)
 
-    # image frame
-    image_frame = Frame(image_viewer, bg="#434547", bd=0)
-    image_frame.grid(column=4, columnspan=1, row=1, rowspan=1, pady=3, padx=4, sticky=W + E + N + S)
-    image_frame.grid_columnconfigure(0, weight=1)
-    image_frame.grid_rowconfigure(0, weight=200)
-    image_frame.grid_rowconfigure(1, weight=200)
-    image_frame.grid_rowconfigure(1, weight=1)
+    # image viewer frame
+    img_viewer_frame = Frame(image_viewer, bg="#434547", bd=0)
+    img_viewer_frame.grid(column=4, columnspan=1, row=1, rowspan=1, pady=3, padx=4, sticky=W + E + N + S)
+    img_viewer_frame.grid_columnconfigure(0, weight=1)
+    img_viewer_frame.grid_rowconfigure(0, weight=200)
+    img_viewer_frame.grid_rowconfigure(1, weight=200)
+    img_viewer_frame.grid_rowconfigure(1, weight=1)
 
+    # create image name label
     image_name_label2 = Label(set_info_frame, text="0 sets (0 images)", background="#434547", fg="white",
-                         font=(set_font, set_font_size - 1))
+                              font=(set_font, set_font_size - 1))
     image_name_label2.grid(row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0))
 
+    # create image info label
     image_name1_label = Label(set_info_frame, text="6 sets (12 images) required", background="#434547", fg="white",
-                         font=(set_font, set_font_size - 1, "italic"))
+                              font=(set_font, set_font_size - 1, "italic"))
     image_name1_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0))
 
-    # image listbox
-    image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
-    image_listbox = Listbox(image_frame, selectbackground="#565656", background="#565656", disabledforeground="white",
-                            selectforeground="#3498db", foreground="white",
-                            highlightthickness=0, width=40,
-                            yscrollcommand=image_right_scrollbar.set, selectmode=SINGLE, bd=4, activestyle="none")
-    image_listbox.grid(row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0))
-    image_right_scrollbar.config(command=image_listbox.yview)
-    image_right_scrollbar.grid(row=0, column=2, rowspan=2, sticky=N + W + S, pady=(8, 0))
+    # right scroll bar for selected listbox
+    image_v_right_scrollbar = Scrollbar(img_viewer_frame, orient=VERTICAL)
 
+    # create selected list box
+    img_viewer_listbox = Listbox(img_viewer_frame, selectbackground="#565656", background="#565656",
+                                 disabledforeground="white", selectforeground="#3498db", foreground="white",
+                                 highlightthickness=0, width=40, yscrollcommand=image_v_right_scrollbar.set,
+                                 selectmode=SINGLE, bd=4, activestyle="none")
+    img_viewer_listbox.grid(row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0))
+    image_v_right_scrollbar.config(command=img_viewer_listbox.yview)
+    image_v_right_scrollbar.grid(row=0, column=2, rowspan=2, sticky=N + W + S, pady=(8, 0))
+
+    # image button frame for selected list box
     img_button2_frame = Frame(image_viewer, bg="#434547")
     img_button2_frame.grid(column=4, row=2, columnspan=1, pady=2, padx=2, sticky=N + S + E + W)
     img_button2_frame.grid_columnconfigure(0, weight=100)
@@ -1553,131 +1631,460 @@ def automatic_screenshot_generator():
     img_button2_frame.grid_columnconfigure(2, weight=1)
     img_button2_frame.grid_rowconfigure(0, weight=1)
 
+    # create variable to be updated for index purposes
+    selected_index_var = 0
+
+    # remove pair from listbox function
     def remove_pair_from_listbox():
-        nonlocal comparison_index, comparison_img_list
-        if image_listbox.curselection():
-            for i in image_listbox.curselection():
-                get_selection = image_listbox.get(i)
-            for images_with_prefix in image_listbox.get(0, END):
+        nonlocal comparison_index, comparison_img_list, selected_index_var
+        # if something is selected in the list box
+        if img_viewer_listbox.curselection():
+            # get the selected item from list box
+            for i in img_viewer_listbox.curselection():
+                get_selection = img_viewer_listbox.get(i)
+
+            # get only the prefix to match the pairs (this is only good to 99, there should never be 99 photos)
+            for images_with_prefix in img_viewer_listbox.get(0, END):
                 get_pair = re.findall(rf"{get_selection[:2]}.+", images_with_prefix)
-                # print(get_pair)
-
+                # once pair is found
                 if get_pair:
-                    pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected") / get_pair[0]).rename(pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons") / get_pair[0]))
+                    # use pathlib rename feature to move the file back to the comparison directory/out of the listbox
+                    pathlib.Path(pathlib.Path(screenshot_selected_var.get()) / get_pair[0]).rename(
+                        pathlib.Path(pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]))
 
-            image_listbox.delete(0, END)
-            for x in pathlib.Path(
-                    r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected").glob(
-                    "*.png"):
-                image_listbox.insert(END, x.name)
+            # delete the list box and update it with what ever is left
+            img_viewer_listbox.delete(0, END)
+            for x in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
+                img_viewer_listbox.insert(END, x.name)
 
-            # update image info and preview info
+            # clear the comparison image list
             comparison_img_list.clear()
-            for x in pathlib.Path(
-                    r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob(
-                "*.png"):
+
+            # update the comparison image list with everything in the directory
+            for x in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
                 comparison_img_list.append(x)
+
+            # if there is at least 1 item in the list
             if comparison_img_list:
-                comparison_index = 0
+                # refresh the image viewer with the updated list (attempt to retain position)
+                comparison_index = selected_index_var
                 im = Image.open(comparison_img_list[comparison_index])
                 im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
                 image_preview_label.grid()
                 image_preview_label.config(image=photo)
-                image_preview_label.image = photo  # keep a reference!
+                image_preview_label.image = photo
                 image_preview_label.bind("<Button-1>",
                                          lambda event: Image.open(comparison_img_list[comparison_index]).show())
 
+                # update labels
                 image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
-                media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
-                image_track = media_info_img.image_tracks[0]
-                image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+                media_info_img_rem = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+                image_track_rem = media_info_img_rem.image_tracks[0]
+                image_resolution_label.config(text=f"{image_track_rem.width}x{image_track_rem.height}")
                 image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
+                image_name_label2.config(text=f"{int(img_viewer_listbox.size() * .5)} sets "
+                                              f"({img_viewer_listbox.size()} images)")
 
-                image_name_label2.config(text=f"{int(image_listbox.size() * .5)} sets ({image_listbox.size()} images)")
+    # create minis/reverse button
+    minus_btn = HoverButton(img_button2_frame, text="<<<", command=remove_pair_from_listbox, foreground="white",
+                            background="#23272A", borderwidth="3", activeforeground="#3498db",
+                            activebackground="#23272A", width=4)
+    minus_btn.grid(row=0, column=0, padx=5, sticky=E)
 
-    minus = HoverButton(img_button2_frame, text="<<<", command=remove_pair_from_listbox,
-                       foreground="white", background="#23272A", borderwidth="3",
-                       activeforeground="#3498db", activebackground="#23272A", width=4)
-    minus.grid(row=0, column=0, padx=5, sticky=E)
-
+    # function to add pair to the selected listbox
     def add_pair_to_listbox():
-        nonlocal comparison_index, comparison_img_list, image_preview_label
+        nonlocal comparison_index, comparison_img_list, image_preview_label, selected_index_var
+
+        # find the pre-fix of the pair (to keep them as a pair)
         get_prefix = str(pathlib.Path(comparison_img_list[comparison_index]).name)[:2]
         for images_with_prefix in comparison_img_list:
             get_pair = re.findall(rf"{get_prefix}.+", images_with_prefix.name)
+            # once a pair is found use pathlib rename to move them from the comparison list/dir to the selected dir/list
             if get_pair:
-                pathlib.Path(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons") / get_pair[0]).rename(pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected") / pathlib.Path(get_pair[0]).name)
+                pathlib.Path(pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]).rename(pathlib.Path(
+                    screenshot_selected_var.get()) / pathlib.Path(get_pair[0]).name)
 
-        # update listbox and get last file index
-        image_listbox.delete(0, END)
-        for x in pathlib.Path(r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\selected").glob("*.png"):
-            # insert selection into listbox
-            image_listbox.insert(END, x.name)
+                # take the last item that is moved and update the selected index var
+                selected_index_var = comparison_img_list.index(pathlib.Path(
+                    screenshot_comparison_var.get()) / get_pair[0])
+
+        # clear the listbox
+        img_viewer_listbox.delete(0, END)
+
+        # update the listbox
+        for x_l in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
+            img_viewer_listbox.insert(END, x_l.name)
 
         # update image info and preview info
         comparison_img_list.clear()
-        for x in pathlib.Path(
-                r"C:\Users\jlw_4\Desktop\Futurama.Into.the.Wild.Green.Yonder.2009.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR\top12\comparisons").glob(
-                "*.png"):
-            comparison_img_list.append(x)
+        for x_c in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
+            comparison_img_list.append(x_c)
 
+        # if there is anything left in the comparison img list
         if comparison_img_list:
-            comparison_index = 0
-            im = Image.open(comparison_img_list[comparison_index])
+            # attempt to use the same index (to keep position the same/close to the same) and update the image viewer
+            try:
+                comparison_index = selected_index_var
+                im = Image.open(comparison_img_list[comparison_index])
+            # if unable to use that index subtract 2 from it (this prevents errors at the end of the list)
+            except IndexError:
+                comparison_index = selected_index_var - 2
+                im = Image.open(comparison_img_list[comparison_index])
             im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             image_preview_label.config(image=photo)
-            image_preview_label.image = photo  # keep a reference!
-            image_preview_label.bind("<Button-1>", lambda event: Image.open(comparison_img_list[comparison_index]).show())
+            image_preview_label.image = photo
+            image_preview_label.bind("<Button-1>", lambda event: Image.open(
+                comparison_img_list[comparison_index]).show())
 
+            # update the labels
             image_name_label.config(text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}")
-            media_info_img = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
-            image_track = media_info_img.image_tracks[0]
-            image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
+            media_info_img_add = MediaInfo.parse(pathlib.Path(comparison_img_list[comparison_index]))
+            image_track_add = media_info_img_add.image_tracks[0]
+            image_resolution_label.config(text=f"{image_track_add.width}x{image_track_add.height}")
             image_number_label.config(text=f"{comparison_index + 1} of {len(comparison_img_list)}")
-
-            image_name_label2.config(text=f"{int(image_listbox.size() * .5)} sets ({image_listbox.size()} images)")
+            image_name_label2.config(text=f"{int(img_viewer_listbox.size() * .5)} sets "
+                                          f"({img_viewer_listbox.size()} images)")
+        # if there is nothing left in the comparison image box, clear the box and all the labels
         else:
             image_preview_label.grid_forget()
             image_name_label.config(text="")
             image_resolution_label.config(text="")
             image_number_label.config(text="")
 
+    # move right button
+    move_right = HoverButton(img_button2_frame, text=">>>", command=add_pair_to_listbox, foreground="white",
+                             background="#23272A", borderwidth="3", activeforeground="#3498db",
+                             activebackground="#23272A", width=4)
+    move_right.grid(row=0, column=1, padx=5, sticky=W)
 
-    move = HoverButton(img_button2_frame, text=">>>", command=add_pair_to_listbox,
-                       foreground="white", background="#23272A", borderwidth="3",
-                       activeforeground="#3498db", activebackground="#23272A", width=4)
-    move.grid(row=0, column=1, padx=5, sticky=W)
+    # add images to list box function
+    def add_images_to_listbox_func():
+        # define parser
+        add_img_exit_parser = ConfigParser()
+        add_img_exit_parser.read(config_file)
 
-    apply = HoverButton(img_button2_frame, text="Apply", command=None, state=DISABLED,
-                       foreground="white", background="#23272A", borderwidth="3",
-                       activeforeground="#3498db", activebackground="#23272A", width=10)
-    apply.grid(row=0, column=2, padx=5, sticky=E)
+        # save window position to config if different
+        if image_viewer.wm_state() == 'normal':
+            if add_img_exit_parser['save_window_locations']['image_viewer'] != image_viewer.geometry():
+                if int(image_viewer.geometry().split('x')[0]) >= iv_window_width or \
+                        int(image_viewer.geometry().split('x')[1].split('+')[0]) >= iv_window_height:
+                    add_img_exit_parser.set('save_window_locations', 'image_viewer', image_viewer.geometry())
+                    with open(config_file, 'w') as nfo_configfile:
+                        add_img_exit_parser.write(nfo_configfile)
+
+        # re-open root and all top levels
+        advanced_root_deiconify()
+        open_all_toplevels()
+
+        # create list of images to autoload into the program
+        list_of_selected_images = []
+        for selected_img in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
+            list_of_selected_images.append(selected_img)
+
+        # run the function to load screenshots into the main gui
+        update_image_listbox(list_of_selected_images)
+
+        # close image viewer window
+        image_viewer.destroy()
+
+    # add to image list box button
+    add_images_to_listbox = HoverButton(img_button2_frame, text="Apply", command=add_images_to_listbox_func,
+                                        state=DISABLED, foreground="white", background="#23272A", borderwidth="3",
+                                        activeforeground="#3498db", activebackground="#23272A", width=10)
+    add_images_to_listbox.grid(row=0, column=2, padx=5, sticky=E)
+
+    # change 'X' button on image viewer (use the Apply button function)
+    image_viewer.protocol('WM_DELETE_WINDOW', add_images_to_listbox_func)
 
     # loop to enable/disable buttons depending on index
     def enable_disable_buttons_by_index():
-        # enable or disable back button
-        if comparison_index == 0:
-            back.config(state=DISABLED)
+        # disable both buttons if list is empty
+        if not comparison_img_list:
+            back_img.config(state=DISABLED)
+            next_img.config(state=DISABLED)
+        # enable back or next button depending on the list
+        elif comparison_img_list:
+            # enable or disable back button
+            if comparison_index == 0:
+                back_img.config(state=DISABLED)
+            else:
+                back_img.config(state=NORMAL)
+            # enable or disable next button
+            if comparison_index == len(comparison_img_list) - 1:
+                next_img.config(state=DISABLED)
+            else:
+                next_img.config(state=NORMAL)
+
+        # enable apply button (check label to see if required amount of sets are met)
+        if int(str(image_name_label2.cget('text'))[0]) >= 6:
+            add_images_to_listbox.config(state=NORMAL)
         else:
-            back.config(state=NORMAL)
-        # enable or next back button
-        if comparison_index == len(comparison_img_list) - 1:
-            next.config(state=DISABLED)
-        else:
-            next.config(state=NORMAL)
+            add_images_to_listbox.config(state=DISABLED)
 
         image_viewer.after(50, enable_disable_buttons_by_index)
+
     # start loop for button checker
     enable_disable_buttons_by_index()
 
+    # hide root
+    root.withdraw()
+
+
+# auto screenshot status window
+def auto_screen_shot_status_window():
+    # screenshot status window
+    screenshot_status_window = Toplevel()
+    screenshot_status_window.configure(background="#363636")
+    screenshot_status_window.geometry(f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
+                                      f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    screenshot_status_window.resizable(0, 0)
+    screenshot_status_window.grab_set()
+    screenshot_status_window.wm_overrideredirect(True)
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    screenshot_status_window.grid_rowconfigure(0, weight=1)
+    screenshot_status_window.grid_columnconfigure(0, weight=1)
+
+    # screenshot output frame
+    ss_output_frame = Frame(screenshot_status_window, highlightbackground="white", highlightthickness=2,
+                            bg="#363636", highlightcolor='white')
+    ss_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    for e_n_f in range(3):
+        ss_output_frame.grid_columnconfigure(e_n_f, weight=1)
+        ss_output_frame.grid_rowconfigure(e_n_f, weight=1)
+
+    # create scrolled text widget
+    ss_status_info = scrolledtextwidget.ScrolledText(ss_output_frame, height=18, bg='#565656', fg='white', bd=4,
+                                                     wrap=WORD)
+    ss_status_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
+    ss_status_info.config(state=DISABLED)
+
+    # function to exit the status window
+    def screenshot_close_button():
+        check_exit = messagebox.askyesno(parent=screenshot_status_window, title='Close?',
+                                         message='Closing this window will kill the entire program. This is the only '
+                                                 'way to ensure all threads are safely destroyed.\n\nWould you like '
+                                                 'to exit? ')
+        if check_exit:
+            # kill root  (fully destroy root to close all threads)
+            root.destroy()
+
+    # create 'Close' button
+    ss_close_btn = HoverButton(ss_output_frame, text="Close", command=screenshot_close_button,
+                               foreground="white", background="#23272A", borderwidth="3",
+                               activeforeground="#3498db", width=8, activebackground="#23272A")
+    ss_close_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+
+    # image comparison code (semi automatic)
+    def semi_automatic_screenshots():
+        # define config parser
+        semi_auto_img_parser = ConfigParser()
+        semi_auto_img_parser.read(config_file)
+
+        # define vs core
+        core = vs.core
+
+        # load needed plugins
+        try:
+            core.std.LoadPlugin("Runtime/Apps/image_comparison/SubText.dll")
+        except vs.Error:
+            pass
+        try:
+            core.std.LoadPlugin("Runtime/Apps/image_comparison/libimwri.dll")
+        except vs.Error:
+            pass
+        try:
+            core.std.LoadPlugin("Runtime/Apps/image_comparison/libvslsmashsource.dll")
+        except vs.Error:
+            pass
+
+        # multithread the indexing of both source and encode if they are not on the same drive
+        if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
+            # update status window with a message
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, "Since source and encode are on separate drives, indexing will be "
+                                       "multi-threaded. Please wait as this will take some time depending on "
+                                       "storage speeds...")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+            # multi thread indexing for both source/encode
+            def run_t1():
+                # index the source file
+                core.lsmas.LWLibavSource(source_file_path.get())
+
+                # update status window with a message
+                ss_status_info.config(state=NORMAL)
+                ss_status_info.insert(END, "\nSource index complete...")
+                ss_status_info.see(END)
+                ss_status_info.config(state=DISABLED)
+
+            def run_t2():
+                # index the encode file
+                core.lsmas.LWLibavSource(encode_file_path.get())
+
+                # update status window with a message
+                ss_status_info.config(state=NORMAL)
+                ss_status_info.insert(END, "\nEncode index complete...")
+                ss_status_info.see(END)
+                ss_status_info.config(state=DISABLED)
+
+            # start threads
+            t1 = threading.Thread(target=run_t1, daemon=True)
+            t2 = threading.Thread(target=run_t2, daemon=True)
+            t1.start()
+            t2.start()
+
+            # wait on the threads to finish before continuing
+            t1.join()
+            t2.join()
+
+            # define the indexes as variables
+            source_file = core.lsmas.LWLibavSource(source_file_path.get())
+            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+
+            # update status window with a message
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, "\nCompleted!!\n\n")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+        else:
+            # load source file and index without multi-threading
+            source_file = core.lsmas.LWLibavSource(source_file_path.get())
+
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, "Indexing source file. This could take a while depending "
+                                       "on your systems storage speed...")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+            # load encode file and index
+            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, "Completed!\n\nIndexing encode file. This could take a while depending "
+                                       "on your systems storage speed...\n\n")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+        # get the total number of frames from source file
+        num_source_frames = len(source_file)
+
+        # Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic,
+        # Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL,
+        # MarginR, MarginV,
+
+        # set subtitle scale depending on source input resolution
+        source_width = str(source_file_information['resolution']).split('x')[0]
+        source_height = str(source_file_information['resolution']).split('x')[1]
+        if int(source_width) <= 1920 and int(source_height) <= 1080:  # 1080p
+            selected_sub_style_source = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                                        "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
+        elif int(source_width) <= 3840 and int(source_height) <= 2160:  # 2160p
+            selected_sub_style_source = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                                        "0,0,0,0,200,200,0,0,1,1,0,7,10,10,10,1"
+
+        # set subtitle scale depending on encode input resolution
+        if encode_file_resolution.get() == "720p":
+            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                                        "0,0,0,0,67,67,0,0,1,1,0,7,10,10,10,1"
+        elif encode_file_resolution.get() == "1080p":
+            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                                        "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
+        elif encode_file_resolution.get() == "2160p":
+            selected_sub_style_encode = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                                        "0,0,0,0,200,200,0,0,1,1,0,7,10,10,10,1"
+
+        # check for custom user image amount
+        if semi_auto_img_parser['screenshot_settings']['semi_auto_count'] != '':
+            comparison_img_count = int(semi_auto_img_parser['screenshot_settings']['semi_auto_count'])
+        else:
+            comparison_img_count = 20
+
+        # update status window
+        ss_status_info.config(state=NORMAL)
+        ss_status_info.insert(END, f"Collecting {str(comparison_img_count)} random 'B' frames to generate "
+                                   "comparison images from...")
+        ss_status_info.see(END)
+        ss_status_info.config(state=DISABLED)
+
+        # thesb3 (not working)
+        # # collect a range of frames to find "B" frames from
+        # b_frames = random.sample(range(int(num_source_frames * 0.1), int(num_source_frames * 0.5)), 30)
+        #
+        # # loop through the b_frames sample and find B frame types only
+        # for frame in b_frames:
+        #     while encode_file.get_frame(frame).props['_PictType'].decode() != 'B' and frame not in b_frames:
+        #         frame += 1
+
+        # collect a range of random b frames from encode and put them in a list
+        b_frames = []
+        while len(b_frames) < comparison_img_count:
+            random_frame = random.randint(5000, num_source_frames - 5000)
+            if encode_file.get_frame(random_frame).props['_PictType'].decode() == 'B':
+                b_frames.append(random_frame)
+
+        # update status window
+        ss_status_info.config(state=NORMAL)
+        ss_status_info.insert(END, f" Completed!\n\nGenerating {str(comparison_img_count)} sets of comparisons... "
+                                   f"This depends on system storage speed...")
+        ss_status_info.see(END)
+        ss_status_info.config(state=DISABLED)
+
+        # make temporary image folder
+        image_output_dir = pathlib.Path(pathlib.Path(
+            encode_file_path.get()).parent / f"{pathlib.Path(encode_file_path.get()).stem}_images")
+
+        # check if temp image dir exists, if so delete it!
+        if image_output_dir.exists():
+            shutil.rmtree(image_output_dir, ignore_errors=True)
+
+        # create main image dir
+        image_output_dir.mkdir(exist_ok=True)
+
+        # create comparison image directory and define it as variable
+        pathlib.Path(pathlib.Path(image_output_dir) / "img_comparison").mkdir(exist_ok=True)
+        screenshot_comparison_var.set(pathlib.Path(pathlib.Path(image_output_dir) / "img_comparison"))
+
+        # create selected image directory and define it as variable
+        pathlib.Path(pathlib.Path(image_output_dir) / "img_selected").mkdir(exist_ok=True)
+        screenshot_selected_var.set(pathlib.Path(pathlib.Path(image_output_dir) / "img_selected"))
+
+        # define the subtitle/frame info for source and encode
+        vs_source_info = core.sub.Subtitle(clip=source_file, text='Source', style=selected_sub_style_source)
+        vs_encode_info = awsmfunc.FrameInfo(clip=encode_file, title='BHDStudio', style=selected_sub_style_encode)
+
+        # generate comparisons
+        awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames,
+                           folder=screenshot_comparison_var.get(), suffix=["a_source", "b_encode"])
+
+        # update status window
+        ss_status_info.config(state=NORMAL)
+        ss_status_info.insert(END, "\n\n\nCompleted!")
+        ss_status_info.see(END)
+        ss_status_info.config(state=DISABLED)
+
+        # close status window
+        root.wm_attributes('-alpha', 1.0)  # remove transparency
+        screenshot_status_window.destroy()  # close screenshot status window
+
+        # open image viewer
+        automatic_screenshot_generator()
+
+    # multithread the image comparison code and start the function
+    threading.Thread(target=semi_automatic_screenshots, daemon=True).start()
+
+    # wait status window
+    screenshot_status_window.wait_window()
+
 
 # auto generate button
-auto_screens = HoverButton(image_btn_frame, text="Generate", command=automatic_screenshot_generator,
-                           foreground="white", background="#23272A", borderwidth="3",
-                           activeforeground="#3498db", activebackground="#23272A", width=12)
-auto_screens.grid(row=1, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=S + W)
+auto_screens_multi_btn = HoverButton(image_btn_frame, text="Generate", command=auto_screen_shot_status_window,
+                                     foreground="white", background="#23272A", borderwidth="3", state=DISABLED,
+                                     activeforeground="#3498db", activebackground="#23272A", width=12)
+auto_screens_multi_btn.grid(row=1, column=0, rowspan=2, padx=5, pady=(7, 7), sticky=S + W)
 
 
 # upload pictures to beyond.co and return medium linked images
@@ -1958,7 +2365,7 @@ def upload_to_beyond_hd_co_window():
 upload_ss_button = HoverButton(image_btn_frame, text="Upload", state=DISABLED, command=upload_to_beyond_hd_co_window,
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", activebackground="#23272A", width=12)
-upload_ss_button.grid(row=1, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=S + E)
+upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
 
 # screen shot url tab
 url_tab = Frame(tabs, background='#434547')
@@ -3899,7 +4306,7 @@ def open_uploader_window(job_mode):
             upload_output_frame.grid_columnconfigure(e_n_f, weight=1)
             upload_output_frame.grid_rowconfigure(e_n_f, weight=1)
 
-        # create label
+        # create window
         upload_status_info = scrolledtextwidget.ScrolledText(upload_output_frame, height=7, bg='#565656',
                                                              fg='white', bd=4)
         upload_status_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
@@ -4188,7 +4595,7 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key, h
 
     # create label
     image_name_label3 = Label(custom_input_frame, text=label_input, background='#363636', fg="#3498db",
-                         font=(set_font, set_font_size, "bold"))
+                              font=(set_font, set_font_size, "bold"))
     image_name_label3.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
 
     # create entry box
@@ -4493,6 +4900,95 @@ def bhd_co_login_window():
     open_all_toplevels()  # re-open all top levels if they exist
 
 
+screen_shot_window_opened = False
+
+
+# function to set screenshot count
+def screen_shot_count_spinbox(*e_hotkey):
+    global screen_shot_window_opened
+    # check if window is opened
+    if screen_shot_window_opened:
+        return  # exit the function
+    else:
+        screen_shot_window_opened = True
+
+    # hide all top levels if they are opened
+    hide_all_toplevels()
+
+    # set parser
+    ss_count_parser = ConfigParser()
+    ss_count_parser.read(config_file)
+
+    # encoder name window
+    ss_count_win = Toplevel()
+    ss_count_win.title('')
+    ss_count_win.configure(background="#363636")
+    ss_count_win.geometry(f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+                          f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    ss_count_win.resizable(0, 0)
+    ss_count_win.grab_set()
+    ss_count_win.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    ss_count_win.grid_rowconfigure(0, weight=1)
+    ss_count_win.grid_columnconfigure(0, weight=1)
+
+    # screenshot count frame
+    ss_count_frame = Frame(ss_count_win, highlightbackground="white", highlightthickness=2, bg="#363636",
+                           highlightcolor='white')
+    ss_count_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    for e_n_f in range(3):
+        ss_count_frame.grid_columnconfigure(e_n_f, weight=1)
+        ss_count_frame.grid_rowconfigure(e_n_f, weight=1)
+
+    # create label
+    ss_count_lbl = Label(ss_count_frame, text='Select desired amount of screenshots', background='#363636',
+                         fg="#3498db", font=(set_font, set_font_size, "bold"))
+    ss_count_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+
+    # create spinbox
+    ss_count = StringVar()
+    ss_spinbox = Spinbox(ss_count_frame, from_=20, to=40, increment=1, justify=CENTER, wrap=True,
+                         textvariable=ss_count, state='readonly', background="#23272A", foreground="white",
+                         highlightthickness=1, buttonbackground="black", readonlybackground="#23272A")
+    ss_spinbox.grid(row=1, column=0, columnspan=3, padx=10, pady=3, sticky=N + S + E + W)
+
+    # set default value for the spinbox
+    if ss_count_parser['screenshot_settings']['semi_auto_count'] != '':
+        ss_count.set(ss_count_parser['screenshot_settings']['semi_auto_count'])
+    else:
+        ss_count.set('20')
+
+    # function to save new name to config.ini
+    def custom_okay_func():
+        # create parser instance
+        ss_parser = ConfigParser()
+        ss_parser.read(config_file)
+
+        # save setting and exit the window
+        if ss_parser['screenshot_settings']['semi_auto_count'] != ss_count.get():
+            ss_parser.set('screenshot_settings', 'semi_auto_count', ss_count.get())
+            with open(config_file, 'w') as ss_config_file:
+                ss_parser.write(ss_config_file)
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        ss_count_win.destroy()  # close window
+
+    # create 'OK' button
+    ss_okay_btn = HoverButton(ss_count_frame, text="OK", command=custom_okay_func, foreground="white",
+                              background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+                              activebackground="#23272A")
+    ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+    # create 'Cancel' button
+    ss_cancel_btn = HoverButton(ss_count_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                command=lambda: [ss_count_win.destroy(), root.wm_attributes('-alpha', 1.0)],
+                                foreground="white", background="#23272A", borderwidth="3", activebackground="#23272A")
+    ss_cancel_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+
+    ss_count_win.wait_window()  # wait for window to be closed
+    open_all_toplevels()  # re-open all top levels if they exist
+    screen_shot_window_opened = False  # set variable back to false
+
+
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
 my_menu_bar.add_cascade(label='Options', menu=options_menu)
 options_menu.add_command(label='Encoder Name', accelerator="[Ctrl+E]",
@@ -4506,6 +5002,9 @@ options_menu.add_command(label='Torrent Output Path', command=torrent_path_windo
 root.bind("<Control-t>", torrent_path_window_function)
 options_menu.add_command(label='BeyondHD.co', command=bhd_co_login_window, accelerator="[Ctrl+I]")
 root.bind("<Control-i>", bhd_co_login_window)
+options_menu.add_separator()
+options_menu.add_command(label='Semi-Auto Screenshot Count', command=screen_shot_count_spinbox, accelerator="[Ctrl+C]")
+root.bind("<Control-c>", screen_shot_count_spinbox)
 options_menu.add_separator()
 
 # auto update options menu
@@ -4563,6 +5062,7 @@ help_menu.add_command(label="Info", command=lambda: openaboutwindow(main_root_ti
 def generate_button_checker():
     if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
         open_torrent_window_button.config(state=NORMAL)
+        auto_screens_multi_btn.config(state=NORMAL)
         check_screens = parse_screen_shots()
         # if check screens was not False
         if check_screens:
@@ -4576,6 +5076,7 @@ def generate_button_checker():
         open_torrent_window_button.config(state=DISABLED)
         parse_and_upload.config(state=DISABLED)
         open_uploader_button.config(state=DISABLED)
+        auto_screens_multi_btn.config(state=DISABLED)
     root.after(50, generate_button_checker)  # loop to constantly check
 
 
@@ -4731,7 +5232,7 @@ def check_for_latest_program_updates():
 
     # update button function
     def update_program():
-        # get the download
+        # get bhdstudio upload tool download
         try:
             request_download = requests.get(f"https://github.com{update_download_link}", timeout=10)
         except requests.exceptions.ConnectionError:
@@ -4745,23 +5246,19 @@ def check_for_latest_program_updates():
 
         # if download was successful
         if request_download.ok:
-            # use zipfile module to unzip file and get just the exe
+            # use zipfile module to latest update
             with zipfile.ZipFile(BytesIO(request_download.content)) as dl_zipfile:
                 for zip_info in dl_zipfile.infolist():
                     if zip_info.filename[-1] == '/':
                         continue
-                    # pathlib.Path(pathlib.Path.cwd() / 'temp_update_dir').mkdir(parents=True, exist_ok=True)
-                    # temp_update_folder = pathlib.Path('temp_update_dir')
-
                     # delete old exe if it exists (it shouldn't)
                     pathlib.Path('OLD.exe').unlink(missing_ok=True)
 
                     # rename current running exe
                     pathlib.Path('BHDStudioUploadTool.exe').rename('OLD.exe')
 
-                    # extract downloaded exe
-                    zip_info.filename = os.path.basename(zip_info.filename)
-                    dl_zipfile.extract(zip_info, pathlib.Path.cwd())
+                    # extract archive
+                    dl_zipfile.extractall(pathlib.Path.cwd())
 
             # check to ensure new exe is moved
             if pathlib.Path("BHDStudioUploadTool.exe").is_file():
