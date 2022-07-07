@@ -1243,13 +1243,15 @@ release_notes_scrolled.config(state=DISABLED)
 Hovertip(release_notes_scrolled, 'Right click to enable manual edits', hover_delay=1000)  # Hover tip tool-tip
 
 
+# right click menu for screenshot box
 def popup_auto_e_b_menu(e):  # Function for mouse button 3 (right click) to pop up menu
     enable_edits_menu.tk_popup(e.x_root, e.y_root)  # This gets the position of 'e'
 
 
 # pop up menu to enable/disable manual edits in release notes
 enable_edits_menu = Menu(release_notes_scrolled, tearoff=False, font=(set_font, set_font_size + 1),
-                         background="#23272A", foreground="white", activebackground="grey")  # Right click menu
+                         background="#23272A", foreground="white", activebackground="#23272A",
+                         activeforeground="#3498db")  # Right click menu
 enable_edits_menu.add_command(label='Enable Manual Edits', command=lambda: release_notes_scrolled.config(state=NORMAL))
 enable_edits_menu.add_command(label='Disable Manual Edits',
                               command=lambda: release_notes_scrolled.config(state=DISABLED))
@@ -1714,11 +1716,11 @@ def automatic_screenshot_generator():
         if img_viewer_listbox.curselection():
             # get the selected item from list box
             for i in img_viewer_listbox.curselection():
-                get_selection = img_viewer_listbox.get(i)
+                get_frame_number = re.search(r"__(\d+)", str(img_viewer_listbox.get(i)))
 
-            # get only the prefix to match the pairs (this is only good to 99, there should never be 99 photos)
+            # get the frame number to match the pairs
             for images_with_prefix in img_viewer_listbox.get(0, END):
-                get_pair = re.findall(rf"{get_selection[:2]}.+", images_with_prefix)
+                get_pair = re.findall(rf".+__{get_frame_number.group(1)}\.png", images_with_prefix)
                 # once pair is found
                 if get_pair:
                     # use pathlib rename feature to move the file back to the comparison directory/out of the listbox
@@ -1769,10 +1771,10 @@ def automatic_screenshot_generator():
     def add_pair_to_listbox():
         nonlocal comparison_index, comparison_img_list, image_preview_label, selected_index_var
 
-        # find the pre-fix of the pair (to keep them as a pair)
-        get_prefix = str(pathlib.Path(comparison_img_list[comparison_index]).name)[:2]
-        for images_with_prefix in comparison_img_list:
-            get_pair = re.findall(rf"{get_prefix}.+", images_with_prefix.name)
+        # find the frame number of the pair
+        get_frame_number = re.search(r"__(\d+)", str(pathlib.Path(comparison_img_list[comparison_index]).name))
+        for full_name in comparison_img_list:
+            get_pair = re.findall(rf".+__{get_frame_number.group(1)}\.png", full_name.name)
             # once a pair is found use pathlib rename to move them from the comparison list/dir to the selected dir/list
             if get_pair:
                 pathlib.Path(pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]).rename(pathlib.Path(
@@ -2136,11 +2138,6 @@ def auto_screen_shot_status_window():
         # generate comparisons
         awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=0,
                            folder=screenshot_comparison_var.get(), suffix=["a_source__%d", "b_encode__%d"])
-
-        # strip frame numbers from output (this makes it easier to keep them in pairs)
-        for generated_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
-            rename_image = str(generated_img).split('__')[0] + ".png"
-            pathlib.Path(generated_img).rename(pathlib.Path(rename_image))
 
         # update status window
         ss_status_info.config(state=NORMAL)
@@ -5036,7 +5033,8 @@ def screen_shot_count_spinbox(*e_hotkey):
         def popup_spinbox_e_b_menu(e):  # Function for mouse button 3 (right click) to pop up menu
             spinbox_sel_menu.tk_popup(e.x_root, e.y_root)  # This gets the position of 'e'
 
-        spinbox_sel_menu = Menu(ss_spinbox, tearoff=False)  # Right click menu
+        spinbox_sel_menu = Menu(ss_spinbox, tearoff=False, font=(set_font, set_font_size + 1), background="#23272A",
+                                foreground="white", activebackground="#23272A", activeforeground="#3498db")
         spinbox_sel_menu.add_command(label='20', command=lambda: ss_count.set("20"))
         spinbox_sel_menu.add_command(label='30', command=lambda: ss_count.set("30"))
         spinbox_sel_menu.add_command(label='40', command=lambda: ss_count.set("40"))
