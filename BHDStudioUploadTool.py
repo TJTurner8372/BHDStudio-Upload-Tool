@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.25"
+main_root_title = "BHDStudio Upload Tool v1.26"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -376,11 +376,11 @@ def clear_all_variables():
     encode_file_res_w_h.set('')
     torrent_file_path.set('')
     nfo_info_var.set('')
-    automatic_workflow_boolean.set(0)
-    live_boolean.set(0)
-    anonymous_boolean.set(0)
+    automatic_workflow_boolean.set(False)
+    live_boolean.set(False)
+    anonymous_boolean.set(False)
     movie_search_var.set('')
-    movie_search_active.set(0)
+    movie_search_active.set(False)
     tmdb_id_var.set('')
     imdb_id_var.set('')
     release_date_var.set('')
@@ -1971,6 +1971,10 @@ def auto_screen_shot_status_window():
             core.std.LoadPlugin("Runtime/Apps/image_comparison/libvslsmashsource.dll")
         except vs.Error:
             pass
+        try:
+            core.std.LoadPlugin("Runtime/Apps/image_comparison/libfpng.dll")
+        except vs.Error:
+            pass
 
         # multithread the indexing of both source and encode if they are not on the same drive
         if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
@@ -2066,19 +2070,10 @@ def auto_screen_shot_status_window():
         ss_status_info.see(END)
         ss_status_info.config(state=DISABLED)
 
-        # thesb3 (not working)
-        # # collect a range of frames to find "B" frames from
-        # b_frames = random.sample(range(int(num_source_frames * 0.1), int(num_source_frames * 0.5)), 30)
-        #
-        # # loop through the b_frames sample and find B frame types only
-        # for frame in b_frames:
-        #     while encode_file.get_frame(frame).props['_PictType'].decode() != 'B' and frame not in b_frames:
-        #         frame += 1
-
         # collect a range of random b frames from encode and put them in a list
         b_frames = []
-        while len(b_frames) < comparison_img_count:
-            random_frame = random.randint(5000, num_source_frames - 5000)
+        while len(b_frames) < int(comparison_img_count):
+            random_frame = random.randint(5000, num_source_frames - 10000)
             if encode_file.get_frame(random_frame).props['_PictType'].decode() == 'B':
                 b_frames.append(random_frame)
 
@@ -2139,8 +2134,8 @@ def auto_screen_shot_status_window():
         vs_encode_info = awsmfunc.FrameInfo(clip=encode_file, title='BHDStudio', style=selected_sub_style)
 
         # generate comparisons
-        awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames,
-                           folder=screenshot_comparison_var.get(), suffix=["a_source", "b_encode"])
+        awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=0,
+                           folder=screenshot_comparison_var.get(), suffix=["a_source_%d", "b_encode_%d"])
 
         # update status window
         ss_status_info.config(state=NORMAL)
@@ -2152,14 +2147,17 @@ def auto_screen_shot_status_window():
         root.wm_attributes('-alpha', 1.0)  # remove transparency
         screenshot_status_window.destroy()  # close screenshot status window
 
-        # open image viewer
-        automatic_screenshot_generator()
-
     # multithread the image comparison code and start the function
-    threading.Thread(target=semi_automatic_screenshots, daemon=True).start()
+    auto_ss_thread = threading.Thread(target=semi_automatic_screenshots, daemon=True)
 
-    # wait status window
+    # start thread
+    auto_ss_thread.start()
+
+    # wait on screenshot status to close
     screenshot_status_window.wait_window()
+
+    # open image viewer
+    automatic_screenshot_generator()
 
 
 # auto generate button
@@ -5028,6 +5026,24 @@ def screen_shot_count_spinbox(*e_hotkey):
         ss_count_frame.grid_columnconfigure(e_n_f, weight=1)
         ss_count_frame.grid_rowconfigure(e_n_f, weight=1)
 
+    # add right click menu to quickly set screenshot count
+    def spinbox_right_click_options():
+        def popup_spinbox_e_b_menu(e):  # Function for mouse button 3 (right click) to pop up menu
+            spinbox_sel_menu.tk_popup(e.x_root, e.y_root)  # This gets the position of 'e'
+
+        spinbox_sel_menu = Menu(ss_spinbox, tearoff=False)  # Right click menu
+        spinbox_sel_menu.add_command(label='20', command=lambda: ss_count.set("20"))
+        spinbox_sel_menu.add_command(label='30', command=lambda: ss_count.set("30"))
+        spinbox_sel_menu.add_command(label='40', command=lambda: ss_count.set("40"))
+        spinbox_sel_menu.add_command(label='50', command=lambda: ss_count.set("50"))
+        spinbox_sel_menu.add_command(label='60', command=lambda: ss_count.set("60"))
+        spinbox_sel_menu.add_command(label='70', command=lambda: ss_count.set("70"))
+        spinbox_sel_menu.add_command(label='80', command=lambda: ss_count.set("80"))
+        spinbox_sel_menu.add_command(label='90', command=lambda: ss_count.set("90"))
+        spinbox_sel_menu.add_command(label='100', command=lambda: ss_count.set("100"))
+        ss_spinbox.bind('<Button-3>', popup_spinbox_e_b_menu)  # Uses mouse button 3 (right click) to open
+        Hovertip(ss_spinbox, 'Right click for more options', hover_delay=600)  # Hover tip tool-tip
+
     # create label
     ss_count_lbl = Label(ss_count_frame, text='Select desired amount of screenshots', background='#363636',
                          fg="#3498db", font=(set_font, set_font_size, "bold"))
@@ -5035,10 +5051,11 @@ def screen_shot_count_spinbox(*e_hotkey):
 
     # create spinbox
     ss_count = StringVar()
-    ss_spinbox = Spinbox(ss_count_frame, from_=20, to=40, increment=1, justify=CENTER, wrap=True,
+    ss_spinbox = Spinbox(ss_count_frame, from_=20, to=100, increment=1, justify=CENTER, wrap=True,
                          textvariable=ss_count, state='readonly', background="#23272A", foreground="white",
                          highlightthickness=1, buttonbackground="black", readonlybackground="#23272A")
     ss_spinbox.grid(row=1, column=0, columnspan=3, padx=10, pady=3, sticky=N + S + E + W)
+    spinbox_right_click_options()
 
     # set default value for the spinbox
     if ss_count_parser['screenshot_settings']['semi_auto_count'] != '':
