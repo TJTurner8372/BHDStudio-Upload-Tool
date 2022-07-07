@@ -2135,7 +2135,12 @@ def auto_screen_shot_status_window():
 
         # generate comparisons
         awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=0,
-                           folder=screenshot_comparison_var.get(), suffix=["a_source_%d", "b_encode_%d"])
+                           folder=screenshot_comparison_var.get(), suffix=["a_source__%d", "b_encode__%d"])
+
+        # strip frame numbers from output (this makes it easier to keep them in pairs)
+        for generated_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
+            rename_image = str(generated_img).split('__')[0] + ".png"
+            pathlib.Path(generated_img).rename(pathlib.Path(rename_image))
 
         # update status window
         ss_status_info.config(state=NORMAL)
