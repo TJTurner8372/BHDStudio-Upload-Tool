@@ -5287,6 +5287,7 @@ def check_for_latest_program_updates():
     update_window.grid_rowconfigure(0, weight=1)
     update_window.grid_rowconfigure(1, weight=1)
     update_window.grid_rowconfigure(2, weight=1)
+    update_window.grab_set()
 
     # basic update label to show parsed version
     update_label = Label(update_window, text=parsed_version, bd=0, relief=SUNKEN,
@@ -5396,7 +5397,8 @@ def check_for_latest_program_updates():
                                             'update files')
 
                 # use subprocess to open the new download
-                subprocess.Popen(pathlib.Path(pathlib.Path.cwd() / "BHDStudioUploadTool.exe"))
+                subprocess.Popen(pathlib.Path(pathlib.Path.cwd() / "BHDStudioUploadTool.exe"),
+                                 creationflags=subprocess.CREATE_NO_WINDOW)
 
                 # close update window
                 update_window.destroy()
