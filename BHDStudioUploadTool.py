@@ -410,6 +410,7 @@ def source_input_function(*args):
     image_listbox.delete(0, END)  # delete image list box contents
     image_listbox.config(state=DISABLED)  # disable image list box
     screenshot_scrolledtext.delete("1.0", END)  # clear contents of url notebook tab
+    tabs.select(image_tab)  # select first tab in the image box
     delete_encode_entry()  # clear encode entry
     source_file_information.clear()  # clear dictionary
     audio_pop_up_var = StringVar()  # audio pop up var
@@ -2432,7 +2433,7 @@ def upload_to_beyond_hd_co_window():
     # upload status window
     upload_ss_status = Toplevel()
     upload_ss_status.configure(background="#363636")
-    upload_ss_status.geometry(f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 156)}+'
+    upload_ss_status.geometry(f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 138)}+'
                               f'{str(int(root.geometry().split("+")[2]) + 230)}')
     upload_ss_status.resizable(0, 0)
     upload_ss_status.grab_set()
@@ -4093,7 +4094,7 @@ def open_uploader_window(job_mode):
             plot_frame.grid_columnconfigure(0, weight=1)
 
             # plot text window
-            plot_scrolled_text = scrolledtextwidget.ScrolledText(plot_frame, height=6)
+            plot_scrolled_text = scrolledtextwidget.ScrolledText(plot_frame, height=6, wrap=WORD)
             plot_scrolled_text.grid(row=0, column=0, columnspan=6, pady=(0, 5), padx=5, sticky=E + W)
             plot_scrolled_text.config(bg='black', fg='#CFD2D1', bd=2)
 
@@ -4420,7 +4421,7 @@ def open_uploader_window(job_mode):
 
         # create window
         upload_status_info = scrolledtextwidget.ScrolledText(upload_output_frame, height=7, bg='#565656',
-                                                             fg='white', bd=4)
+                                                             fg='white', bd=4, wrap=WORD)
         upload_status_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
         upload_status_info.insert(END, 'Uploading, please wait...')
         upload_status_info.config(state=DISABLED)
@@ -4631,6 +4632,7 @@ def reset_gui():
     image_listbox.delete(0, END)
     image_listbox.config(state=DISABLED)
     screenshot_scrolledtext.delete("1.0", END)
+    tabs.select(image_tab)
     clear_all_variables()
 
 
