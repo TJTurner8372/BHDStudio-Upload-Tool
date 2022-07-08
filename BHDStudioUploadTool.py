@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28"
+main_root_title = "BHDStudio Upload Tool v1.28.1"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -1912,8 +1912,119 @@ def automatic_screenshot_generator():
     root.withdraw()
 
 
+# pop up window that allows the user to select which indexer they'd like to use
+def choose_indexer_func():
+    # hide all top levels if they are opened
+    hide_all_toplevels()
+
+    # exit the window
+    def exit_index_window():
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        index_selection_win.destroy()  # close window
+
+    # index selection window
+    index_selection_win = Toplevel()
+    index_selection_win.title('')
+    index_selection_win.configure(background="#363636")
+    index_selection_win.geometry(f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
+                                 f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    index_selection_win.resizable(0, 0)
+    index_selection_win.grab_set()
+    index_selection_win.protocol('WM_DELETE_WINDOW', exit_index_window)
+    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    index_selection_win.grid_rowconfigure(0, weight=1)
+    index_selection_win.grid_columnconfigure(0, weight=1)
+
+    # index select frame
+    index_sel_frame = Frame(index_selection_win, highlightbackground="white", highlightthickness=2, bg="#363636",
+                            highlightcolor='white')
+    index_sel_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+
+    # grid/column configure
+    for e_n_f in range(3):
+        index_sel_frame.grid_columnconfigure(e_n_f, weight=1)
+    for e_n_r in range(5):
+        index_sel_frame.grid_rowconfigure(e_n_r, weight=1)
+
+    # create label
+    index_label = Label(index_sel_frame, text='Select index method', background='#363636', fg="#3498db",
+                        font=(set_font, set_font_size, "bold"))
+    index_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
+
+    # variable to be returned
+    index_selection_var = ''
+
+    # update variable to ffms
+    def update_var_ffms():
+        nonlocal index_selection_var
+        index_selection_var = 'ffms'
+        exit_index_window()  # run the exit function
+
+    # create 'FFMS' button
+    ffms_btn = HoverButton(index_sel_frame, text="FFMS", command=update_var_ffms, foreground="white",
+                           background="#23272A", borderwidth="3", activeforeground="#3498db",
+                           activebackground="#23272A")
+    ffms_btn.grid(row=1, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S)
+
+    # create ffms label
+    ffms_label = Label(index_sel_frame, font=(set_fixed_font, set_font_size - 1),
+                       text="FFMS supports virtually all formats, however it's not 100% frame accurate. You may "
+                            "notice a miss-match frame between the source and encode in some occasions.",
+                       background='#363636', fg="white", wraplength=320, justify=CENTER)
+    ffms_label.grid(row=2, column=0, columnspan=3, sticky=E + W + N, padx=5, pady=(4, 0))
+
+    # update variable to lwlibav
+    def update_var_lwlibav():
+        nonlocal index_selection_var
+        index_selection_var = 'lwlibav'
+        exit_index_window()  # run the exit function
+
+    # create 'LWLibavSource' button
+    lwlibavsource_btn = HoverButton(index_sel_frame, text="LWLibavSource", command=update_var_lwlibav,
+                                    foreground="white", background="#23272A", borderwidth="3",
+                                    activeforeground="#3498db", activebackground="#23272A")
+    lwlibavsource_btn.grid(row=3, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S)
+
+    # create lwlibav label
+    lwlibav_label = Label(index_sel_frame, font=(set_fixed_font, set_font_size - 1),
+                          text="LWLibavSource (L-Smash) is 100% frame accurate. However, it doesn't have full "
+                               "support for some video codecs and containers. If you notice black/grey "
+                               "images being generated with a specific source use FFMS. "
+                               "If your source is MKV/AVC this is the best option.",
+                          background='#363636', fg="white", wraplength=320, justify=CENTER)
+    lwlibav_label.grid(row=4, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(4, 0))
+
+    # create 'Cancel' button
+    index_cancel_btn = HoverButton(index_sel_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                   command=lambda: [index_selection_win.destroy(),
+                                                    root.wm_attributes('-alpha', 1.0)],
+                                   foreground="white", background="#23272A", borderwidth="3",
+                                   activebackground="#23272A")
+    index_cancel_btn.grid(row=5, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+    # disable/enable indexers depending on known sources
+    if source_file_path.get().endswith(".m2ts"):
+        ffms_btn.config(state=DISABLED)
+        ffms_label.config(text='FFMS disabled for m2ts')
+    if str(source_file_information['format']).lower() == 'vc-1':
+        lwlibavsource_btn.config(state=DISABLED)
+        lwlibav_label.config(text='LwLibavSource disabled for video codec VC-1')
+
+    index_selection_win.wait_window()  # wait for window to be closed
+    open_all_toplevels()  # re-open all top levels if they exist
+
+    # return index variable
+    return index_selection_var
+
+
 # auto screenshot status window
 def auto_screen_shot_status_window():
+    # choose indexer
+    get_indexer = choose_indexer_func()
+
+    if get_indexer == '':
+        return  # exit this function
+
     # screenshot status window
     screenshot_status_window = Toplevel()
     screenshot_status_window.configure(background="#363636")
@@ -1991,18 +2102,18 @@ def auto_screen_shot_status_window():
         if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
             # update status window with a message
             ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "Since source and encode are on separate drives, indexing will be "
-                                       "multi-threaded. Please wait as this will take some time depending on "
-                                       "storage speeds...")
+            ss_status_info.insert(END, f"Indexing with {get_indexer}. Since source and encode are on separate drives, "
+                                       f"indexing will be multi-threaded. Please wait as this will take some time "
+                                       f"depending on storage speeds...")
             ss_status_info.see(END)
             ss_status_info.config(state=DISABLED)
 
             # multi thread indexing for both source/encode
             def run_t1():
-                # index the source file with ffindex or lwlibavsource depending on codec/source
-                if source_file_path.get().endswith(".m2ts"):
+                # index the source file with ffindex or lwlibavsource depending on selection
+                if get_indexer == 'lwlibav':
                     core.lsmas.LWLibavSource(source_file_path.get())
-                else:
+                elif get_indexer == 'ffms':
                     core.ffms2.Source(source_file_path.get())
 
                 # update status window with a message
@@ -2012,10 +2123,10 @@ def auto_screen_shot_status_window():
                 ss_status_info.config(state=DISABLED)
 
             def run_t2():
-                # index the encode file
-                if source_file_path.get().endswith(".m2ts"):
+                # index the encode file with ffindex or lwlibavsource depending on selection
+                if get_indexer == 'lwlibav':
                     core.lsmas.LWLibavSource(encode_file_path.get())
-                else:
+                elif get_indexer == 'ffms':
                     core.ffms2.Source(encode_file_path.get())
 
                 # update status window with a message
@@ -2034,11 +2145,11 @@ def auto_screen_shot_status_window():
             t1.join()
             t2.join()
 
-            # define the indexes as variables with ffindex or lwlibavsource depending on codec/source
-            if source_file_path.get().endswith(".m2ts"):
+            # index the encode file with ffindex or lwlibavsource depending on selection
+            if get_indexer == 'lwlibav':
                 source_file = core.lsmas.LWLibavSource(source_file_path.get())
                 encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
-            else:
+            elif get_indexer == 'ffms':
                 source_file = core.ffms2.Source(source_file_path.get())
                 encode_file = core.ffms2.Source(encode_file_path.get())
 
@@ -2049,29 +2160,31 @@ def auto_screen_shot_status_window():
             ss_status_info.config(state=DISABLED)
 
         else:
-            # load source file and index without multi-threading
-            if source_file_path.get().endswith(".m2ts"):
+            # update status window
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, f"Indexing source file with {get_indexer}. This could take a while depending "
+                                       f"on your systems storage speed...")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+            # index source file without multi-threading
+            if get_indexer == 'lwlibav':
                 source_file = core.lsmas.LWLibavSource(source_file_path.get())
-            else:
+            elif get_indexer == 'ffms':
                 source_file = core.ffms2.Source(source_file_path.get())
 
+            # update status window
             ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "Indexing source file. This could take a while depending "
-                                       "on your systems storage speed...")
+            ss_status_info.insert(END, f"Completed!\n\nIndexing encode file with {get_indexer}. This could take a "
+                                       f"while depending on your systems storage speed...\n\n")
             ss_status_info.see(END)
             ss_status_info.config(state=DISABLED)
 
             # load encode file and index
-            if source_file_path.get().endswith(".m2ts"):
+            if get_indexer == 'lwlibav':
                 encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
-            else:
+            elif get_indexer == 'ffms':
                 encode_file = core.ffms2.Source(encode_file_path.get())
-
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "Completed!\n\nIndexing encode file. This could take a while depending "
-                                       "on your systems storage speed...\n\n")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
 
         # get the total number of frames from source file
         num_source_frames = len(source_file)
