@@ -3719,7 +3719,7 @@ def open_uploader_window(job_mode):
         # if user presses yes
         if api_checkpoint:
             # open a new custom window to obtain and save the key to config.ini
-            custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key')
+            custom_input_prompt(root, 'BHD Upload Key:', 'bhd_upload_api', 'key', 'hide')
             # define temp parser
             api_temp_parser = ConfigParser()
             api_temp_parser.read(config_file)
