@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.27"
+main_root_title = "BHDStudio Upload Tool v1.28"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -597,6 +597,10 @@ def source_input_function(*args):
         source_file_information.update({'hdr': 'True'})
     else:
         source_file_information.update({'hdr': 'False'})
+
+    # video format
+    if video_track.format:
+        source_file_information.update({'format': f"{str(video_track.format)}"})
 
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
@@ -1977,6 +1981,10 @@ def auto_screen_shot_status_window():
             core.std.LoadPlugin("Runtime/Apps/image_comparison/libfpng.dll")
         except vs.Error:
             pass
+        try:
+            core.std.LoadPlugin("Runtime/Apps/image_comparison/ffms2.dll")
+        except vs.Error:
+            pass
 
         # multithread the indexing of both source and encode if they are not on the same drive
         if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
@@ -1990,8 +1998,11 @@ def auto_screen_shot_status_window():
 
             # multi thread indexing for both source/encode
             def run_t1():
-                # index the source file
-                core.lsmas.LWLibavSource(source_file_path.get())
+                # index the source file with ffindex or lwlibavsource depending on codec/source
+                if source_file_path.get().endswith(".m2ts"):
+                    core.lsmas.LWLibavSource(source_file_path.get())
+                else:
+                    core.ffms2.Source(source_file_path.get())
 
                 # update status window with a message
                 ss_status_info.config(state=NORMAL)
@@ -2001,7 +2012,10 @@ def auto_screen_shot_status_window():
 
             def run_t2():
                 # index the encode file
-                core.lsmas.LWLibavSource(encode_file_path.get())
+                if source_file_path.get().endswith(".m2ts"):
+                    core.lsmas.LWLibavSource(encode_file_path.get())
+                else:
+                    core.ffms2.Source(encode_file_path.get())
 
                 # update status window with a message
                 ss_status_info.config(state=NORMAL)
@@ -2019,9 +2033,13 @@ def auto_screen_shot_status_window():
             t1.join()
             t2.join()
 
-            # define the indexes as variables
-            source_file = core.lsmas.LWLibavSource(source_file_path.get())
-            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+            # define the indexes as variables with ffindex or lwlibavsource depending on codec/source
+            if source_file_path.get().endswith(".m2ts"):
+                source_file = core.lsmas.LWLibavSource(source_file_path.get())
+                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+            else:
+                source_file = core.ffms2.Source(source_file_path.get())
+                encode_file = core.ffms2.Source(encode_file_path.get())
 
             # update status window with a message
             ss_status_info.config(state=NORMAL)
@@ -2031,7 +2049,10 @@ def auto_screen_shot_status_window():
 
         else:
             # load source file and index without multi-threading
-            source_file = core.lsmas.LWLibavSource(source_file_path.get())
+            if source_file_path.get().endswith(".m2ts"):
+                source_file = core.lsmas.LWLibavSource(source_file_path.get())
+            else:
+                source_file = core.ffms2.Source(source_file_path.get())
 
             ss_status_info.config(state=NORMAL)
             ss_status_info.insert(END, "Indexing source file. This could take a while depending "
@@ -2040,7 +2061,10 @@ def auto_screen_shot_status_window():
             ss_status_info.config(state=DISABLED)
 
             # load encode file and index
-            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+            if source_file_path.get().endswith(".m2ts"):
+                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+            else:
+                encode_file = core.ffms2.Source(encode_file_path.get())
 
             ss_status_info.config(state=NORMAL)
             ss_status_info.insert(END, "Completed!\n\nIndexing encode file. This could take a while depending "
@@ -2136,14 +2160,14 @@ def auto_screen_shot_status_window():
         vs_encode_info = awsmfunc.FrameInfo(clip=encode_file, title='BHDStudio', style=selected_sub_style)
 
         # generate comparisons
-        awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=0,
+        awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=2,
                            folder=screenshot_comparison_var.get(), suffix=["a_source__%d", "b_encode__%d"])
 
-        # update status window
-        ss_status_info.config(state=NORMAL)
-        ss_status_info.insert(END, "\n\n\nCompleted!")
-        ss_status_info.see(END)
-        ss_status_info.config(state=DISABLED)
+        # # update status window
+        # ss_status_info.config(state=NORMAL)
+        # ss_status_info.insert(END, "\n\n\nCompleted!")
+        # ss_status_info.see(END)
+        # ss_status_info.config(state=DISABLED)
 
         # close status window
         root.wm_attributes('-alpha', 1.0)  # remove transparency
