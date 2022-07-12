@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.4"
+main_root_title = "BHDStudio Upload Tool v1.28.5"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -2028,7 +2028,7 @@ def choose_indexer_func():
     def update_var_ffms():
         nonlocal index_selection_var
         index_selection_var = 'ffms'
-        exit_index_window()  # run the exit function
+        index_selection_win.destroy()  # exit the window
 
     # create 'FFMS' button
     ffms_btn = HoverButton(index_sel_frame, text="FFMS", command=update_var_ffms, foreground="white",
@@ -2047,7 +2047,7 @@ def choose_indexer_func():
     def update_var_lwlibav():
         nonlocal index_selection_var
         index_selection_var = 'lwlibav'
-        exit_index_window()  # run the exit function
+        index_selection_win.destroy()  # exit the window
 
     # create 'LWLibavSource' button
     lwlibavsource_btn = HoverButton(index_sel_frame, text="LWLibavSource", command=update_var_lwlibav,
@@ -2389,7 +2389,6 @@ def auto_screen_shot_status_window():
                            folder=screenshot_comparison_var.get(), suffix=["a_source__%d", "b_encode__%d"])
 
         # close status window
-        advanced_root_deiconify()  # hide root
         screenshot_status_window.destroy()  # close screenshot status window
 
     # multithread the image comparison code and start the function
