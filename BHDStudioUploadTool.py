@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.2"
+main_root_title = "BHDStudio Upload Tool v1.28.3"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -68,7 +68,7 @@ config_file = 'Runtime/config.ini'  # Creates (if it doesn't exist) and defines 
 config = ConfigParser()
 config.read(config_file)
 
-# general settings
+# torrent settings
 if not config.has_section('torrent_settings'):
     config.add_section('torrent_settings')
 if not config.has_option('torrent_settings', 'tracker_url'):
@@ -145,6 +145,12 @@ if not config.has_section('screenshot_settings'):
     config.add_section('screenshot_settings')
 if not config.has_option('screenshot_settings', 'semi_auto_count'):
     config.set('screenshot_settings', 'semi_auto_count', '')
+
+# last used folder
+if not config.has_section('last_used_folder'):
+    config.add_section('last_used_folder')
+if not config.has_option('last_used_folder', 'path'):
+    config.set('last_used_folder', 'path', '')
 
 # write options to config if they do not exist
 with open(config_file, 'w') as configfile:
@@ -406,6 +412,11 @@ def open_tmdb_link():
 
 
 def source_input_function(*args):
+    # define parser
+    source_input_parser = ConfigParser()
+    source_input_parser.read(config_file)
+
+    # clear variables and boxes
     image_listbox.config(state=NORMAL)  # enable image list box
     image_listbox.delete(0, END)  # delete image list box contents
     image_listbox.config(state=DISABLED)  # disable image list box
@@ -413,6 +424,7 @@ def source_input_function(*args):
     tabs.select(image_tab)  # select first tab in the image box
     delete_encode_entry()  # clear encode entry
     source_file_information.clear()  # clear dictionary
+    delete_source_entry()  # clear source entry
     audio_pop_up_var = StringVar()  # audio pop up var
 
     # check if script is avisynth
@@ -441,16 +453,27 @@ def source_input_function(*args):
         return  # FINISH THIS
 
     # if we cannot locate the source file
-    if not pathlib.Path(get_source_file.group(1)).is_file():
+    if not get_source_file or not pathlib.Path(get_source_file.group(1)).is_file():
         find_source = messagebox.askyesno(parent=root, title='Missing Source',
                                           message='Cannot locate source file. Would you like to manually find this?')
         if find_source:
-            source_file_input = filedialog.askopenfilename(parent=root, title='Select Source File', initialdir='/',
+            # check if last used folder exists
+            if pathlib.Path(source_input_parser['last_used_folder']['path']).is_dir():
+                s_i_f_initial_dir = pathlib.Path(source_input_parser['last_used_folder']['path'])
+            else:
+                s_i_f_initial_dir = '/'
+
+            # open prompt to navigate to file
+            source_file_input = filedialog.askopenfilename(parent=root, title='Select Source File',
+                                                           initialdir=s_i_f_initial_dir,
                                                            filetypes=[("Media Files", "*.*")])
             if source_file_input:
                 loaded_source_file = source_file_input
+
+        # if user does not want to find the source exit the function
         elif not find_source:
             return  # exit the function
+
     # if we find the source file
     else:
         loaded_source_file = get_source_file.group(1)
@@ -519,7 +542,7 @@ def source_input_function(*args):
         audio_track_win.resizable(0, 0)  # makes window not resizable
         audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
         audio_track_win.wm_overrideredirect(True)
-        root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+        root.wm_attributes('-alpha', 0.92)  # set main gui to be slightly transparent
         audio_track_win.grid_rowconfigure(0, weight=1)
         audio_track_win.grid_columnconfigure(0, weight=1)
 
@@ -603,6 +626,12 @@ def source_input_function(*args):
     if video_track.format:
         source_file_information.update({'format': f"{str(video_track.format)}"})
 
+    # update last used folder
+    source_input_parser.set('last_used_folder', 'path', str(pathlib.Path(loaded_source_file).parent))
+    with open(config_file, 'w') as s_i_c_config:
+        source_input_parser.write(s_i_c_config)
+
+    # update labels
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
     source_file_path.set(str(pathlib.Path(loaded_source_file)))
@@ -904,7 +933,19 @@ source_frame.dnd_bind('<<Drop>>', drop_function)
 
 
 def manual_source_input():
-    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source Script', initialdir='/',
+    # define parser
+    manual_source_parser = ConfigParser()
+    manual_source_parser.read(config_file)
+
+    # check if last used folder exists
+    if pathlib.Path(manual_source_parser['last_used_folder']['path']).is_dir():
+        manual_initial_dir = pathlib.Path(manual_source_parser['last_used_folder']['path'])
+    else:
+        manual_initial_dir = '/'
+
+    # get source file input
+    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source Script',
+                                                   initialdir=manual_initial_dir,
                                                    filetypes=[("AviSynth, Vapoursynth", "*.avs *.vpy")])
     if source_file_input:
         source_input_function(source_file_input)
@@ -965,7 +1006,19 @@ encode_frame.dnd_bind('<<Drop>>', drop_function)
 
 
 def manual_encode_input():
-    encode_file_input = filedialog.askopenfilename(parent=root, title='Select Encode', initialdir='/',
+    # define parser
+    manual_encode_parser = ConfigParser()
+    manual_encode_parser.read(config_file)
+
+    # check if last used folder exists
+    if pathlib.Path(manual_encode_parser['last_used_folder']['path']).is_dir():
+        manual_initial_enc_dir = pathlib.Path(manual_encode_parser['last_used_folder']['path'])
+    else:
+        manual_initial_enc_dir = '/'
+
+    # get encode input
+    encode_file_input = filedialog.askopenfilename(parent=root, title='Select Encode',
+                                                   initialdir=manual_initial_enc_dir,
                                                    filetypes=[("Media Files", "*.*")])
     if encode_file_input:
         encode_input_function(encode_file_input)
@@ -1036,17 +1089,34 @@ def staxrip_working_directory(stax_dir_path):
             elif '- VapourSynth Script -' in log_file_loaded:
                 # get source path
                 get_source_path = pathlib.Path(log_path.replace('_staxrip.log', '.vpy'))
+
+                # if AviSynth or VapourSynth is not inside the log file
+            else:
+                messagebox.showerror(parent=root, title='Error',
+                                     message='Working directory does not contain the correct information needed.'
+                                             '\n\nYou will need to manually input the source (encode.avs/vpy) script')
+                # restore transparency
+                root.wm_attributes('-alpha', 1.0)
+                # exit the function
+                return
+
             # find encode file output path
             get_encode_path = re.search(r"Saving\s(.+\.mp4):", log_file_loaded)
 
-        # if both paths are located
+        # if both paths are located load them into the program
         if get_source_path and get_encode_path:
             # restore transparency
             root.wm_attributes('-alpha', 1.0)
             # run source input function
-            source_input_function(get_source_path)
+            if pathlib.Path(get_source_path).is_file():
+                source_input_function(get_source_path)
+            else:
+                messagebox.showinfo(title='Info', message='Could not load source script, please input this manually')
             # run encode input function
-            encode_input_function(get_encode_path.group(1))
+            if pathlib.Path(get_encode_path.group(1)).is_file():
+                encode_input_function(get_encode_path.group(1))
+            else:
+                messagebox.showinfo(title='Info', message='Could not load "*BHDStudio.mp4", please input this manually')
 
         # if both paths are not located
         else:
@@ -1095,7 +1165,7 @@ def staxrip_working_directory(stax_dir_path):
             stax_log_win.resizable(0, 0)  # makes window not resizable
             stax_log_win.grab_set()  # forces stax_log_win to stay on top of root
             stax_log_win.wm_overrideredirect(True)
-            root.wm_attributes('-alpha', 0.90)  # set main gui to be slightly transparent
+            root.wm_attributes('-alpha', 0.92)  # set main gui to be slightly transparent
             stax_log_win.grid_rowconfigure(0, weight=1)
             stax_log_win.grid_columnconfigure(0, weight=1)
 
@@ -1786,8 +1856,8 @@ def automatic_screenshot_generator():
                     screenshot_selected_var.get()) / pathlib.Path(get_pair[0]).name)
 
                 # take the last item that is moved and update the selected index var
-                selected_index_var = comparison_img_list.index(pathlib.Path(
-                    screenshot_comparison_var.get()) / get_pair[0])
+                selected_index_var = int(comparison_img_list.index(pathlib.Path(
+                    screenshot_comparison_var.get()) / get_pair[0])) - 1
 
         # clear the listbox
         img_viewer_listbox.delete(0, END)
@@ -1919,8 +1989,8 @@ def choose_indexer_func():
 
     # exit the window
     def exit_index_window():
-        root.wm_attributes('-alpha', 1.0)  # restore transparency
         index_selection_win.destroy()  # close window
+        advanced_root_deiconify()  # restore root
 
     # index selection window
     index_selection_win = Toplevel()
@@ -1929,9 +1999,9 @@ def choose_indexer_func():
     index_selection_win.geometry(f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
     index_selection_win.resizable(0, 0)
-    index_selection_win.grab_set()
+    index_selection_win.grab_set()  # force this window on top of all others
+    root.wm_withdraw()  # hide root
     index_selection_win.protocol('WM_DELETE_WINDOW', exit_index_window)
-    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
     index_selection_win.grid_rowconfigure(0, weight=1)
     index_selection_win.grid_columnconfigure(0, weight=1)
 
@@ -1996,8 +2066,7 @@ def choose_indexer_func():
 
     # create 'Cancel' button
     index_cancel_btn = HoverButton(index_sel_frame, text="Cancel", activeforeground="#3498db", width=8,
-                                   command=lambda: [index_selection_win.destroy(),
-                                                    root.wm_attributes('-alpha', 1.0)],
+                                   command=lambda: [index_selection_win.destroy(), advanced_root_deiconify()],
                                    foreground="white", background="#23272A", borderwidth="3",
                                    activebackground="#23272A")
     index_cancel_btn.grid(row=5, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
@@ -2019,6 +2088,12 @@ def choose_indexer_func():
 
 # auto screenshot status window
 def auto_screen_shot_status_window():
+    # select desired amount of screenshots
+    screen_amount_check = screen_shot_count_spinbox()
+
+    if screen_amount_check == '':
+        return  # exit this function
+
     # choose indexer
     get_indexer = choose_indexer_func()
 
@@ -2028,12 +2103,11 @@ def auto_screen_shot_status_window():
     # screenshot status window
     screenshot_status_window = Toplevel()
     screenshot_status_window.configure(background="#363636")
+    screenshot_status_window.title('')
     screenshot_status_window.geometry(f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
                                       f'{str(int(root.geometry().split("+")[2]) + 230)}')
     screenshot_status_window.resizable(0, 0)
-    screenshot_status_window.grab_set()
-    screenshot_status_window.wm_overrideredirect(True)
-    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    root.wm_withdraw()  # hide root
     screenshot_status_window.grid_rowconfigure(0, weight=1)
     screenshot_status_window.grid_columnconfigure(0, weight=1)
 
@@ -2051,14 +2125,18 @@ def auto_screen_shot_status_window():
     ss_status_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
     ss_status_info.config(state=DISABLED)
 
+    force_cancel = False
+
     # function to exit the status window
     def screenshot_close_button():
+        nonlocal force_cancel
         check_exit = messagebox.askyesno(parent=screenshot_status_window, title='Close?',
                                          message='Closing this window will kill the entire program. This is the only '
                                                  'way to ensure all threads are safely destroyed.\n\nWould you like '
-                                                 'to exit? ')
+                                                 'to exit?')
         if check_exit:
-            # kill root  (fully destroy root to close all threads)
+            force_cancel = True
+            # kill root (fully destroy root to close all threads)
             root.destroy()
 
     # create 'Close' button
@@ -2066,6 +2144,7 @@ def auto_screen_shot_status_window():
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", width=8, activebackground="#23272A")
     ss_close_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+    screenshot_status_window.protocol('WM_DELETE_WINDOW', screenshot_close_button)
 
     # image comparison code (semi automatic)
     def semi_automatic_screenshots():
@@ -2098,93 +2177,125 @@ def auto_screen_shot_status_window():
         except vs.Error:
             pass
 
-        # multithread the indexing of both source and encode if they are not on the same drive
-        if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
-            # update status window with a message
+        # function to index source file
+        def index_source_file_func():
+            # index the source file with lwlibavsource
+            if get_indexer == 'lwlibav':
+                # if index file already exists
+                if pathlib.Path(source_file_path.get() + '.lwi').is_file():
+                    src_use_existing = messagebox.askyesno(parent=screenshot_status_window, title='Indexing: Source',
+                                                           message='Source index file already exists. '
+                                                                   'Would you like to use existing index file?')
+                    # if user does not want to use existing index file
+                    if not src_use_existing:
+                        # delete index
+                        pathlib.Path(source_file_path.get() + '.lwi').unlink(missing_ok=True)
+                        # create new index
+                        core.lsmas.LWLibavSource(source_file_path.get())
+                # if index does not exist create index file
+                else:
+                    core.lsmas.LWLibavSource(source_file_path.get())
+
+            # index the source file with ffms
+            elif get_indexer == 'ffms':
+                # if index file already exists
+                if pathlib.Path(source_file_path.get() + '.ffindex').is_file():
+                    src_use_existing = messagebox.askyesno(parent=screenshot_status_window, title='Indexing: Source',
+                                                           message='Source index file already exists. '
+                                                                   'Would you like to use existing index file?')
+                    # if user does not want to use existing index file
+                    if not src_use_existing:
+                        # delete index
+                        pathlib.Path(source_file_path.get() + '.ffindex').unlink(missing_ok=True)
+                        # create new index
+                        core.ffms2.Source(source_file_path.get())
+                # if index does not exist create index file
+                else:
+                    core.ffms2.Source(source_file_path.get())
+
+            # update status window
             ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, f"Indexing with {get_indexer}. Since source and encode are on separate drives, "
-                                       f"indexing will be multi-threaded. Please wait as this will take some time "
-                                       f"depending on storage speeds...")
+            ss_status_info.insert(END, "\nSource index completed!\n\n")
             ss_status_info.see(END)
             ss_status_info.config(state=DISABLED)
 
-            # multi thread indexing for both source/encode
-            def run_t1():
-                # index the source file with ffindex or lwlibavsource depending on selection
-                if get_indexer == 'lwlibav':
-                    core.lsmas.LWLibavSource(source_file_path.get())
-                elif get_indexer == 'ffms':
-                    core.ffms2.Source(source_file_path.get())
-
-                # update status window with a message
-                ss_status_info.config(state=NORMAL)
-                ss_status_info.insert(END, "\nSource index complete...")
-                ss_status_info.see(END)
-                ss_status_info.config(state=DISABLED)
-
-            def run_t2():
-                # index the encode file with ffindex or lwlibavsource depending on selection
-                if get_indexer == 'lwlibav':
+        # function to index encode file
+        def index_encode_file_func():
+            # index the source file with lwlibavsource
+            if get_indexer == 'lwlibav':
+                # if index file already exists
+                if pathlib.Path(encode_file_path.get() + '.lwi').is_file():
+                    enc_use_existing = messagebox.askyesno(parent=screenshot_status_window, title='Indexing: Encode',
+                                                           message='Encode index file already exists. '
+                                                                   'Would you like to use existing index file?')
+                    # if user does not want to use existing index file
+                    if not enc_use_existing:
+                        # delete index
+                        pathlib.Path(encode_file_path.get() + '.lwi').unlink(missing_ok=True)
+                        # create new index
+                        core.lsmas.LWLibavSource(encode_file_path.get())
+                # if index does not exist create index file
+                else:
                     core.lsmas.LWLibavSource(encode_file_path.get())
-                elif get_indexer == 'ffms':
+
+            # index the source file with ffms
+            elif get_indexer == 'ffms':
+                # if index file already exists
+                if pathlib.Path(encode_file_path.get() + '.ffindex').is_file():
+                    enc_use_existing = messagebox.askyesno(parent=screenshot_status_window, title='Indexing: Encode',
+                                                           message='Encode index file already exists. '
+                                                                   'Would you like to use existing index file?')
+                    # if user does not want to use existing index file
+                    if not enc_use_existing:
+                        # delete index
+                        pathlib.Path(encode_file_path.get() + '.ffindex').unlink(missing_ok=True)
+                        # create new index
+                        core.ffms2.Source(encode_file_path.get())
+                # if index does not exist create index file
+                else:
                     core.ffms2.Source(encode_file_path.get())
 
-                # update status window with a message
-                ss_status_info.config(state=NORMAL)
-                ss_status_info.insert(END, "\nEncode index complete...")
-                ss_status_info.see(END)
-                ss_status_info.config(state=DISABLED)
+            # update status window
+            ss_status_info.config(state=NORMAL)
+            ss_status_info.insert(END, "\nEncode index completed!\n\n")
+            ss_status_info.see(END)
+            ss_status_info.config(state=DISABLED)
+
+        # update status window
+        ss_status_info.config(state=NORMAL)
+        ss_status_info.insert(END, f"Indexing {str(pathlib.Path(source_file_path.get()).name)} and  "
+                                   f"{str(pathlib.Path(encode_file_path.get()).name)} with {get_indexer}. "
+                                   f"This could take a while depending on your systems storage speed...\n\n")
+        ss_status_info.see(END)
+        ss_status_info.config(state=DISABLED)
+
+        # run index functions
+        # if files are on separate drives execute them both at the same time
+        if pathlib.Path(source_file_path.get()).drive != pathlib.Path(encode_file_path.get()).drive:
+            # define threads
+            t1 = threading.Thread(target=index_source_file_func)
+            t2 = threading.Thread(target=index_encode_file_func)
 
             # start threads
-            t1 = threading.Thread(target=run_t1, daemon=True)
-            t2 = threading.Thread(target=run_t2, daemon=True)
             t1.start()
             t2.start()
 
-            # wait on the threads to finish before continuing
+            # wait for threads to finish
             t1.join()
             t2.join()
 
-            # index the encode file with ffindex or lwlibavsource depending on selection
-            if get_indexer == 'lwlibav':
-                source_file = core.lsmas.LWLibavSource(source_file_path.get())
-                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
-            elif get_indexer == 'ffms':
-                source_file = core.ffms2.Source(source_file_path.get())
-                encode_file = core.ffms2.Source(encode_file_path.get())
-
-            # update status window with a message
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "\nCompleted!!\n\n")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
-
+        # if files are on the same drive execute them 1 at a time
         else:
-            # update status window
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, f"Indexing source file with {get_indexer}. This could take a while depending "
-                                       f"on your systems storage speed...")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
+            index_source_file_func()
+            index_encode_file_func()
 
-            # index source file without multi-threading
-            if get_indexer == 'lwlibav':
-                source_file = core.lsmas.LWLibavSource(source_file_path.get())
-            elif get_indexer == 'ffms':
-                source_file = core.ffms2.Source(source_file_path.get())
-
-            # update status window
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, f"Completed!\n\nIndexing encode file with {get_indexer}. This could take a "
-                                       f"while depending on your systems storage speed...\n\n")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
-
-            # load encode file and index
-            if get_indexer == 'lwlibav':
-                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
-            elif get_indexer == 'ffms':
-                encode_file = core.ffms2.Source(encode_file_path.get())
+        # define source and encode file index files as variables
+        if get_indexer == 'lwlibav':
+            source_file = core.lsmas.LWLibavSource(source_file_path.get())
+            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+        elif get_indexer == 'ffms':
+            source_file = core.ffms2.Source(source_file_path.get())
+            encode_file = core.ffms2.Source(encode_file_path.get())
 
         # get the total number of frames from source file
         num_source_frames = len(source_file)
@@ -2194,8 +2305,8 @@ def auto_screen_shot_status_window():
         # MarginR, MarginV,
 
         # set subtitle scale style
-        selected_sub_style = "sans-serif,22,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
-                             "0,0,0,0,100,100,0,0,1,1,0,7,10,10,10,1"
+        selected_sub_style = "Segoe UI,16,&H000ac7f5,&H00000000,&H00000000,&H00000000," \
+                             "1,0,0,0,100,100,0,0,1,1,0,7,5,0,0,1"
 
         # check for custom user image amount
         if semi_auto_img_parser['screenshot_settings']['semi_auto_count'] != '':
@@ -2266,8 +2377,8 @@ def auto_screen_shot_status_window():
 
         # hdr tone-map
         if source_file_information['hdr'] == 'True':
-            source_file = awsmfunc.DynamicTonemap(source_file)
-            encode_file = awsmfunc.DynamicTonemap(encode_file, reference=source_file)
+            source_file = awsmfunc.DynamicTonemap(clip=source_file, reference=encode_file)
+            encode_file = awsmfunc.DynamicTonemap(clip=encode_file, reference=source_file)
 
         # define the subtitle/frame info for source and encode
         vs_source_info = core.sub.Subtitle(clip=source_file, text='Source', style=selected_sub_style)
@@ -2277,14 +2388,8 @@ def auto_screen_shot_status_window():
         awsmfunc.ScreenGen([vs_source_info, vs_encode_info], frame_numbers=b_frames, fpng_compression=2,
                            folder=screenshot_comparison_var.get(), suffix=["a_source__%d", "b_encode__%d"])
 
-        # # update status window
-        # ss_status_info.config(state=NORMAL)
-        # ss_status_info.insert(END, "\n\n\nCompleted!")
-        # ss_status_info.see(END)
-        # ss_status_info.config(state=DISABLED)
-
         # close status window
-        root.wm_attributes('-alpha', 1.0)  # remove transparency
+        advanced_root_deiconify()  # hide root
         screenshot_status_window.destroy()  # close screenshot status window
 
     # multithread the image comparison code and start the function
@@ -2296,12 +2401,13 @@ def auto_screen_shot_status_window():
     # wait on screenshot status to close
     screenshot_status_window.wait_window()
 
-    # open image viewer
-    automatic_screenshot_generator()
+    if not force_cancel:
+        # open image viewer
+        automatic_screenshot_generator()
 
 
 # auto generate button
-auto_screens_multi_btn = HoverButton(image_btn_frame, text="Generate", command=auto_screen_shot_status_window,
+auto_screens_multi_btn = HoverButton(image_btn_frame, text="Generate IMGs", command=auto_screen_shot_status_window,
                                      foreground="white", background="#23272A", borderwidth="3", state=DISABLED,
                                      activeforeground="#3498db", activebackground="#23272A", width=12)
 auto_screens_multi_btn.grid(row=1, column=0, rowspan=2, padx=5, pady=(7, 7), sticky=S + W)
@@ -2543,15 +2649,22 @@ def upload_to_beyond_hd_co_window():
             manipulate_ss_upload_window(f'Upload is successful!\n\nImages are upload to album:\n'
                                         f'{generated_album_name}\n\nClick OK to continue')
 
+    # function to exit the screenshot upload window
+    def upload_ss_exit_func():
+        upload_error.set(True)  # exit function at next chance
+        upload_ss_status.destroy()  # close window
+        advanced_root_deiconify()  # re-open root window
+
     # upload status window
     upload_ss_status = Toplevel()
     upload_ss_status.configure(background="#363636")
+    upload_ss_status.title('Upload Status')
     upload_ss_status.geometry(f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 138)}+'
                               f'{str(int(root.geometry().split("+")[2]) + 230)}')
     upload_ss_status.resizable(0, 0)
-    upload_ss_status.grab_set()
-    upload_ss_status.wm_overrideredirect(True)
-    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    upload_ss_status.grab_set()  # force this window on top
+    upload_ss_status.wm_protocol('WM_DELETE_WINDOW', upload_ss_exit_func)
+    root.wm_withdraw()  # hide root
     upload_ss_status.grid_rowconfigure(0, weight=1)
     upload_ss_status.grid_columnconfigure(0, weight=1)
 
@@ -2568,12 +2681,6 @@ def upload_to_beyond_hd_co_window():
                                                      fg='white', bd=4, wrap=WORD)
     upload_ss_info.grid(row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W)
 
-    # function to exit the screenshot upload window
-    def upload_ss_exit_func():
-        root.wm_attributes('-alpha', 1.0)  # restore transparency
-        upload_error.set(True)  # exit function at next chance
-        upload_ss_status.destroy()  # close window
-
     # create 'OK' button
     ss_okay_btn = HoverButton(upload_ss_frame, text="OK", command=upload_ss_exit_func,
                               foreground="white", background="#23272A", borderwidth="3",
@@ -2588,7 +2695,8 @@ def upload_to_beyond_hd_co_window():
 
 
 # upload button
-upload_ss_button = HoverButton(image_btn_frame, text="Upload", state=DISABLED, command=upload_to_beyond_hd_co_window,
+upload_ss_button = HoverButton(image_btn_frame, text="Upload IMGs", state=DISABLED,
+                               command=upload_to_beyond_hd_co_window,
                                foreground="white", background="#23272A", borderwidth="3",
                                activeforeground="#3498db", activebackground="#23272A", width=12)
 upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
@@ -2942,8 +3050,18 @@ def open_nfo_viewer():
         # Delete previous text
         nfo_pad_text_box.delete("1.0", END)
 
+        # define parser
+        nfo_dir_parser = ConfigParser()
+        nfo_dir_parser.read(config_file)
+
+        # check if last used folder exists
+        if pathlib.Path(nfo_dir_parser['last_used_folder']['path']).is_dir():
+            nfo_initial_dir = pathlib.Path(nfo_dir_parser['last_used_folder']['path'])
+        else:
+            nfo_initial_dir = '/'
+
         # Grab Filename
-        text_file = filedialog.askopenfilename(parent=nfo_pad, initialdir="/", title="Open File",
+        text_file = filedialog.askopenfilename(parent=nfo_pad, initialdir=nfo_initial_dir, title="Open File",
                                                filetypes=[("Text Files, NFO Files", ".txt .nfo")])
 
         # Check to see if there is a file name
@@ -2965,9 +3083,21 @@ def open_nfo_viewer():
         # Close the opened file
         text_file.close()
 
-    # Save As File
+    # save as file
     def nfo_pad_save():
-        text_file = filedialog.asksaveasfilename(parent=nfo_pad, defaultextension=".nfo", initialdir="/",
+        # define parser
+        nfo_save_parser = ConfigParser()
+        nfo_save_parser.read(config_file)
+
+        # check if last used folder exists
+        if pathlib.Path(nfo_save_parser['last_used_folder']['path']).is_dir():
+            nfo_save_initial_dir = pathlib.Path(nfo_save_parser['last_used_folder']['path'])
+        else:
+            nfo_save_initial_dir = '/'
+
+        # get save output
+        text_file = filedialog.asksaveasfilename(parent=nfo_pad, defaultextension=".nfo",
+                                                 initialdir=nfo_save_initial_dir,
                                                  title="Save File", filetypes=[("NFO File", "*.nfo")])
         if text_file:
             # update status bars
@@ -3819,7 +3949,19 @@ def open_uploader_window(job_mode):
 
     # manual torrent file selection
     def open_torrent_file():
-        torrent_input = filedialog.askopenfilename(parent=upload_window, title='Select Torrent', initialdir='/',
+        # define parser
+        torrent_input_parser = ConfigParser()
+        torrent_input_parser.read(config_file)
+
+        # check if last used folder exists
+        if pathlib.Path(torrent_input_parser['last_used_folder']['path']).is_dir():
+            torrent_save_dir = pathlib.Path(torrent_input_parser['last_used_folder']['path'])
+        else:
+            torrent_save_dir = '/'
+
+        # get torrent input
+        torrent_input = filedialog.askopenfilename(parent=upload_window, title='Select Torrent',
+                                                   initialdir=torrent_save_dir,
                                                    filetypes=[("Torrent Files", "*.torrent")])
         if torrent_input:
             torrent_file_path.set(str(pathlib.Path(torrent_input)))
@@ -4414,7 +4556,18 @@ def open_uploader_window(job_mode):
 
     # manual media info dialog, this accepts txt and .mp4
     def open_media_info_text():
-        m_i_t = filedialog.askopenfilename(parent=upload_window, title='Select Mediainfo File', initialdir='/',
+        # define parser
+        mediainfo_input_parser = ConfigParser()
+        mediainfo_input_parser.read(config_file)
+
+        # check if last used folder exists
+        if pathlib.Path(mediainfo_input_parser['last_used_folder']['path']).is_dir():
+            mi_save_dir = pathlib.Path(mediainfo_input_parser['last_used_folder']['path'])
+        else:
+            mi_save_dir = '/'
+
+        # get media info input
+        m_i_t = filedialog.askopenfilename(parent=upload_window, title='Select Mediainfo File', initialdir=mi_save_dir,
                                            filetypes=[("Text, MP4", "*.txt *.mp4")])
         if m_i_t:  # if selection is made, run the media info function
             update_media_info_function(m_i_t)
@@ -4438,7 +4591,18 @@ def open_uploader_window(job_mode):
 
     # manual nfo open dialog, this accepts *.txt and *.nfo files
     def open_nfo_info_text_nfo():
-        nfo_desc = filedialog.askopenfilename(parent=upload_window, title='Select NFO', initialdir='/',
+        # define parser
+        open_nfo_parser = ConfigParser()
+        open_nfo_parser.read(config_file)
+
+        # check if last used folder exists
+        if pathlib.Path(open_nfo_parser['last_used_folder']['path']).is_dir():
+            nfo_initial_save_dir = pathlib.Path(open_nfo_parser['last_used_folder']['path'])
+        else:
+            nfo_initial_save_dir = '/'
+
+        # nfo/description open prompt
+        nfo_desc = filedialog.askopenfilename(parent=upload_window, title='Select NFO', initialdir=nfo_initial_save_dir,
                                               filetypes=[("NFO, Text", "*.txt *.nfo")])
         if nfo_desc:  # if selection is made, run the nfo function
             update_nfo_desc_function(nfo_desc)
@@ -4870,6 +5034,11 @@ def torrent_path_window_function(*t_args):
     torrent_window_path_parser = ConfigParser()
     torrent_window_path_parser.read(config_file)
 
+    # function to exit torrent path window
+    def torrent_path_okay_func():
+        root.wm_attributes('-alpha', 1.0)  # restore transparency
+        torrent_path_window.destroy()  # close window
+
     # torrent path window
     torrent_path_window = Toplevel()
     torrent_path_window.title('')
@@ -4878,8 +5047,8 @@ def torrent_path_window_function(*t_args):
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
     torrent_path_window.resizable(0, 0)
     torrent_path_window.grab_set()
-    torrent_path_window.protocol('WM_DELETE_WINDOW', lambda: torrent_path_okay_func())
-    root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+    torrent_path_window.protocol('WM_DELETE_WINDOW', torrent_path_okay_func)
+    root.wm_attributes('-alpha', 0.92)  # set parent window to be slightly transparent
     torrent_path_window.grid_rowconfigure(0, weight=1)
     torrent_path_window.grid_columnconfigure(0, weight=1)
 
@@ -4963,11 +5132,6 @@ def torrent_path_window_function(*t_args):
                                          background="#23272A", borderwidth="3", activeforeground="#3498db", width=3,
                                          activebackground="#23272A", foreground="white")
     torrent_path_reset_btn.grid(row=1, column=3, columnspan=1, padx=(2, 5), pady=5, sticky=E)
-
-    # function to exit torrent path window
-    def torrent_path_okay_func():
-        root.wm_attributes('-alpha', 1.0)  # restore transparency
-        torrent_path_window.destroy()  # close window
 
     # create 'OK' button
     torrent_path_okay_btn = HoverButton(torrent_path_frame, text="OK", command=torrent_path_okay_func,
@@ -5187,7 +5351,7 @@ def screen_shot_count_spinbox(*e_hotkey):
         Hovertip(ss_spinbox, 'Right click for more options', hover_delay=600)  # Hover tip tool-tip
 
     # create label
-    ss_count_lbl = Label(ss_count_frame, text='Select desired amount of screenshots', background='#363636',
+    ss_count_lbl = Label(ss_count_frame, text='Select desired amount of comparisons', background='#363636',
                          fg="#3498db", font=(set_font, set_font_size, "bold"))
     ss_count_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
 
@@ -5205,11 +5369,19 @@ def screen_shot_count_spinbox(*e_hotkey):
     else:
         ss_count.set('20')
 
+    # define returned var
+    temp_var = ''
+
     # function to save new name to config.ini
     def custom_okay_func():
+        nonlocal temp_var
+
         # create parser instance
         ss_parser = ConfigParser()
         ss_parser.read(config_file)
+
+        # define temp var
+        temp_var = ss_count.get()
 
         # save setting and exit the window
         if ss_parser['screenshot_settings']['semi_auto_count'] != ss_count.get():
@@ -5234,6 +5406,9 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_count_win.wait_window()  # wait for window to be closed
     open_all_toplevels()  # re-open all top levels if they exist
     screen_shot_window_opened = False  # set variable back to false
+
+    # return temp_var
+    return temp_var
 
 
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground='dim grey')
