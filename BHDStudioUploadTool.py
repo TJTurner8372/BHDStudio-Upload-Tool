@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.3"
+main_root_title = "BHDStudio Upload Tool v1.28.4"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -2377,8 +2377,8 @@ def auto_screen_shot_status_window():
 
         # hdr tone-map
         if source_file_information['hdr'] == 'True':
-            source_file = awsmfunc.DynamicTonemap(clip=source_file, reference=encode_file)
-            encode_file = awsmfunc.DynamicTonemap(clip=encode_file, reference=source_file)
+            source_file = awsmfunc.DynamicTonemap(clip=source_file)
+            encode_file = awsmfunc.DynamicTonemap(clip=encode_file)
 
         # define the subtitle/frame info for source and encode
         vs_source_info = core.sub.Subtitle(clip=source_file, text='Source', style=selected_sub_style)
