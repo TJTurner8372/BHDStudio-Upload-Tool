@@ -34,6 +34,7 @@ from pymediainfo import MediaInfo
 from torf import Torrent
 
 from Packages.About import openaboutwindow
+from Packages.custom_hovertip import CustomHovertip
 from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, bhd_upload_icon_disabled
 from Packages.show_streams import stream_menu
 from Packages.tmdb_key import tmdb_api_key
@@ -58,7 +59,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.5"
+main_root_title = "BHDStudio Upload Tool v1.28.6"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -218,6 +219,7 @@ for n in range(5):
     root.grid_rowconfigure(n, weight=1)
 
 
+# hoverbutton class
 class HoverButton(Button):
     def __init__(self, master, **kw):
         Button.__init__(self, master=master, **kw)
@@ -324,7 +326,7 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
             right_click_menu.add_command(label='Copy to clipboard', command=lambda: pyperclip.copy(
                 info_scrolled.get(1.0, END).strip()))
             info_scrolled.bind('<Button-3>', right_click_menu_func)  # Uses mouse button 3 to open the menu
-            Hovertip(info_scrolled, 'Right click to copy', hover_delay=1200)  # Hover tip tool-tip
+            Hovertip(info_scrolled, 'Right click to copy', hover_delay=800)  # Hover tip tool-tip
             error_window.grab_set()  # Brings attention to this window until it's closed
             root.bell()  # Error bell sound
 
@@ -367,6 +369,9 @@ release_date_var = StringVar()
 rating_var = StringVar()
 screenshot_comparison_var = StringVar()
 screenshot_selected_var = StringVar()
+loaded_script_info = StringVar()
+script_mode = StringVar()
+input_script_path = StringVar()
 
 
 # function to clear all variables
@@ -393,6 +398,9 @@ def clear_all_variables():
     rating_var.set('')
     screenshot_comparison_var.set('')
     screenshot_selected_var.set('')
+    loaded_script_info.set('')
+    script_mode.set('')
+    input_script_path.set('')
 
 
 # function to open imdb links with and without the id
@@ -429,28 +437,42 @@ def source_input_function(*args):
 
     # check if script is avisynth
     if pathlib.Path(*args).suffix == '.avs':
-        script_mode = 'avs'
+        script_mode.set('avs')
     # check if script is vapoursynth
     elif pathlib.Path(*args).suffix == '.vpy':
-        script_mode = 'vpy'
+        script_mode.set('vpy')
     # if input is not a script
     else:
         messagebox.showerror(parent=root, title='Incorrect File',
                              message='Dropped file must be an AviSynth or VapourSynth script')
         return  # exit the function
 
+    # assign path to script file for later use
+    input_script_path.set(*args)
+
     # open avisynth script
-    if script_mode == 'avs':
+    if script_mode.get() == 'avs':
         with open(*args, 'rt') as encode_script:
+            # search file for info
             search_file = encode_script.read()
             get_source_file = re.search(r'FFVideoSource\("(.+?)",', search_file)
-            get_crop = re.search(r"Crop\(.+\)", search_file)
-            get_resize = re.search(r"Spline.+\)", search_file)
+            get_crop = re.search(r"Crop\((.+)\)", search_file)
+            get_resize = re.search(r"Spline\d\d.*\((.+)\)", search_file)
+
+            # load search file to global string var to be used by encode function
+            loaded_script_info.set(search_file)
+
     # open vapoursynth script
-    elif script_mode == 'vpy':
-        messagebox.showerror(parent=root, title='WIP',
-                             message='VapourSynth support is not finished')
-        return  # FINISH THIS
+    elif script_mode.get() == 'vpy':
+        with open(*args, 'rt') as encode_script:
+            # search file for info
+            search_file = encode_script.read()
+            get_source_file = re.search(r'else core\.ffms2\.Source\(r"(.+?)",', search_file)
+            get_crop = re.search(r"Crop\(clip,\s(.+)\)", search_file)
+            get_resize = re.search(r"Spline\d\d\(clip,\s(.+)\)", search_file)
+
+            # load search file to global string var to be used by encode function
+            loaded_script_info.set(search_file)
 
     # if we cannot locate the source file
     if not get_source_file or not pathlib.Path(get_source_file.group(1)).is_file():
@@ -606,13 +628,29 @@ def source_input_function(*args):
 
     # crop
     if get_crop:
-        source_file_information.update({"crop": f"{str(get_crop.group())}"})
+        # convert crop for VapourSynth
+        if script_mode.get() == "vpy":
+            get_left = get_crop.group(1).split(',')[0].strip()
+            get_right = get_crop.group(1).split(',')[1].strip()
+            get_top = get_crop.group(1).split(',')[2].strip()
+            get_bottom = get_crop.group(1).split(',')[3].strip()
+        # convert crop for AviSynth
+        elif script_mode.get() == 'avs':
+            get_left = get_crop.group(1).split(',')[0].replace('-', '').strip()
+            get_right = get_crop.group(1).split(',')[2].replace('-', '').strip()
+            get_top = get_crop.group(1).split(',')[1].replace('-', '').strip()
+            get_bottom = get_crop.group(1).split(',')[3].replace('-', '').strip()
+
+        # add converted crop info to dictionary
+        source_file_information.update({"crop": {"left": get_left, "right": get_right,
+                                                 "top": get_top, "bottom": get_bottom}})
+    # if crop is None
     else:
         source_file_information.update({"crop": "None"})
 
     # resize
     if get_resize:
-        source_file_information.update({"resize": f"{str(get_resize.group())}"})
+        source_file_information.update({"resize": f"{str(get_resize.group(1))}"})
     else:
         source_file_information.update({"resize": "None"})
 
@@ -707,19 +745,19 @@ def encode_input_function(*args):
 
     # detect resolution and check miss match bit rates
     encode_settings_used_bit_rate = int(str(video_track.encoding_settings).split('bitrate=')[1].split('/')[0].strip())
-    if video_track.width <= 1280 and video_track.height <= 720:  # 720p
+    if video_track.width <= 1280:  # 720p
         encoded_source_resolution = '720p'
         if encode_settings_used_bit_rate != 4000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 720p encodes should be 4000 kbps')
             return  # exit function
-    elif video_track.width <= 1920 and video_track.height <= 1080:  # 1080p
+    elif video_track.width <= 1920:  # 1080p
         encoded_source_resolution = '1080p'
         if encode_settings_used_bit_rate != 8000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 1080p encodes should be 8000 kbps')
             return  # exit function
-    elif video_track.width <= 3840 and video_track.height <= 2160:  # 2160p
+    elif video_track.width <= 3840:  # 2160p
         encoded_source_resolution = '2160p'
         if encode_settings_used_bit_rate != 16000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
@@ -873,7 +911,95 @@ def encode_input_function(*args):
         release_notes_scrolled.insert(END, '\n-Screenshots tone mapped for comparison')
     release_notes_scrolled.config(state=DISABLED)
 
+    # update release notes automatically
+    # clear all check buttons
     enable_clear_all_checkbuttons()
+
+    # create empty list
+    script_info_list = []
+
+    # search each line of the opened file in memory
+    for each_line in loaded_script_info.get().splitlines():
+        # remove any commented lines
+        if not each_line.startswith('#'):
+            # remove all ending newlines and ignore empty strings
+            if each_line.rstrip() != '':
+                # append the remaining data to a list to be parsed
+                script_info_list.append(each_line.rstrip())
+
+    # parse list to update release notes for vapoursynth scripts
+    if script_mode.get() == 'vpy':
+        # find fill border info
+        for info in script_info_list:
+            fill_border_info = re.search(r"fillborders\((.+)\)", info, re.IGNORECASE)
+            if fill_border_info:
+                get_digits = re.findall(r"\d+", fill_border_info.group(1))[:-1]
+                check_if_all_zero = any(int(i) != 0 for i in get_digits)
+                # if any numbers are not equal to 0 (meaning fill borders was actually used)
+                if check_if_all_zero:
+                    # set fill borders var to 'on' and run fill border update function
+                    fill_borders_var.set('on')
+                    update_fill_borders()
+                # break from loop
+                break
+
+        # check for hard coded subs
+        hard_code_subs = re.search(r"textsubmod", str(script_info_list), re.IGNORECASE)
+        # if hard code subs are found update forced sub var
+        if hard_code_subs:
+            forced_subtitles_burned_var.set('on')
+            update_forced_var()
+
+        # check for balance borders
+        for info in script_info_list:
+            balance_border_info = re.search(r"bbmod\((.+)\)", info, re.IGNORECASE)
+            if balance_border_info:
+                bb_digits = re.findall(r"\d+", balance_border_info.group(1))[:-2]
+                bb_all_zero = any(int(i) != 0 for i in bb_digits)
+                # if any numbers are not equal to 0 (meaning balance borders was actually used)
+                if bb_all_zero:
+                    # set balance borders to 'on' and run the update function
+                    balance_borders_var.set('on')
+                    update_balanced_borders()
+                # break from the loop
+                break
+
+    # parse list to update release notes for avisynth scripts
+    elif script_mode.get() == 'avs':
+        # find fill border info
+        for info in script_info_list:
+            fill_border_info = re.search(r"fill.+\(([\s\d,]*)\)", info, re.IGNORECASE)
+            if fill_border_info:
+                get_digits = re.findall(r"\d+", fill_border_info.group(1))
+                check_if_all_zero = any(int(i) != 0 for i in get_digits)
+                # if any numbers are not equal to 0 (meaning fill borders was actually used)
+                if check_if_all_zero:
+                    # set fill borders var to 'on' and run fill border update function
+                    fill_borders_var.set('on')
+                    update_fill_borders()
+                # break from loop
+                break
+
+        # check for hard coded subs
+        hard_code_subs = re.search(r"textsub", str(script_info_list), re.IGNORECASE)
+        # if hard code subs are found update forced sub var
+        if hard_code_subs:
+            forced_subtitles_burned_var.set('on')
+            update_forced_var()
+
+        # check for balance borders
+        for info in script_info_list:
+            balance_border_info = re.search(r"balanceborders\((.+)\)", info, re.IGNORECASE)
+            if balance_border_info:
+                bb_digits = re.findall(r"\d+", balance_border_info.group(1))[:-2]
+                bb_all_zero = any(int(i) != 0 for i in bb_digits)
+                # if any numbers are not equal to 0 (meaning balance borders was actually used)
+                if bb_all_zero:
+                    # set balance borders to 'on' and run the update function
+                    balance_borders_var.set('on')
+                    update_balanced_borders()
+                # break from the loop
+                break
 
     # set torrent name
     if encode_input_function_parser['torrent_settings']['default_path'] != '':
@@ -918,16 +1044,18 @@ def drop_function(event):
 
 
 # source --------------------------------------------------------------------------------------------------------------
-source_frame = LabelFrame(root, text=' Source (*.avs / *.vpy) ', labelanchor="nw")
+source_frame = LabelFrame(root, text=' Source (*.avs / *.vpy / StaxRip Temp Directory) ', labelanchor="nw")
 source_frame.grid(column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
 source_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 source_frame.grid_rowconfigure(0, weight=1)
 source_frame.grid_rowconfigure(1, weight=1)
-source_frame.grid_columnconfigure(0, weight=2)
-source_frame.grid_columnconfigure(1, weight=20)
-source_frame.grid_columnconfigure(2, weight=1)
-source_frame.grid_columnconfigure(3, weight=1)
-
+source_frame.grid_columnconfigure(0, weight=10)
+source_frame.grid_columnconfigure(1, weight=100)
+source_frame.grid_columnconfigure(2, weight=0)
+# Hover tip tool-tip
+CustomHovertip(anchor_widget=source_frame, hover_delay=200, background="#363636", foreground="#3498db",
+               cust_font=(set_fixed_font, 9, 'bold'),
+               text='.avs/.vpy: Drag and Drop or by selecting Open\n\nStaxRip Temp Directory: Drag and Drop only')
 source_frame.drop_target_register(DND_FILES)
 source_frame.dnd_bind('<<Drop>>', drop_function)
 
@@ -954,11 +1082,11 @@ def manual_source_input():
 source_button = HoverButton(source_frame, text="Open", command=manual_source_input, foreground="white",
                             background="#23272A", borderwidth="3", activeforeground="#3498db",
                             activebackground="#23272A")
-source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
+source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + S + E + W)
 
 source_entry_box = Entry(source_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
                          disabledforeground='white', disabledbackground="#565656")
-source_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(5, 0), sticky=E + W)
+source_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N)
 
 source_info_frame = LabelFrame(source_frame, text='Info:', bd=0, bg="#363636", fg="#3498db",
                                font=(set_font, set_font_size))
@@ -988,8 +1116,8 @@ def delete_source_entry():
 
 reset_source_input = HoverButton(source_frame, text="X", command=delete_source_entry, foreground="white",
                                  background="#23272A", borderwidth="3", activeforeground="#3498db",
-                                 activebackground="#23272A")
-reset_source_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W)
+                                 activebackground="#23272A", width=3)
+reset_source_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W)
 
 # encode --------------------------------------------------------------------------------------------------------------
 encode_frame = LabelFrame(root, text=' Encode (*.mp4) ', labelanchor="nw")
@@ -997,9 +1125,9 @@ encode_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E +
 encode_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 encode_frame.grid_rowconfigure(0, weight=1)
 encode_frame.grid_rowconfigure(1, weight=1)
-encode_frame.grid_columnconfigure(0, weight=2)
-encode_frame.grid_columnconfigure(1, weight=20)
-encode_frame.grid_columnconfigure(3, weight=1)
+encode_frame.grid_columnconfigure(0, weight=10)
+encode_frame.grid_columnconfigure(1, weight=100)
+encode_frame.grid_columnconfigure(3, weight=0)
 
 encode_frame.drop_target_register(DND_FILES)
 encode_frame.dnd_bind('<<Drop>>', drop_function)
@@ -1027,11 +1155,11 @@ def manual_encode_input():
 encode_button = HoverButton(encode_frame, text="Open", command=manual_encode_input, foreground="white",
                             background="#23272A", borderwidth="3", activeforeground="#3498db",
                             activebackground="#23272A")
-encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
+encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W)
 
 encode_entry_box = Entry(encode_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
                          disabledforeground='white', disabledbackground="#565656")
-encode_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky=E + W)
+encode_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N)
 
 encode_info_frame = LabelFrame(encode_frame, text='Info:', bd=0, bg="#363636", fg="#3498db",
                                font=(set_font, set_font_size))
@@ -1070,8 +1198,8 @@ def delete_encode_entry():
 
 reset_encode_input = HoverButton(encode_frame, text="X", command=delete_encode_entry, foreground="white",
                                  background="#23272A", borderwidth="3", activeforeground="#3498db",
-                                 activebackground="#23272A")
-reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + S + E + W)
+                                 activebackground="#23272A", width=3)
+reset_encode_input.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W)
 
 
 # staxrip directory ---------------------------------------------------------------------------------------------------
@@ -1113,10 +1241,15 @@ def staxrip_working_directory(stax_dir_path):
             else:
                 messagebox.showinfo(title='Info', message='Could not load source script, please input this manually')
             # run encode input function
-            if pathlib.Path(get_encode_path.group(1)).is_file():
-                encode_input_function(get_encode_path.group(1))
-            else:
-                messagebox.showinfo(title='Info', message='Could not load "*BHDStudio.mp4", please input this manually')
+            try:
+                if pathlib.Path(get_encode_path.group(1)).is_file():
+                    encode_input_function(get_encode_path.group(1))
+                else:
+                    messagebox.showinfo(title='Info', message='Could not load encode "*BHDStudio.mp4", please input '
+                                                              'this manually')
+            except OSError:
+                messagebox.showinfo(title='Info', message='Could not load encode "*BHDStudio.mp4", please input '
+                                                          'this manually')
 
         # if both paths are not located
         else:
@@ -1315,7 +1448,9 @@ fill_borders_var.set('off')
 release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, height=5, bg="#565656", bd=4, fg='white')
 release_notes_scrolled.grid(row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W)
 release_notes_scrolled.config(state=DISABLED)
-Hovertip(release_notes_scrolled, 'Right click to enable manual edits', hover_delay=1000)  # Hover tip tool-tip
+# Hover tip tool-tip
+CustomHovertip(anchor_widget=release_notes_scrolled, hover_delay=200, background="#363636", foreground="#3498db",
+               cust_font=(set_fixed_font, 9, 'bold'), text='Right click to enable manual edits')
 
 
 # right click menu for screenshot box
@@ -1330,6 +1465,9 @@ enable_edits_menu = Menu(release_notes_scrolled, tearoff=False, font=(set_font, 
 enable_edits_menu.add_command(label='Enable Manual Edits', command=lambda: release_notes_scrolled.config(state=NORMAL))
 enable_edits_menu.add_command(label='Disable Manual Edits',
                               command=lambda: release_notes_scrolled.config(state=DISABLED))
+enable_edits_menu.add_separator()
+enable_edits_menu.add_command(label='Open Script In Default Viewer',
+                              command=lambda: os.startfile(pathlib.Path(input_script_path.get())))
 release_notes_scrolled.bind('<Button-3>', popup_auto_e_b_menu)  # Uses mouse button 3 (right click) to open
 
 
@@ -1431,10 +1569,9 @@ def update_image_listbox(list_of_images):
         # get opened file resolution
         media_info = MediaInfo.parse(pathlib.Path(opened_image_file))
         image_track_width = media_info.image_tracks[0].width
-        image_track_height = media_info.image_tracks[0].height
 
         # check if both image files and encode resolution is 720p
-        if image_track_width <= 1280 and image_track_height <= 720:  # 720p
+        if image_track_width <= 1280:  # 720p
             if encode_file_resolution.get() != '720p':
                 messagebox.showinfo(parent=root, title='Resolution Error',
                                     message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
@@ -1442,7 +1579,7 @@ def update_image_listbox(list_of_images):
                 return  # exit this function
 
         # check if both image files and encode resolution is 1080p
-        elif image_track_width <= 1920 and image_track_height <= 1080:  # 1080p
+        elif image_track_width <= 1920:  # 1080p
             if encode_file_resolution.get() != '1080p':
                 messagebox.showinfo(parent=root, title='Resolution Error',
                                     message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
@@ -1450,7 +1587,7 @@ def update_image_listbox(list_of_images):
                 return  # exit this function
 
         # check if both image files and encode resolution is 2160p
-        elif image_track_width <= 3840 and image_track_height <= 2160:  # 2160p
+        elif image_track_width <= 3840:  # 2160p
             if encode_file_resolution.get() != '2160p':
                 messagebox.showinfo(parent=root, title='Resolution Error',
                                     message=f"Encode source resolution is {encode_file_resolution.get()}.\n\nYour "
@@ -2356,12 +2493,11 @@ def auto_screen_shot_status_window():
 
         # crop
         if str(source_file_information['crop']) != 'None':
-            get_crop_info = str(source_file_information['crop']).replace('Crop(', '').replace(')', '').replace('-', '')
-            left_crop = int(get_crop_info.split(',')[0].strip())
-            top_crop = int(get_crop_info.split(',')[1].strip())
-            right_crop = int(get_crop_info.split(',')[2].strip())
-            bottom_crop = int(get_crop_info.split(',')[3].strip())
-            source_file = core.std.Crop(source_file, top=top_crop, bottom=bottom_crop, left=left_crop, right=right_crop)
+            source_file = core.std.Crop(source_file,
+                                        left=int(source_file_information['crop']['left']),
+                                        right=int(source_file_information['crop']['right']),
+                                        top=int(source_file_information['crop']['top']),
+                                        bottom=int(source_file_information['crop']['bottom']))
 
         # get dimensions for both source/encode
         source_width = str(source_file_information['resolution']).split('x')[0]
@@ -2371,9 +2507,10 @@ def auto_screen_shot_status_window():
 
         # if resolutions are not the same, resize the source to match encode resolution
         if source_width != encode_width and source_height != encode_height:
-            extract_dimension = re.findall(r"(\d+)", str(source_file_information['resize']))
-            source_file = core.resize.Spline36(source_file, width=int(extract_dimension[1]),
-                                               height=int(extract_dimension[2]), dither_type="error_diffusion")
+            source_file = core.resize.Spline36(source_file,
+                                               width=int(str(source_file_information['resize']).split(',')[0].strip()),
+                                               height=int(str(source_file_information['resize']).split(',')[1].strip()),
+                                               dither_type="error_diffusion")
 
         # hdr tone-map
         if source_file_information['hdr'] == 'True':
@@ -5347,7 +5484,9 @@ def screen_shot_count_spinbox(*e_hotkey):
         spinbox_sel_menu.add_command(label='90', command=lambda: ss_count.set("90"))
         spinbox_sel_menu.add_command(label='100', command=lambda: ss_count.set("100"))
         ss_spinbox.bind('<Button-3>', popup_spinbox_e_b_menu)  # Uses mouse button 3 (right click) to open
-        Hovertip(ss_spinbox, 'Right click for more options', hover_delay=600)  # Hover tip tool-tip
+        # custom hovertip
+        CustomHovertip(anchor_widget=ss_spinbox, hover_delay=200, background="#363636", foreground="#3498db",
+                       cust_font=(set_fixed_font, 9, 'bold'), text='Right click to quickly select amount')
 
     # create label
     ss_count_lbl = Label(ss_count_frame, text='Select desired amount of comparisons', background='#363636',
