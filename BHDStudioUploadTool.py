@@ -59,7 +59,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.6"
+main_root_title = "BHDStudio Upload Tool v1.28.7"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -2506,10 +2506,8 @@ def auto_screen_shot_status_window():
         encode_height = str(encode_file_res_w_h.get()).split(',')[1]
 
         # if resolutions are not the same, resize the source to match encode resolution
-        if source_width != encode_width and source_height != encode_height:
-            source_file = core.resize.Spline36(source_file,
-                                               width=int(str(source_file_information['resize']).split(',')[0].strip()),
-                                               height=int(str(source_file_information['resize']).split(',')[1].strip()),
+        if source_width != encode_width or source_height != encode_height:
+            source_file = core.resize.Spline36(source_file, width=int(encode_width), height=int(encode_height),
                                                dither_type="error_diffusion")
 
         # hdr tone-map
