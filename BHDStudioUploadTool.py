@@ -355,7 +355,6 @@ encode_file_resolution = StringVar()
 encode_media_info = StringVar()
 encode_file_audio = StringVar()
 encode_hdr_string = StringVar()
-encode_file_res_w_h = StringVar()
 torrent_file_path = StringVar()
 nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
@@ -384,7 +383,6 @@ def clear_all_variables():
     encode_media_info.set('')
     encode_file_audio.set('')
     encode_hdr_string.set('')
-    encode_file_res_w_h.set('')
     torrent_file_path.set('')
     nfo_info_var.set('')
     automatic_workflow_boolean.set(False)
@@ -1020,9 +1018,6 @@ def encode_input_function(*args):
     encode_entry_box.delete(0, END)
     encode_entry_box.insert(END, pathlib.Path(*args).name)
     encode_entry_box.config(state=DISABLED)
-
-    # add encode file resolution to StringVar()
-    encode_file_res_w_h.set(f"{video_track.width},{video_track.height}")
 
 
 def drop_function(event):
@@ -2499,16 +2494,10 @@ def auto_screen_shot_status_window():
                                         top=int(source_file_information['crop']['top']),
                                         bottom=int(source_file_information['crop']['bottom']))
 
-        # get dimensions for both source/encode
-        source_width = source_file.width
-        source_height = source_file.height
-        encode_width = str(encode_file_res_w_h.get()).split(',')[0]
-        encode_height = str(encode_file_res_w_h.get()).split(',')[1]
-
         # if resolutions are not the same, resize the source to match encode resolution
-        if source_width != encode_width and source_height != encode_height:
-            source_file = core.resize.Spline36(source_file, width=int(encode_width), height=int(encode_height),
-                                               dither_type="error_diffusion")
+        if source_file.width != encode_file.width and source_file.height != encode_file.height:
+            source_file = core.resize.Spline36(source_file, width=int(encode_file.width),
+                                               height=int(encode_file.height), dither_type="error_diffusion")
 
         # hdr tone-map
         if source_file_information['hdr'] == 'True':
