@@ -29,12 +29,12 @@ from PIL import Image, ImageTk
 from TkinterDnD2 import *
 from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
+from custom_hovertip import CustomTkinterTooltip
 from imdb import Cinemagoer
 from pymediainfo import MediaInfo
 from torf import Torrent
 
 from Packages.About import openaboutwindow
-from Packages.custom_hovertip import CustomHovertip
 from Packages.icon import base_64_icon, imdb_icon, tmdb_icon, bhd_upload_icon, bhd_upload_icon_disabled
 from Packages.show_streams import stream_menu
 from Packages.tmdb_key import tmdb_api_key
@@ -59,7 +59,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.8"
+main_root_title = "BHDStudio Upload Tool v1.28.9"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -422,6 +422,18 @@ def source_input_function(*args):
     source_input_parser = ConfigParser()
     source_input_parser.read(config_file)
 
+    # update last used folder
+    source_input_parser.set('last_used_folder', 'path', str(pathlib.Path(*args).parent))
+    with open(config_file, 'w') as s_i_c_config:
+        source_input_parser.write(s_i_c_config)
+
+    # check if script is the correct script
+    if str(pathlib.Path(pathlib.Path(*args).name).with_suffix('')).endswith('_source'):
+        messagebox.showinfo(parent=root, title='Wrong script file',
+                            message='You must select the script without the suffix "_source" '
+                                    'in the filename before the scripts extension')
+        return  # exit this function
+
     # clear variables and boxes
     image_listbox.config(state=NORMAL)  # enable image list box
     image_listbox.delete(0, END)  # delete image list box contents
@@ -498,7 +510,10 @@ def source_input_function(*args):
     else:
         loaded_source_file = get_source_file.group(1)
 
-    media_info = MediaInfo.parse(pathlib.Path(loaded_source_file))
+    try:
+        media_info = MediaInfo.parse(pathlib.Path(loaded_source_file))
+    except UnboundLocalError:
+        return  # exit the function
 
     # check to ensure file dropped has a video track
     if not media_info.general_tracks[0].count_of_video_streams:
@@ -559,7 +574,7 @@ def source_input_function(*args):
         # Open on top left of root window
         audio_track_win.geometry(f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 80)}')
-        audio_track_win.resizable(0, 0)  # makes window not resizable
+        audio_track_win.resizable(False, False)  # makes window not resizable
         audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
         audio_track_win.wm_overrideredirect(True)
         root.wm_attributes('-alpha', 0.92)  # set main gui to be slightly transparent
@@ -662,11 +677,6 @@ def source_input_function(*args):
     if video_track.format:
         source_file_information.update({'format': f"{str(video_track.format)}"})
 
-    # update last used folder
-    source_input_parser.set('last_used_folder', 'path', str(pathlib.Path(loaded_source_file).parent))
-    with open(config_file, 'w') as s_i_c_config:
-        source_input_parser.write(s_i_c_config)
-
     # update labels
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
@@ -676,6 +686,9 @@ def source_input_function(*args):
     source_entry_box.delete(0, END)
     source_entry_box.insert(END, pathlib.Path(loaded_source_file).name)
     source_entry_box.config(state=DISABLED)
+
+    # return function
+    return loaded_source_file
 
 
 def encode_input_function(*args):
@@ -755,11 +768,21 @@ def encode_input_function(*args):
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 1080p encodes should be 8000 kbps')
             return  # exit function
+        if source_file_information['resize'] != 'None':
+            messagebox.showinfo(parent=root, title='Incorrect resolution',
+                                message='Source script indicates that the encode file was resized.\n\nYou must either '
+                                        'open a 720p encode or open a new source script')
+            return  # exit function
     elif video_track.width <= 3840:  # 2160p
         encoded_source_resolution = '2160p'
         if encode_settings_used_bit_rate != 16000:
             resolution_bit_rate_miss_match_error(f'Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n'
                                                  f'Bit rate for 2160p encodes should be 16000 kbps')
+            return  # exit function
+        if source_file_information['resize'] != 'None':
+            messagebox.showinfo(parent=root, title='Incorrect resolution',
+                                message='Source script indicates that the encode file was resized.\n\nYou must either '
+                                        'open a 720p encode or open a new source script')
             return  # exit function
 
     # set encode file resolution string var
@@ -1048,9 +1071,9 @@ source_frame.grid_columnconfigure(0, weight=10)
 source_frame.grid_columnconfigure(1, weight=100)
 source_frame.grid_columnconfigure(2, weight=0)
 # Hover tip tool-tip
-CustomHovertip(anchor_widget=source_frame, hover_delay=200, background="#363636", foreground="#3498db",
-               cust_font=(set_fixed_font, 9, 'bold'),
-               text='.avs/.vpy: Drag and Drop or by selecting Open\n\nStaxRip Temp Directory: Drag and Drop only')
+CustomTkinterTooltip(anchor_widget=source_frame, hover_delay=400, background="#363636", foreground="#3498db",
+                     cust_font=(set_fixed_font, 9, 'bold'),
+                     text='Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script')
 source_frame.drop_target_register(DND_FILES)
 source_frame.dnd_bind('<<Drop>>', drop_function)
 
@@ -1067,22 +1090,36 @@ def manual_source_input():
         manual_initial_dir = '/'
 
     # get source file input
-    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source Script',
+    source_file_input = filedialog.askopenfilename(parent=root, title='Select Source Script '
+                                                                      '(script file without suffix "_source")',
                                                    initialdir=manual_initial_dir,
                                                    filetypes=[("AviSynth, Vapoursynth", "*.avs *.vpy")])
     if source_file_input:
         source_input_function(source_file_input)
 
 
-source_button = HoverButton(source_frame, text="Open", command=manual_source_input, foreground="white",
+# multiple source input button and pop up menu
+def source_input_popup_menu(*args):  # Menu for input button
+    source_input_menu = Menu(root, tearoff=False, font=(set_font, set_font_size + 1), background="#23272A",
+                             foreground="white", activebackground="#23272A", activeforeground="#3498db")  # menu
+    source_input_menu.add_command(label='Open Script', command=manual_source_input)
+    source_input_menu.add_separator()
+    source_input_menu.add_command(label='Open StaxRip Temp Dir', command=staxrip_manual_open)
+    source_input_menu.tk_popup(source_button.winfo_rootx(), source_button.winfo_rooty() + 5)
+
+
+# source button
+source_button = HoverButton(source_frame, text="Open", command=source_input_popup_menu, foreground="white",
                             background="#23272A", borderwidth="3", activeforeground="#3498db",
                             activebackground="#23272A")
 source_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + S + E + W)
 
+# source entry box
 source_entry_box = Entry(source_frame, borderwidth=4, bg="#565656", fg='white', state=DISABLED,
                          disabledforeground='white', disabledbackground="#565656")
 source_entry_box.grid(row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N)
 
+# source info frame
 source_info_frame = LabelFrame(source_frame, text='Info:', bd=0, bg="#363636", fg="#3498db",
                                font=(set_font, set_font_size))
 source_info_frame.grid(row=1, column=0, columnspan=4, padx=5, pady=0, sticky=N + S + E + W)
@@ -1091,6 +1128,7 @@ for s_i_f in range(4):
 source_info_frame.grid_rowconfigure(0, weight=1)
 source_info_frame.grid_rowconfigure(1, weight=1)
 
+# source labels
 source_label = Label(source_info_frame, text=' ' * 100, bd=0, relief=SUNKEN, background='#363636', foreground="white")
 source_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W)
 source_hdr_label = Label(source_info_frame, text=' ' * 100, bd=0, relief=SUNKEN, background='#363636',
@@ -1098,6 +1136,7 @@ source_hdr_label = Label(source_info_frame, text=' ' * 100, bd=0, relief=SUNKEN,
 source_hdr_label.grid(column=0, row=1, columnspan=4, pady=3, padx=3, sticky=W)
 
 
+# function to delete source entry
 def delete_source_entry():
     source_entry_box.config(state=NORMAL)
     source_entry_box.delete(0, END)
@@ -1232,10 +1271,14 @@ def staxrip_working_directory(stax_dir_path):
             root.wm_attributes('-alpha', 1.0)
             # run source input function
             if pathlib.Path(get_source_path).is_file():
-                source_input_function(get_source_path)
+                run_source_func = source_input_function(get_source_path)
             else:
                 messagebox.showinfo(title='Info', message='Could not load source script, please input this manually')
-            # run encode input function
+
+            # if user cancels source_input_function code exit this function as well
+            if not run_source_func:
+                return  # exit this function
+
             try:
                 if pathlib.Path(get_encode_path.group(1)).is_file():
                     encode_input_function(get_encode_path.group(1))
@@ -1290,7 +1333,7 @@ def staxrip_working_directory(stax_dir_path):
             # Open on top left of root window
             stax_log_win.geometry(f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
                                   f'{str(int(root.geometry().split("+")[2]) + 80)}')
-            stax_log_win.resizable(0, 0)  # makes window not resizable
+            stax_log_win.resizable(False, False)  # makes window not resizable
             stax_log_win.grab_set()  # forces stax_log_win to stay on top of root
             stax_log_win.wm_overrideredirect(True)
             root.wm_attributes('-alpha', 0.92)  # set main gui to be slightly transparent
@@ -1444,8 +1487,8 @@ release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, he
 release_notes_scrolled.grid(row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W)
 release_notes_scrolled.config(state=DISABLED)
 # Hover tip tool-tip
-CustomHovertip(anchor_widget=release_notes_scrolled, hover_delay=200, background="#363636", foreground="#3498db",
-               cust_font=(set_fixed_font, 9, 'bold'), text='Right click to enable manual edits')
+CustomTkinterTooltip(anchor_widget=release_notes_scrolled, hover_delay=400, background="#363636", foreground="#3498db",
+                     cust_font=(set_fixed_font, 9, 'bold'), text='Right click for more options')
 
 
 # right click menu for screenshot box
@@ -2130,7 +2173,7 @@ def choose_indexer_func():
     index_selection_win.configure(background="#363636")
     index_selection_win.geometry(f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    index_selection_win.resizable(0, 0)
+    index_selection_win.resizable(False, False)
     index_selection_win.grab_set()  # force this window on top of all others
     root.wm_withdraw()  # hide root
     index_selection_win.protocol('WM_DELETE_WINDOW', exit_index_window)
@@ -2238,7 +2281,7 @@ def auto_screen_shot_status_window():
     screenshot_status_window.title('')
     screenshot_status_window.geometry(f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
                                       f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    screenshot_status_window.resizable(0, 0)
+    screenshot_status_window.resizable(False, False)
     root.wm_withdraw()  # hide root
     screenshot_status_window.grid_rowconfigure(0, weight=1)
     screenshot_status_window.grid_columnconfigure(0, weight=1)
@@ -2480,11 +2523,11 @@ def auto_screen_shot_status_window():
 
         # create comparison image directory and define it as variable
         pathlib.Path(pathlib.Path(image_output_dir) / "img_comparison").mkdir(exist_ok=True)
-        screenshot_comparison_var.set(pathlib.Path(pathlib.Path(image_output_dir) / "img_comparison"))
+        screenshot_comparison_var.set(str(pathlib.Path(pathlib.Path(image_output_dir) / "img_comparison")))
 
         # create selected image directory and define it as variable
         pathlib.Path(pathlib.Path(image_output_dir) / "img_selected").mkdir(exist_ok=True)
-        screenshot_selected_var.set(pathlib.Path(pathlib.Path(image_output_dir) / "img_selected"))
+        screenshot_selected_var.set(str(pathlib.Path(pathlib.Path(image_output_dir) / "img_selected")))
 
         # crop
         if str(source_file_information['crop']) != 'None':
@@ -2784,7 +2827,7 @@ def upload_to_beyond_hd_co_window():
     upload_ss_status.title('Upload Status')
     upload_ss_status.geometry(f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 138)}+'
                               f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    upload_ss_status.resizable(0, 0)
+    upload_ss_status.resizable(False, False)
     upload_ss_status.grab_set()  # force this window on top
     upload_ss_status.wm_protocol('WM_DELETE_WINDOW', upload_ss_exit_func)
     root.wm_withdraw()  # hide root
@@ -3066,10 +3109,9 @@ def open_nfo_viewer():
         a_bitrate = str(encode_audio_track.other_bit_rate[0]).replace('kb/s', '').strip()
 
         # optional sub string
+        optional_sub_string = ''
         if forced_subtitles_burned_var.get() == 'on':
             optional_sub_string = '\nSubtitles               : English (Forced)'
-        elif forced_subtitles_burned_var.get() == 'off':
-            optional_sub_string = ''
 
         # encoder name
         encoded_by = ''
@@ -4804,7 +4846,7 @@ def open_uploader_window(job_mode):
         upload_status_window.configure(background="#363636")
         upload_status_window.geometry(f'{460}x{200}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
                                       f'{str(int(upload_window.geometry().split("+")[2]) + 230)}')
-        upload_status_window.resizable(0, 0)
+        upload_status_window.resizable(False, False)
         upload_status_window.grab_set()
         upload_status_window.wm_overrideredirect(True)
         upload_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
@@ -5092,7 +5134,7 @@ def custom_input_prompt(parent_window, label_input, config_option, config_key, h
     custom_input_window.configure(background="#363636")
     custom_input_window.geometry(f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
                                  f'{str(int(parent_window.geometry().split("+")[2]) + 230)}')
-    custom_input_window.resizable(0, 0)
+    custom_input_window.resizable(False, False)
     custom_input_window.grab_set()
     custom_input_window.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
     parent_window.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
@@ -5168,7 +5210,7 @@ def torrent_path_window_function(*t_args):
     torrent_path_window.configure(background="#363636")
     torrent_path_window.geometry(f'{460}x{160}+{str(int(root.geometry().split("+")[1]) + 156)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    torrent_path_window.resizable(0, 0)
+    torrent_path_window.resizable(False, False)
     torrent_path_window.grab_set()
     torrent_path_window.protocol('WM_DELETE_WINDOW', torrent_path_okay_func)
     root.wm_attributes('-alpha', 0.92)  # set parent window to be slightly transparent
@@ -5295,7 +5337,7 @@ def bhd_co_login_window():
     bhd_login_win.configure(background="#363636")
     bhd_login_win.geometry(f'{300}x{210}+{str(int(root.geometry().split("+")[1]) + 220)}+'
                            f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    bhd_login_win.resizable(0, 0)
+    bhd_login_win.resizable(False, False)
     bhd_login_win.grab_set()
     bhd_login_win.protocol('WM_DELETE_WINDOW', save_exit_function)
     root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
@@ -5439,7 +5481,7 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_count_win.configure(background="#363636")
     ss_count_win.geometry(f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
                           f'{str(int(root.geometry().split("+")[2]) + 230)}')
-    ss_count_win.resizable(0, 0)
+    ss_count_win.resizable(False, False)
     ss_count_win.grab_set()
     ss_count_win.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
     root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
@@ -5471,9 +5513,9 @@ def screen_shot_count_spinbox(*e_hotkey):
         spinbox_sel_menu.add_command(label='90', command=lambda: ss_count.set("90"))
         spinbox_sel_menu.add_command(label='100', command=lambda: ss_count.set("100"))
         ss_spinbox.bind('<Button-3>', popup_spinbox_e_b_menu)  # Uses mouse button 3 (right click) to open
-        # custom hovertip
-        CustomHovertip(anchor_widget=ss_spinbox, hover_delay=200, background="#363636", foreground="#3498db",
-                       cust_font=(set_fixed_font, 9, 'bold'), text='Right click to quickly select amount')
+        # custom hover tip
+        CustomTkinterTooltip(anchor_widget=ss_spinbox, hover_delay=200, background="#363636", foreground="#3498db",
+                             cust_font=(set_fixed_font, 9, 'bold'), text='Right click to quickly select amount')
 
     # create label
     ss_count_lbl = Label(ss_count_frame, text='Select desired amount of comparisons', background='#363636',
