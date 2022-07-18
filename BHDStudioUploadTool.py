@@ -59,7 +59,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.28.9"
+main_root_title = "BHDStudio Upload Tool v1.29"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -2261,12 +2261,139 @@ def choose_indexer_func():
     return index_selection_var
 
 
+# function to check crop
+def check_crop_values():
+    # exit the window
+    def exit_index_window():
+        check_crop_win.destroy()  # close window
+        advanced_root_deiconify()  # restore root
+
+    # index selection window
+    check_crop_win = Toplevel()
+    check_crop_win.title('Check Crop')
+    check_crop_win.configure(background="#363636")
+    check_crop_win.geometry(f'{350}x{180}+{str(int(root.geometry().split("+")[1]) + 180)}+'
+                            f'{str(int(root.geometry().split("+")[2]) + 230)}')
+    check_crop_win.resizable(False, False)
+    check_crop_win.grab_set()  # force this window on top of all others
+    root.wm_withdraw()  # hide root
+    check_crop_win.protocol('WM_DELETE_WINDOW', exit_index_window)
+    check_crop_win.grid_rowconfigure(0, weight=1)
+    check_crop_win.grid_columnconfigure(0, weight=1)
+
+    # index select frame
+    check_crop_frame = LabelFrame(check_crop_win, text=' Crop: ', bd=0, bg="#363636", fg="#3498db",
+                                  font=(set_font, set_font_size + 1, 'bold'))
+    check_crop_frame.grid(column=0, row=0, columnspan=4, sticky=N + S + E + W)
+
+    # grid/column configure
+    # for c_c_f in range(4):
+    #     check_crop_frame.grid_columnconfigure(c_c_f, weight=1)
+    check_crop_frame.grid_columnconfigure(0, weight=1)
+    check_crop_frame.grid_columnconfigure(1, weight=1000)
+    check_crop_frame.grid_columnconfigure(2, weight=1000)
+    check_crop_frame.grid_columnconfigure(3, weight=1)
+
+    for c_cc_f in range(3):
+        check_crop_frame.grid_rowconfigure(c_cc_f, weight=1)
+
+    # variable to be returned
+    crop_var = {}
+
+    # update variable for crop
+    def update_crop_var():
+        nonlocal crop_var
+        crop_var.update({"crop": {"left": left_entry_box.get().strip(),
+                                  "right": right_entry_box.get().strip(),
+                                  "top": top_entry_box.get().strip(),
+                                  "bottom": bottom_entry_box.get().strip()}})
+
+        # update dictionary crop info
+        source_file_information.update({"crop": {"left": left_entry_box.get().strip(),
+                                                 "right": right_entry_box.get().strip(),
+                                                 "top": top_entry_box.get().strip(),
+                                                 "bottom": bottom_entry_box.get().strip()}})
+
+        check_crop_win.destroy()  # exit the window
+
+    # left crop label
+    left_label = Label(check_crop_frame, font=(set_fixed_font, set_font_size - 1), text="Left:",
+                       background='#363636', fg="white")
+    left_label.grid(row=0, column=0, sticky=W + S, padx=5, pady=(7, 10))
+
+    # left entry box
+    left_entry_box = Entry(check_crop_frame, borderwidth=4, bg="#565656", fg='white', width=8,
+                           disabledforeground='white', disabledbackground="#565656")
+    left_entry_box.grid(row=0, column=1, padx=5, pady=(7, 10), sticky=W + S)
+
+    # right crop label
+    right_label = Label(check_crop_frame, font=(set_fixed_font, set_font_size - 1), text="Right:",
+                        background='#363636', fg="white")
+    right_label.grid(row=0, column=2, sticky=E + S, padx=5, pady=(7, 10))
+
+    # right entry box
+    right_entry_box = Entry(check_crop_frame, borderwidth=4, bg="#565656", fg='white', width=8,
+                            disabledforeground='white', disabledbackground="#565656")
+    right_entry_box.grid(row=0, column=3, padx=5, pady=(7, 10), sticky=E + S)
+
+    # top crop label
+    top_label = Label(check_crop_frame, font=(set_fixed_font, set_font_size - 1), text="Top:",
+                      background='#363636', fg="white")
+    top_label.grid(row=1, column=0, sticky=W + N, padx=5, pady=(16, 0))
+
+    # top entry box
+    top_entry_box = Entry(check_crop_frame, borderwidth=4, bg="#565656", fg='white', width=8,
+                          disabledforeground='white', disabledbackground="#565656")
+    top_entry_box.grid(row=1, column=1, padx=5, pady=(7, 0), sticky=W + N)
+
+    # bottom crop label
+    bottom_label = Label(check_crop_frame, font=(set_fixed_font, set_font_size - 1), text="Bottom:",
+                         background='#363636', fg="white")
+    bottom_label.grid(row=1, column=2, sticky=E + N, padx=5, pady=(16, 0))
+
+    # bottom entry box
+    bottom_entry_box = Entry(check_crop_frame, borderwidth=4, bg="#565656", fg='white', width=8,
+                             disabledforeground='white', disabledbackground="#565656")
+    bottom_entry_box.grid(row=1, column=3, padx=5, pady=(7, 0), sticky=E + N)
+
+    # create 'Cancel' button
+    crop_cancel_btn = HoverButton(check_crop_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                  command=lambda: [check_crop_win.destroy(), advanced_root_deiconify()],
+                                  foreground="white", background="#23272A", borderwidth="3",
+                                  activebackground="#23272A")
+    crop_cancel_btn.grid(row=2, column=0, columnspan=2, padx=7, pady=5, sticky=S + W)
+
+    # create 'Accept' button
+    accept_btn = HoverButton(check_crop_frame, text="Accept", activeforeground="#3498db", width=8,
+                             command=update_crop_var, foreground="white", background="#23272A", borderwidth="3",
+                             activebackground="#23272A")
+    accept_btn.grid(row=2, column=3, padx=7, pady=5, sticky=S + E)
+
+    # update all the crop values
+    if source_file_information['crop'] != 'None':
+        left_entry_box.insert(0, source_file_information['crop']['left'])
+        right_entry_box.insert(0, source_file_information['crop']['right'])
+        top_entry_box.insert(0, source_file_information['crop']['top'])
+        bottom_entry_box.insert(0, source_file_information['crop']['bottom'])
+
+    check_crop_win.wait_window()  # wait for window to be closed
+
+    # return index variable
+    return crop_var
+
+
 # auto screenshot status window
 def auto_screen_shot_status_window():
     # select desired amount of screenshots
     screen_amount_check = screen_shot_count_spinbox()
 
     if screen_amount_check == '':
+        return  # exit this function
+
+    # check crop
+    checking_crop = check_crop_values()
+
+    if not checking_crop:
         return  # exit this function
 
     # choose indexer
@@ -2969,7 +3096,7 @@ def parse_screen_shots():
 
 # manual workflow frame
 manual_workflow = LabelFrame(root, text=' Manual Workflow ', labelanchor="nw")
-manual_workflow.grid(column=0, row=4, columnspan=3, padx=5, pady=(5, 3), sticky=W)
+manual_workflow.grid(column=0, row=4, columnspan=2, padx=5, pady=(5, 3), sticky=W)
 manual_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, 'bold'))
 manual_workflow.grid_rowconfigure(0, weight=1)
 manual_workflow.grid_columnconfigure(0, weight=1)
@@ -3688,7 +3815,7 @@ def open_nfo_viewer():
 
 generate_nfo_button = HoverButton(manual_workflow, text="Generate NFO", command=open_nfo_viewer, foreground="white",
                                   background="#23272A", borderwidth="3", activeforeground="#3498db",
-                                  activebackground="#23272A", width=12)
+                                  activebackground="#23272A", width=15)
 generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=5, pady=1, sticky=E + W)
 
 
@@ -3987,9 +4114,16 @@ def torrent_function_window():
 
 # open torrent window button
 open_torrent_window_button = HoverButton(manual_workflow, text="Create Torrent", command=torrent_function_window,
-                                         foreground="white", background="#23272A", borderwidth="3", width=12,
+                                         foreground="white", background="#23272A", borderwidth="3", width=15,
                                          activeforeground="#3498db", activebackground="#23272A", state=DISABLED)
 open_torrent_window_button.grid(row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W)
+
+# view loaded script button
+view_loaded_script = HoverButton(root, text="View Script", state=DISABLED,
+                                 command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
+                                 foreground="white", background="#23272A", borderwidth="3",
+                                 activeforeground="#3498db", width=10, activebackground="#23272A")
+view_loaded_script.grid(row=4, column=2, columnspan=1, padx=(20, 5), pady=(23, 3), sticky=E + W)
 
 # automatic workflow frame
 automatic_workflow = LabelFrame(root, text=' Automatic Workflow ', labelanchor="nw")
@@ -5010,7 +5144,7 @@ def open_uploader_window(job_mode):
 open_uploader_button = HoverButton(manual_workflow, text="Uploader", state=DISABLED,
                                    command=lambda: [automatic_workflow_boolean.set(False),
                                                     open_uploader_window('manual')],
-                                   foreground="white", background="#23272A", borderwidth="3", width=12,
+                                   foreground="white", background="#23272A", borderwidth="3", width=15,
                                    activeforeground="#3498db", activebackground="#23272A")
 open_uploader_button.grid(row=0, column=2, columnspan=1, padx=(5, 10), pady=1, sticky=E + W)
 
@@ -5652,6 +5786,7 @@ def generate_button_checker():
     if source_file_path.get() != '' and encode_file_path.get() != '':  # if source/encode is not empty strings
         open_torrent_window_button.config(state=NORMAL)
         auto_screens_multi_btn.config(state=NORMAL)
+        view_loaded_script.config(state=NORMAL)
         check_screens = parse_screen_shots()
         # if check screens was not False
         if check_screens:
@@ -5666,6 +5801,7 @@ def generate_button_checker():
         parse_and_upload.config(state=DISABLED)
         open_uploader_button.config(state=DISABLED)
         auto_screens_multi_btn.config(state=DISABLED)
+        view_loaded_script.config(state=DISABLED)
     root.after(50, generate_button_checker)  # loop to constantly check
 
 
