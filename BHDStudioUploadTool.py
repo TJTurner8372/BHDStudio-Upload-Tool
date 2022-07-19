@@ -25,7 +25,7 @@ import requests
 import torf
 import vapoursynth as vs
 from PIL import Image, ImageTk
-from TkinterDnD2 import *
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
 from custom_hovertip import CustomTooltipLabel
