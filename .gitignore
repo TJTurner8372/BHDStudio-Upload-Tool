@@ -4,3 +4,5 @@ config.ini
 tmdb_key.py
 Packages/user_pw_key.py
 *.bin
+*.exe
+*.zip
