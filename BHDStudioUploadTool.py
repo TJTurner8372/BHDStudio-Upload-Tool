@@ -13,7 +13,6 @@ import webbrowser
 import zipfile
 from configparser import ConfigParser
 from ctypes import windll
-from idlelib.tooltip import Hovertip
 from io import BytesIO
 from tkinter import filedialog, StringVar, ttk, messagebox, NORMAL, DISABLED, N, S, W, E, Toplevel, \
     LabelFrame, END, Label, Checkbutton, OptionMenu, Entry, HORIZONTAL, SUNKEN, Button, TclError, font, Menu, Text, \
@@ -29,7 +28,7 @@ from PIL import Image, ImageTk
 from TkinterDnD2 import *
 from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
-from custom_hovertip import CustomTkinterTooltip
+from custom_hovertip import CustomTooltipLabel
 from imdb import Cinemagoer
 from pymediainfo import MediaInfo
 from torf import Torrent
@@ -326,7 +325,7 @@ class Logger(object):  # Logger class, this class puts stderr errors into a wind
             right_click_menu.add_command(label='Copy to clipboard', command=lambda: pyperclip.copy(
                 info_scrolled.get(1.0, END).strip()))
             info_scrolled.bind('<Button-3>', right_click_menu_func)  # Uses mouse button 3 to open the menu
-            Hovertip(info_scrolled, 'Right click to copy', hover_delay=800)  # Hover tip tool-tip
+            CustomTooltipLabel(info_scrolled, 'Right click to copy', hover_delay=800)  # Hover tip tool-tip
             error_window.grab_set()  # Brings attention to this window until it's closed
             root.bell()  # Error bell sound
 
@@ -1071,9 +1070,9 @@ source_frame.grid_columnconfigure(0, weight=10)
 source_frame.grid_columnconfigure(1, weight=100)
 source_frame.grid_columnconfigure(2, weight=0)
 # Hover tip tool-tip
-CustomTkinterTooltip(anchor_widget=source_frame, hover_delay=400, background="#363636", foreground="#3498db",
-                     cust_font=(set_fixed_font, 9, 'bold'),
-                     text='Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script')
+CustomTooltipLabel(anchor_widget=source_frame, hover_delay=400, background="#363636", foreground="#3498db",
+                   font=(set_fixed_font, 9, 'bold'),
+                   text='Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script')
 source_frame.drop_target_register(DND_FILES)
 source_frame.dnd_bind('<<Drop>>', drop_function)
 
@@ -1487,8 +1486,8 @@ release_notes_scrolled = scrolledtextwidget.ScrolledText(release_notes_frame, he
 release_notes_scrolled.grid(row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W)
 release_notes_scrolled.config(state=DISABLED)
 # Hover tip tool-tip
-CustomTkinterTooltip(anchor_widget=release_notes_scrolled, hover_delay=400, background="#363636", foreground="#3498db",
-                     cust_font=(set_fixed_font, 9, 'bold'), text='Right click for more options')
+CustomTooltipLabel(anchor_widget=release_notes_scrolled, hover_delay=400, background="#363636", foreground="#3498db",
+                   font=(set_fixed_font, 9, 'bold'), text='Right click for more options')
 
 
 # right click menu for screenshot box
@@ -5648,8 +5647,8 @@ def screen_shot_count_spinbox(*e_hotkey):
         spinbox_sel_menu.add_command(label='100', command=lambda: ss_count.set("100"))
         ss_spinbox.bind('<Button-3>', popup_spinbox_e_b_menu)  # Uses mouse button 3 (right click) to open
         # custom hover tip
-        CustomTkinterTooltip(anchor_widget=ss_spinbox, hover_delay=200, background="#363636", foreground="#3498db",
-                             cust_font=(set_fixed_font, 9, 'bold'), text='Right click to quickly select amount')
+        CustomTooltipLabel(anchor_widget=ss_spinbox, hover_delay=200, background="#363636", foreground="#3498db",
+                           font=(set_fixed_font, 9, 'bold'), text='Right click to quickly select amount')
 
     # create label
     ss_count_lbl = Label(ss_count_frame, text='Select desired amount of comparisons', background='#363636',
