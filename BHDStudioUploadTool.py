@@ -25,12 +25,12 @@ import requests
 import torf
 import vapoursynth as vs
 from PIL import Image, ImageTk
-from tkinterdnd2 import DND_FILES, TkinterDnD
 from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
 from custom_hovertip import CustomTooltipLabel
 from imdb import Cinemagoer
 from pymediainfo import MediaInfo
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from torf import Torrent
 
 from Packages.About import openaboutwindow
@@ -2355,18 +2355,32 @@ def check_crop_values():
                              disabledforeground='white', disabledbackground="#565656")
     bottom_entry_box.grid(row=1, column=3, padx=5, pady=(7, 0), sticky=E + N)
 
+    # create button frame
+    crop_btn_frame = Frame(check_crop_frame, bg="#363636")
+    crop_btn_frame.grid(column=0, row=2, columnspan=4, sticky=N + S + E + W)
+    for c_b_f in range(3):
+        crop_btn_frame.grid_columnconfigure(c_b_f, weight=1)
+    crop_btn_frame.grid_rowconfigure(0, weight=1)
+
     # create 'Cancel' button
-    crop_cancel_btn = HoverButton(check_crop_frame, text="Cancel", activeforeground="#3498db", width=8,
+    crop_cancel_btn = HoverButton(crop_btn_frame, text="Cancel", activeforeground="#3498db", width=8,
                                   command=lambda: [check_crop_win.destroy(), advanced_root_deiconify()],
                                   foreground="white", background="#23272A", borderwidth="3",
                                   activebackground="#23272A")
-    crop_cancel_btn.grid(row=2, column=0, columnspan=2, padx=7, pady=5, sticky=S + W)
+    crop_cancel_btn.grid(row=0, column=0, padx=7, pady=5, sticky=S + W)
+
+    # create 'view script' button
+    view_script = HoverButton(crop_btn_frame, text="View Script", activeforeground="#3498db", width=8,
+                              command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
+                              foreground="white", background="#23272A", borderwidth="3",
+                              activebackground="#23272A")
+    view_script.grid(row=0, column=1, padx=7, pady=5, sticky=W + E + S)
 
     # create 'Accept' button
-    accept_btn = HoverButton(check_crop_frame, text="Accept", activeforeground="#3498db", width=8,
+    accept_btn = HoverButton(crop_btn_frame, text="Accept", activeforeground="#3498db", width=8,
                              command=update_crop_var, foreground="white", background="#23272A", borderwidth="3",
                              activebackground="#23272A")
-    accept_btn.grid(row=2, column=3, padx=7, pady=5, sticky=S + E)
+    accept_btn.grid(row=0, column=2, padx=7, pady=5, sticky=S + E)
 
     # update all the crop values
     if source_file_information['crop'] != 'None':
@@ -5610,13 +5624,13 @@ def screen_shot_count_spinbox(*e_hotkey):
 
     # encoder name window
     ss_count_win = Toplevel()
-    ss_count_win.title('')
+    ss_count_win.title('SS Count')
     ss_count_win.configure(background="#363636")
     ss_count_win.geometry(f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
                           f'{str(int(root.geometry().split("+")[2]) + 230)}')
     ss_count_win.resizable(False, False)
     ss_count_win.grab_set()
-    ss_count_win.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
+    ss_count_win.protocol('WM_DELETE_WINDOW', lambda: [ss_count_win.destroy(), root.wm_attributes('-alpha', 1.0)])
     root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
     ss_count_win.grid_rowconfigure(0, weight=1)
     ss_count_win.grid_columnconfigure(0, weight=1)
