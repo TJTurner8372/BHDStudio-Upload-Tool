@@ -3722,13 +3722,26 @@ def open_nfo_viewer():
 
         # chapter information
         try:
+            # check for numbered chapters
             chapters_start_numbered = re.search(r"chapter\s*(\d+)", str(list(encode_chapter.values())),
                                                 re.IGNORECASE).group(1)
             chapters_end_numbered = re.search(r"chapter\s*(\d+)", str(list(reversed(encode_chapter.values()))),
                                               re.IGNORECASE).group(1)
             chapter_type = f'Numbered ({chapters_start_numbered.lstrip("0")}-{chapters_end_numbered.lstrip("0")})'
         except AttributeError:
-            chapter_type = 'Named'
+            # check for tagged chapters
+            if re.search(r"\d+:\d+:\d+\.\d+", list(encode_chapter.values())[-1]):
+                nfo_pad.destroy()
+                messagebox.showerror(parent=root, title='Error',
+                                     message="Chapters appear to be 'Tagged'.\n\nBHDStudio encodes only support "
+                                             "'Numbered' and 'Named' chapters. You will need to re-create the "
+                                             "chapters via MeGui/StaxRip included chapter creator or download them "
+                                             "from the ChapterDB.\n\nYou can then re-mux the encoded file via "
+                                             "Mp4-Mux-Tool.")
+                return  # exit the function
+            # if chapters are not numbered or tagged
+            else:
+                chapter_type = 'Named'
 
         # file size
         encode_file_size = encode_general_track.other_file_size[0]
@@ -4346,6 +4359,10 @@ def open_nfo_viewer():
 
     # format nfo via function
     nfo = run_nfo_formatter()
+
+    # if information was not returned correctly
+    if not nfo:
+        return  # exit this function
 
     # delete any text (shouldn't be any)
     nfo_pad_text_box.delete("1.0", END)
