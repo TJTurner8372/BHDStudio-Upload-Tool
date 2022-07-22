@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.3"
+main_root_title = "BHDStudio Upload Tool v1.31"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -1003,7 +1003,7 @@ def source_input_function(*args):
         source_file_information.update({"crop": {"left": get_left, "right": get_right,
                                                  "top": get_top, "bottom": get_bottom}})
     # if crop is None
-    else:
+    if not get_crop:
         source_file_information.update({"crop": "None"})
 
     # resize
@@ -2804,10 +2804,12 @@ def check_crop_values():
                                   "bottom": bottom_entry_box.get().strip()}})
 
         # update dictionary crop info
-        source_file_information.update({"crop": {"left": left_entry_box.get().strip(),
-                                                 "right": right_entry_box.get().strip(),
-                                                 "top": top_entry_box.get().strip(),
-                                                 "bottom": bottom_entry_box.get().strip()}})
+        if left_entry_box.get().strip() != '' or right_entry_box.get().strip() != '' or \
+                top_entry_box.get().strip() != '' or bottom_entry_box.get().strip() != '':
+            source_file_information.update({"crop": {"left": left_entry_box.get().strip(),
+                                                     "right": right_entry_box.get().strip(),
+                                                     "top": top_entry_box.get().strip(),
+                                                     "bottom": bottom_entry_box.get().strip()}})
 
         check_crop_win.destroy()  # exit the window
 
