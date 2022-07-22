@@ -2980,8 +2980,13 @@ def auto_screen_shot_status_window():
         except vs.Error:
             pass
 
+        # define variable to update within function for ffms
+        ffms_final_source_path = ''
+        ffms_cache_path = ''
+
         # function to index source file
         def index_source_file_func():
+            nonlocal ffms_final_source_path, ffms_cache_path
             # index the source file with lwlibavsource
             if get_indexer == 'lwlibav':
                 # if index file already exists
@@ -3001,8 +3006,9 @@ def auto_screen_shot_status_window():
 
             # index the source file with ffms
             elif get_indexer == 'ffms':
-                # if index file already exists
+                # if index file already exists on same path as the source
                 if pathlib.Path(source_file_path.get() + '.ffindex').is_file():
+                    # ask user if they want to use the index
                     src_use_existing = messagebox.askyesno(parent=screenshot_status_window, title='Indexing: Source',
                                                            message='Source index file already exists. '
                                                                    'Would you like to use existing index file?')
@@ -3012,9 +3018,37 @@ def auto_screen_shot_status_window():
                         pathlib.Path(source_file_path.get() + '.ffindex').unlink(missing_ok=True)
                         # create new index
                         core.ffms2.Source(source_file_path.get())
-                # if index does not exist create index file
+                        # update variable
+                        ffms_final_source_path = source_file_path.get()
+                    # if user wants to use existing index
+                    elif src_use_existing:
+                        ffms_final_source_path = pathlib.Path(source_file_path.get())
+
+                # check for staxrip ffindex file in temp folder
+                elif pathlib.Path(str(pathlib.Path(source_file_path.get()).with_suffix('')) + '_temp/'
+                                  ).is_dir() and pathlib.Path(str(pathlib.Path(source_file_path.get()).with_suffix('')
+                                                                  ) + '_temp/temp.ffindex').is_file():
+                    # ask user if they want to use the index
+                    src_use_existing = messagebox.askyesno(parent=screenshot_status_window,
+                                                           title='Indexing: Source',
+                                                           message='Source index file already exists. '
+                                                                   'Would you like to use existing index file?')
+                    # if user does not want to use existing index file
+                    if not src_use_existing:
+                        # create new index
+                        core.ffms2.Source(source=source_file_path.get())
+                        # update variable
+                        ffms_final_source_path = pathlib.Path(source_file_path.get())
+                    # if user wants to use existing index
+                    elif src_use_existing:
+                        ffms_final_source_path = pathlib.Path(source_file_path.get())
+                        ffms_cache_path = pathlib.Path(str(pathlib.Path(
+                            source_file_path.get()).with_suffix('')) + '_temp/temp.ffindex')
+
+                # if index does not exist create index file beside the source file and update variable
                 else:
-                    core.ffms2.Source(source_file_path.get())
+                    core.ffms2.Source(source=source_file_path.get())
+                    ffms_final_source_path = pathlib.Path(source_file_path.get())
 
             # update status window
             ss_status_info.config(state=NORMAL)
@@ -3097,7 +3131,31 @@ def auto_screen_shot_status_window():
             source_file = core.lsmas.LWLibavSource(source_file_path.get())
             encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
         elif get_indexer == 'ffms':
-            source_file = core.ffms2.Source(source_file_path.get())
+            # try to load index file
+            try:
+                if ffms_cache_path != '':
+                    source_file = core.ffms2.Source(source=ffms_final_source_path, cachefile=ffms_cache_path)
+                else:
+                    source_file = core.ffms2.Source(source=ffms_final_source_path)
+            # if index file is a different version than the included ffms
+            except vs.Error:
+                # update status window with error
+                ss_status_info.config(state=NORMAL)
+                ss_status_info.insert(END, '\nFailed to open existing source index.\nIndexing source file now with '
+                                           'included FFMS. Please wait...')
+                ss_status_info.see(END)
+                ss_status_info.config(state=DISABLED)
+
+                # index source file
+                source_file = core.ffms2.Source(source=source_file_path.get())
+
+                # update status window
+                ss_status_info.config(state=NORMAL)
+                ss_status_info.insert(END, 'Done!\n\n')
+                ss_status_info.see(END)
+                ss_status_info.config(state=DISABLED)
+
+            # encode file variable
             encode_file = core.ffms2.Source(encode_file_path.get())
 
         # get the total number of frames from source file
