@@ -1456,7 +1456,7 @@ def encode_input_function(*args):
                                       f'{str(int(root.geometry().split("+")[2]) + 230)}')
         rename_encode_window.resizable(False, False)
         rename_encode_window.grab_set()
-        rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
+        rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: rename_file_func())
         root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
         rename_encode_window.grid_rowconfigure(0, weight=1)
         rename_encode_window.grid_columnconfigure(0, weight=1)
