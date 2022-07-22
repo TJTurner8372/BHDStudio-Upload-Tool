@@ -1467,24 +1467,38 @@ def encode_input_function(*args):
         rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for col_e_f in range(3):
             rename_enc_frame.grid_columnconfigure(col_e_f, weight=1)
-        for row_e_f in range(4):
+        for row_e_f in range(7):
             rename_enc_frame.grid_rowconfigure(row_e_f, weight=1)
 
         # create label
-        rename_info_lbl = Label(rename_enc_frame, wraplength=598,
-                                text=f'Source Name:\n{str(pathlib.Path(source_file_information["source_path"]).name)}'
-                                     f'\n\nEncode Name:\n{str(pathlib.Path(*args).name)}',
+        rename_info_lbl = Label(rename_enc_frame, text=f'Source Name:',
                                 background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
-        rename_info_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0))
+        rename_info_lbl.grid(row=0, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0))
 
         # create label
-        rename_info_lbl2 = Label(rename_enc_frame, text='Suggested Name:',
+        rename_info_lbl1 = Label(rename_enc_frame, wraplength=598,
+                                 text=str(pathlib.Path(source_file_information["source_path"]).name),
+                                 background='#363636', fg="white", font=(set_fixed_font, set_font_size))
+        rename_info_lbl1.grid(row=1, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0))
+
+        # create label
+        rename_info_lbl2 = Label(rename_enc_frame, text='Encode Name:',
                                  background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
-        rename_info_lbl2.grid(row=1, column=0, sticky=W + S, padx=5, pady=(2, 0))
+        rename_info_lbl2.grid(row=2, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0))
+
+        # create label
+        rename_info_lbl2 = Label(rename_enc_frame, wraplength=598, text=str(pathlib.Path(*args).name),
+                                 background='#363636', fg="white", font=(set_fixed_font, set_font_size))
+        rename_info_lbl2.grid(row=3, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0))
+
+        # create label
+        rename_info_lbl3 = Label(rename_enc_frame, text='Suggested Name:',
+                                 background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
+        rename_info_lbl3.grid(row=4, column=0, sticky=W + S, padx=5, pady=(2, 0))
 
         # create entry box
         custom_entry_box = Entry(rename_enc_frame, borderwidth=4, bg="#565656", fg='white')
-        custom_entry_box.grid(row=2, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N)
+        custom_entry_box.grid(row=5, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N)
         custom_entry_box.insert(END, str(suggested_bhd_filename))
 
         # function to save new name to config.ini
@@ -1503,7 +1517,7 @@ def encode_input_function(*args):
         rename_okay_btn = HoverButton(rename_enc_frame, text="Rename", command=custom_okay_func, foreground="white",
                                       background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
                                       activebackground="#23272A")
-        rename_okay_btn.grid(row=3, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+        rename_okay_btn.grid(row=6, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
         # create 'Cancel' button
         rename_cancel_btn = HoverButton(rename_enc_frame, text="Cancel", activeforeground="#3498db", width=8,
@@ -1511,7 +1525,7 @@ def encode_input_function(*args):
                                                          root.wm_attributes('-alpha', 1.0), reset_gui()],
                                         foreground="white", background="#23272A", borderwidth="3",
                                         activebackground="#23272A")
-        rename_cancel_btn.grid(row=3, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+        rename_cancel_btn.grid(row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
         rename_encode_window.wait_window()  # wait for window to be closed
 
