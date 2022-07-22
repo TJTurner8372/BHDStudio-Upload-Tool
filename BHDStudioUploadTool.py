@@ -1501,8 +1501,7 @@ def encode_input_function(*args):
         custom_entry_box.grid(row=5, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N)
         custom_entry_box.insert(END, str(suggested_bhd_filename))
 
-        # function to save new name to config.ini
-        def custom_okay_func():
+        def rename_file_func():
             """Rename encode input to the correct name"""
             if not custom_entry_box.get().strip().endswith('.mp4'):
                 messagebox.showerror(parent=rename_encode_window, title='Missing Suffix',
@@ -1512,9 +1511,10 @@ def encode_input_function(*args):
             root.wm_attributes('-alpha', 1.0)  # restore transparency
             rename_encode_window.destroy()  # close window
             encode_input_function(pathlib.Path(renamed_enc))  # re-run encode input with the renamed file
+            encode_file_path.set(renamed_enc)  # update global variable
 
         # create 'Rename' button
-        rename_okay_btn = HoverButton(rename_enc_frame, text="Rename", command=custom_okay_func, foreground="white",
+        rename_okay_btn = HoverButton(rename_enc_frame, text="Rename", command=rename_file_func, foreground="white",
                                       background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
                                       activebackground="#23272A")
         rename_okay_btn.grid(row=6, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
@@ -3350,9 +3350,13 @@ def upload_to_beyond_hd_co_window():
         for match in movie_name:  # get the "span" from the movie name
             movie_name_extraction.append(match.span())
         # extract the full movie name (removing anything that is not needed from the filename)
-        full_movie_name = pathlib.Path(encode_file_path.get()).stem[0:int(
-            movie_name_extraction[-1][-1])].replace('.', ' ').strip()
-        generated_album_name = f"{encode_file_resolution.get()} | {full_movie_name}"
+        try:
+            full_movie_name = pathlib.Path(encode_file_path.get()).stem[0:int(
+                movie_name_extraction[-1][-1])].replace('.', ' ').strip()
+            generated_album_name = f"{encode_file_resolution.get()} | {full_movie_name}"
+        # if for some reason there is an index error just generate a generic album name based off of the encoded input
+        except IndexError:
+            generated_album_name = str(pathlib.Path(pathlib.Path(encode_file_path.get()).name).with_suffix(''))
 
         # create album payload
         album_payload = {'auth_token': auth_code, 'action': 'create-album', 'type': 'album',
