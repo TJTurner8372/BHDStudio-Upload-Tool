@@ -676,6 +676,56 @@ def source_input_function(*args):
     if video_track.format:
         source_file_information.update({'format': f"{str(video_track.format)}"})
 
+    # get source input title name only
+    # find all 4-digit numbers
+    source_movie_name = re.finditer(r'\d{4}(?!p)', str(pathlib.Path(loaded_source_file).name), re.IGNORECASE)
+
+    # create empty list and add all numbers to the list
+    movie_name_extraction = []
+    for digit_matches in source_movie_name:
+        movie_name_extraction.append(digit_matches.span())
+
+    # attempt to get only the title and year
+    try:
+        source_name = str(pathlib.Path(loaded_source_file).name)[0:int(movie_name_extraction[-1][-1])].replace(
+            '.', ' ').replace('(', '').replace(')', '')
+    # if the file name is already in the correct format set it to this
+    except IndexError:
+        source_name = str(pathlib.Path(loaded_source_file).name).replace(
+            '.', ' ').replace('(', '').replace(')', '').replace(':', '').strip()
+
+    # edition check
+    edition_testing = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
+                                'special.*edition|theatrical.*cut|uncut|unrated', loaded_source_file, re.IGNORECASE)
+    # if edition is detected add it to the name
+    if edition_testing:
+        extracted_edition = f" {edition_testing.group()}"
+    else:
+        extracted_edition = ''
+
+    # add 'UHD' to filename if it's 2160p
+    source_file_width = video_track.width
+    if int(source_file_width) <= 1920:
+        uhd_string = ''
+    elif int(source_file_width) <= 3840:
+        uhd_string = 'UHD'
+
+    # add full final name and year to the dictionary
+    source_file_information.update({'source_file_name': f"{source_name}{uhd_string}{extracted_edition} BluRay"})
+
+    # get movie year only
+    movie_year = re.findall(r'\d{4}', source_name)
+    # if there is a movie year detected
+    if movie_year:
+        # if there is only 1 set of 4-digit numbers left in title name
+        if len(movie_year) == 1:
+            source_movie_year = movie_year[0]
+        # if there is more than 1, select last set of 4-digits
+        else:
+            source_movie_year = movie_year[-1]
+        # add source file year to the dictionary
+        source_file_information.update({"source_movie_year": str(source_movie_year)})
+
     # update labels
     source_label.config(text=update_source_label)
     source_hdr_label.config(text=hdr_string)
@@ -789,11 +839,10 @@ def encode_input_function(*args):
 
     # check for source resolution vs encode resolution (do not allow 2160p encode on a 1080p source)
     source_width = str(source_file_information['resolution']).split('x')[0]
-    source_height = str(source_file_information['resolution']).split('x')[1]
-    if int(source_width) <= 1920 and int(source_height) <= 1080:  # 1080p
+    if int(source_width) <= 1920:  # 1080p
         source_resolution = '1080p'
         allowed_encode_resolutions = ['720p', '1080p']
-    elif int(source_width) <= 3840 and int(source_height) <= 2160:  # 2160p
+    elif int(source_width) <= 3840:  # 2160p
         source_resolution = '2160p'
         allowed_encode_resolutions = ['2160p']
     if encoded_source_resolution not in allowed_encode_resolutions:
@@ -1040,6 +1089,85 @@ def encode_input_function(*args):
     encode_entry_box.delete(0, END)
     encode_entry_box.insert(END, pathlib.Path(*args).name)
     encode_entry_box.config(state=DISABLED)
+
+    # ensure encode file is named correctly to BHDStudio standards based off of source file input
+    if encode_hdr_string.get() != '':
+        enc_dropped_hdr = ' HDR'
+    else:
+        enc_dropped_hdr = ''
+
+    suggested_bhd_filename = f"{source_file_information['source_file_name']} {encoded_source_resolution} " \
+                             f"{str(encode_file_audio.get()).replace('DD', 'DD.')}{enc_dropped_hdr} " \
+                             f"{video_track.encoded_library_name}-BHDStudio" \
+                             f"{str(pathlib.Path(*args).suffix)}".replace(' ', '.')
+
+    if str(pathlib.Path(*args).name) != suggested_bhd_filename:
+        # rename encode window
+        rename_encode_window = Toplevel()
+        rename_encode_window.title('Confirm Filename')
+        rename_encode_window.configure(background="#363636")
+        rename_encode_window.geometry(f'{600}x{300}+{str(int(root.geometry().split("+")[1]) + 60)}+'
+                                      f'{str(int(root.geometry().split("+")[2]) + 230)}')
+        rename_encode_window.resizable(False, False)
+        rename_encode_window.grab_set()
+        rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: custom_okay_func())
+        root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
+        rename_encode_window.grid_rowconfigure(0, weight=1)
+        rename_encode_window.grid_columnconfigure(0, weight=1)
+
+        # rename encode frame
+        rename_enc_frame = Frame(rename_encode_window, highlightbackground="white", highlightthickness=2, bg="#363636",
+                                 highlightcolor='white')
+        rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+        for col_e_f in range(3):
+            rename_enc_frame.grid_columnconfigure(col_e_f, weight=1)
+        for row_e_f in range(4):
+            rename_enc_frame.grid_rowconfigure(row_e_f, weight=1)
+
+        # create label
+        rename_info_lbl = Label(rename_enc_frame, wraplength=598,
+                                text=f'Source Name:\n{str(pathlib.Path(source_file_information["source_path"]).name)}'
+                                     f'\n\nEncode Name:\n{str(pathlib.Path(*args).name)}',
+                                background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
+        rename_info_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0))
+
+        # create label
+        rename_info_lbl2 = Label(rename_enc_frame, text='Suggested Name:',
+                                 background='#363636', fg="#3498db", font=(set_font, set_font_size, "bold"))
+        rename_info_lbl2.grid(row=1, column=0, sticky=W + S, padx=5, pady=(2, 0))
+
+        # create entry box
+        custom_entry_box = Entry(rename_enc_frame, borderwidth=4, bg="#565656", fg='white')
+        custom_entry_box.grid(row=2, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N)
+        custom_entry_box.insert(END, str(suggested_bhd_filename))
+
+        # function to save new name to config.ini
+        def custom_okay_func():
+            """Rename encode input to the correct name"""
+            if not custom_entry_box.get().strip().endswith('.mp4'):
+                messagebox.showerror(parent=rename_encode_window, title='Missing Suffix',
+                                     message='Filename must have ".mp4" suffix!\n\ne.g. "MovieName.mp4"')
+                return  # exit function
+            renamed_enc = pathlib.Path(*args).rename(pathlib.Path(*args).parent / custom_entry_box.get().strip())
+            root.wm_attributes('-alpha', 1.0)  # restore transparency
+            rename_encode_window.destroy()  # close window
+            encode_input_function(pathlib.Path(renamed_enc))  # re-run encode input with the renamed file
+
+        # create 'Rename' button
+        rename_okay_btn = HoverButton(rename_enc_frame, text="Rename", command=custom_okay_func, foreground="white",
+                                      background="#23272A", borderwidth="3", activeforeground="#3498db", width=8,
+                                      activebackground="#23272A")
+        rename_okay_btn.grid(row=3, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+        # create 'Cancel' button
+        rename_cancel_btn = HoverButton(rename_enc_frame, text="Cancel", activeforeground="#3498db", width=8,
+                                        command=lambda: [rename_encode_window.destroy(),
+                                                         root.wm_attributes('-alpha', 1.0), reset_gui()],
+                                        foreground="white", background="#23272A", borderwidth="3",
+                                        activebackground="#23272A")
+        rename_cancel_btn.grid(row=3, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
+
+        rename_encode_window.wait_window()  # wait for window to be closed
 
 
 def drop_function(event):
