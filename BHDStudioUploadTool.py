@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.29"
+main_root_title = "BHDStudio Upload Tool v1.3"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -416,6 +416,352 @@ def open_tmdb_link():
         webbrowser.open('https://www.themoviedb.org/movie')
 
 
+# function to search tmdb for information
+def search_movie_global_function(*args):
+    # set parser
+    movie_window_parser = ConfigParser()
+    movie_window_parser.read(config_file)
+
+    # decode imdb img for use with the buttons
+    decode_resize_imdb_image = Image.open(BytesIO(base64.b64decode(imdb_icon))).resize((35, 35))
+    imdb_img = ImageTk.PhotoImage(decode_resize_imdb_image)
+
+    # decode tmdb img for use with the buttons
+    decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(tmdb_icon))).resize((35, 35))
+    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+
+    def movie_info_exit_function():
+        """movie window exit function"""
+
+        # set stop thread to True
+        stop_thread.set()
+
+        # set parser
+        exit_movie_window_parser = ConfigParser()
+        exit_movie_window_parser.read(config_file)
+
+        # save window position/geometry
+        if movie_info_window.wm_state() == 'normal':
+            if exit_movie_window_parser['save_window_locations']['movie_info'] != movie_info_window.geometry():
+                if int(movie_info_window.geometry().split('x')[0]) >= movie_window_width or \
+                        int(movie_info_window.geometry().split('x')[1].split('+')[0]) >= movie_window_height:
+                    exit_movie_window_parser.set('save_window_locations', 'movie_info',
+                                                 movie_info_window.geometry())
+                    with open(config_file, 'w') as root_exit_config_file:
+                        exit_movie_window_parser.write(root_exit_config_file)
+
+        # close movie info window
+        movie_info_window.destroy()
+
+    def get_imdb_update_filename():
+        """function to get imdb title name as well as id's for both imdb and tmdb"""
+        # check if imdb id is missing
+        if imdb_id_var.get() == "None":
+            messagebox.showerror(parent=movie_info_window, title='Missing IMDb ID',
+                                 message='Please manually search for the proper IMDb ID and manually '
+                                         'add it to the IMDb entry box')
+            return  # exit the function
+
+        # if there is an imdb title
+        if 't' in imdb_id_var.get():
+            imdb_module = Cinemagoer()
+            movie = imdb_module.get_movie(str(imdb_id_var.get()).replace('t', ''))
+            imdb_movie_name = f"{str(movie['title'])} {str(movie['year'])}"
+            source_file_information.update({"imdb_movie_name": imdb_movie_name, "imdb_id": imdb_id_var.get(),
+                                            "tmdb_id": tmdb_id_var.get(),
+                                            "source_movie_year": f"{str(movie['year'])}"})
+
+        # if user has not selected anything in the window
+        elif imdb_id_var.get().strip() == '':
+            messagebox.showinfo(parent=movie_info_window, title='Prompt',
+                                message='You must select a movie before clicking "Confirm"')
+            return  # exit the function
+
+        movie_info_exit_function()  # close movie_info_window
+
+    # movie info window
+    movie_info_window = Toplevel()
+    movie_info_window.configure(background="#363636")  # Set's the background color
+    movie_info_window.title('Movie Selection')  # Toplevel Title
+    movie_window_height = 600
+    movie_window_width = 1000
+    if movie_window_parser['save_window_locations']['movie_info'] == '':
+        movie_screen_width = movie_info_window.winfo_screenwidth()
+        movie_screen_height = movie_info_window.winfo_screenheight()
+        movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
+        movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
+        movie_info_window.geometry(f"{movie_window_width}x{movie_window_height}+"
+                                   f"{movie_x_coordinate}+{movie_y_coordinate}")
+    elif movie_window_parser['save_window_locations']['movie_info'] != '':
+        movie_info_window.geometry(movie_window_parser['save_window_locations']['movie_info'])
+    movie_info_window.grab_set()
+    movie_info_window.protocol('WM_DELETE_WINDOW', movie_info_exit_function)
+
+    # Row/Grid configures
+    for m_i_w_c in range(6):
+        movie_info_window.grid_columnconfigure(m_i_w_c, weight=1)
+    for m_i_w_r in range(4):
+        movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
+    # Row/Grid configures
+
+    movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
+    movie_listbox_frame.grid(column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W)
+    movie_listbox_frame.grid_rowconfigure(0, weight=1)
+    movie_listbox_frame.grid_columnconfigure(0, weight=1)
+
+    right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
+    bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
+
+    # Create listbox
+    movie_listbox = Listbox(movie_listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
+                            yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db", height=10,
+                            selectbackground='black', selectforeground='lime green', selectmode=SINGLE,
+                            font=(set_font, set_font_size + 2))
+    movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
+
+    # add scrollbars to the listbox
+    right_scrollbar.config(command=movie_listbox.yview)
+    right_scrollbar.grid(row=0, column=5, sticky=N + W + S)
+    bottom_scrollbar.config(command=movie_listbox.xview)
+    bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+    # define stop thread event
+    stop_thread = threading.Event()
+
+    # define api check function
+    def run_api_check():
+        if movie_search_active.get():
+            return
+        movie_search_active.set(True)
+
+        movie_listbox.delete(0, END)
+        movie_listbox.insert(END, 'Loading, please wait...')
+
+        collect_title = re.finditer(r'\d{4}', movie_search_var.get().strip())
+
+        title_span = []
+        for title_only in collect_title:
+            title_span.append(title_only.span())
+
+        try:
+            movie_title = str(movie_search_var.get()[0:title_span[-1][0]]).replace('.', ' ').replace(
+                '(', '').replace(')', '').strip()
+        except IndexError:
+            movie_title = str(movie_search_var.get().strip())
+
+        collect_year = re.findall(r'\d{4}', movie_search_var.get().strip())
+        if collect_year:
+            movie_year = collect_year[-1]
+        else:
+            movie_year = ''
+
+        try:
+            search_movie = requests.get(f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&language"
+                                        f"=en-US&page=1&include_adult=false&query={movie_title}&year={movie_year}")
+        except requests.exceptions.ConnectionError:
+            source_file_information.update({"imdb_movie_name": 'None'})
+            messagebox.showerror(parent=movie_info_window, title='Connection Error',
+                                 message='There was an error connecting to the internet.\n\n'
+                                         'Title name will be determined from source file only')
+            movie_info_exit_function()
+            return  # exit this function
+
+        movie_dict = {}
+
+        for results in search_movie.json()['results']:
+            # find imdb_id data through tmdb
+            imdb_id = requests.get(
+                f"https://api.themoviedb.org/3/movie/{results['id']}/external_ids?api_key={tmdb_api_key}")
+            # if release date string isn't nothing
+            if imdb_id.json()['imdb_id'] and results['release_date']:
+                # convert release date to standard month/day/year
+                release_date = str(results['release_date']).split('-')
+                full_release_date = f"{release_date[1]}-{release_date[2]}-{release_date[0]}"
+                # update dictionary
+                movie_dict.update({f"{results['title']} ({release_date[0]})": {
+                    "tvdb_id": f"{results['id']}", "imdb_id": f"{imdb_id.json()['imdb_id']}",
+                    "plot": f"{results['overview']}", "vote_average": f"{str(results['vote_average'])}",
+                    "full_release_date": full_release_date}})
+                # if thread event stop was called
+                if stop_thread.is_set():
+                    movie_search_active.set(False)  # set active search to false
+                    break  # break from loop
+
+        # if stop_thread was called and closed the loop
+        if not movie_search_active.get():
+            return  # exit function
+
+        # clear movie list box
+        movie_listbox.delete(0, END)
+
+        # add all the movies into the listbox
+        for key in movie_dict.keys():
+            movie_listbox.insert(END, key)
+
+        # function that is run each time a movie is selected to update all the information in the window
+        def update_movie_info(event):
+            selection = event.widget.curselection()  # get current selection
+            # if there is a selection
+            if selection:
+                movie_listbox_index = selection[0]  # define index of selection
+                movie_data = event.widget.get(movie_listbox_index)
+
+                # delete plot text and update it
+                plot_scrolled_text.delete("1.0", END)
+                plot_scrolled_text.insert(END, movie_dict[movie_data]['plot'])
+
+                # update imdb and tmdb entry box's
+                imdb_id_var.set(movie_dict[movie_data]['imdb_id'])
+                tmdb_id_var.set(movie_dict[movie_data]['tvdb_id'])
+
+                # update release date label
+                release_date_var.set(movie_dict[movie_data]['full_release_date'])
+
+                # update rating label
+                rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
+
+        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)  # bind listbox select event to the updater
+        movie_search_active.set(False)  # once listbox has been updated, set active to False
+
+    # plot frame
+    plot_frame = LabelFrame(movie_info_window, text=' Plot ', labelanchor="nw")
+    plot_frame.grid(column=0, row=1, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
+    plot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
+    plot_frame.grid_rowconfigure(0, weight=1)
+    plot_frame.grid_columnconfigure(0, weight=1)
+
+    # plot text window
+    plot_scrolled_text = scrolledtextwidget.ScrolledText(plot_frame, height=6, wrap=WORD)
+    plot_scrolled_text.grid(row=0, column=0, columnspan=6, pady=(0, 5), padx=5, sticky=E + W)
+    plot_scrolled_text.config(bg='black', fg='#CFD2D1', bd=2)
+
+    # internal search frame
+    internal_search_frame = LabelFrame(movie_info_window, text=' Search ', labelanchor="nw")
+    internal_search_frame.grid(column=0, row=2, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
+    internal_search_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
+    internal_search_frame.grid_rowconfigure(0, weight=1)
+    internal_search_frame.grid_rowconfigure(1, weight=1)
+    internal_search_frame.grid_columnconfigure(0, weight=1)
+
+    # movie selection label frame
+    movie_selection_lbl_frame = LabelFrame(internal_search_frame, bg="#363636", border=0)
+    movie_selection_lbl_frame.grid(column=0, row=0, columnspan=6, sticky=E + W)
+    movie_selection_lbl_frame.grid_rowconfigure(0, weight=1)
+    movie_selection_lbl_frame.grid_columnconfigure(0, weight=1)
+    movie_selection_lbl_frame.grid_columnconfigure(1, weight=100)
+
+    source_input_lbl_ms = Label(movie_selection_lbl_frame,
+                                text=f'Source Name:',
+                                background='#363636', fg="#3498db", font=(set_font, set_font_size - 1, "bold"))
+    source_input_lbl_ms.grid(row=0, column=0, columnspan=1, padx=(5, 0), pady=(5, 3), sticky=W)
+
+    source_input_lbl_ms2 = Label(movie_selection_lbl_frame, wraplength=960,
+                                 text=str(pathlib.Path(pathlib.Path(source_file_information["source_path"]).name
+                                                       ).with_suffix("")),
+                                 background='#363636', fg="white", font=(set_fixed_font, set_font_size - 1))
+    source_input_lbl_ms2.grid(row=0, column=1, columnspan=5, padx=(2, 5), pady=(5, 3), sticky=W)
+
+    # internal search box
+    search_entry_box2 = Entry(internal_search_frame, borderwidth=4, bg="#565656", fg='white',
+                              disabledforeground='white', disabledbackground="#565656",
+                              textvariable=movie_search_var)
+    search_entry_box2.grid(row=1, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W)
+    movie_search_var.set(*args)
+
+    # function to search again
+    def start_search_again(*enter_args):
+        stop_thread.clear()  # set stop thread to false
+        threading.Thread(target=run_api_check).start()
+
+    # bind "Enter" key to run the function
+    search_entry_box2.bind("<Return>", start_search_again)
+
+    # internal search button
+    search_button2 = HoverButton(internal_search_frame, text="Search", activebackground="#23272A",
+                                 command=start_search_again,
+                                 foreground="white", background="#23272A",
+                                 borderwidth="3", activeforeground="#3498db", width=12)
+    search_button2.grid(row=1, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N)
+
+    # function to enable and disable the internal search button if a current search is active
+    def enable_disable_internal_search_btn():
+        try:
+            if movie_search_active.get():  # if search is active disable button
+                search_button2.config(state=DISABLED)
+            else:  # if search is not active enable button
+                search_button2.config(state=NORMAL)
+        except TclError:
+            pass
+        movie_info_window.after(50, enable_disable_internal_search_btn)
+
+    # start loop to check internal button
+    enable_disable_internal_search_btn()
+
+    # information frame
+    information_frame = Frame(movie_info_window, bd=0, bg="#363636")
+    information_frame.grid(column=0, row=3, columnspan=7, padx=5, pady=(5, 3), sticky=E + W)
+    information_frame.grid_rowconfigure(0, weight=1)
+    information_frame.grid_rowconfigure(1, weight=1)
+    information_frame.grid_columnconfigure(0, weight=1)
+    information_frame.grid_columnconfigure(1, weight=100)
+    information_frame.grid_columnconfigure(2, weight=1000)
+    information_frame.grid_columnconfigure(3, weight=10000)
+    information_frame.grid_columnconfigure(4, weight=100000)
+    information_frame.grid_columnconfigure(5, weight=1000000)
+    information_frame.grid_columnconfigure(6, weight=1)
+
+    # imdb clickable icon button
+    imdb_button2 = Button(information_frame, image=imdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                          activebackground="#363636", command=open_imdb_link)
+    imdb_button2.grid(row=0, column=0, columnspan=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+    imdb_button2.photo = imdb_img
+
+    # imdb entry box internal
+    imdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
+                            disabledforeground='white', disabledbackground="#565656", textvariable=imdb_id_var)
+    imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+    # tmdb clickable icon button
+    tmdb_button2 = Button(information_frame, image=tmdb_img, borderwidth=0, cursor='hand2', bg="#363636",
+                          activebackground="#363636", command=open_tmdb_link)
+    tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+    tmdb_button2.photo = tmdb_img
+
+    # tmdb internal entry box
+    tmdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
+                            disabledforeground='white', disabledbackground="#565656", textvariable=tmdb_id_var)
+    tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+    # release date labels
+    release_date_label = Label(information_frame, text='Release Date:', background='#363636', fg="#3498db",
+                               font=(set_font, set_font_size + 1, "bold"))
+    release_date_label.grid(row=0, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
+
+    release_date_label2 = Label(information_frame, textvariable=release_date_var, width=10,
+                                background='#363636', fg="#3498db", font=(set_font, set_font_size))
+    release_date_label2.grid(row=0, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
+
+    # rating labels
+    rating_label = Label(information_frame, text='           Rating:', background='#363636', fg="#3498db",
+                         font=(set_font, set_font_size + 1, "bold"))
+    rating_label.grid(row=1, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
+
+    rating_label2 = Label(information_frame, textvariable=rating_var, width=10,
+                          background='#363636', fg="#3498db", font=(set_font, set_font_size))
+    rating_label2.grid(row=1, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
+
+    # confirm movie button
+    confirm_movie_btn = HoverButton(information_frame, text="Confirm", command=get_imdb_update_filename,
+                                    foreground="white", background="#23272A", borderwidth="3", width=10,
+                                    activeforeground="#3498db", activebackground="#23272A")
+    confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
+
+    movie_info_window.focus_set()  # focus's id window
+    stop_thread.clear()  # set stop thread event to false
+    threading.Thread(target=run_api_check).start()  # start thread to search for movie title
+    movie_info_window.wait_window()  # wait for window to close
+
+
 def source_input_function(*args):
     # define parser
     source_input_parser = ConfigParser()
@@ -694,6 +1040,11 @@ def source_input_function(*args):
         source_name = str(pathlib.Path(loaded_source_file).name).replace(
             '.', ' ').replace('(', '').replace(')', '').replace(':', '').strip()
 
+    # use imdb to check to double-check detected title
+    root.withdraw()  # hide root window
+    search_movie_global_function(source_name)  # run movie search function
+    advanced_root_deiconify()  # re-open root window
+
     # edition check
     edition_testing = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
                                 'special.*edition|theatrical.*cut|uncut|unrated', loaded_source_file, re.IGNORECASE)
@@ -711,20 +1062,13 @@ def source_input_function(*args):
         uhd_string = 'UHD'
 
     # add full final name and year to the dictionary
-    source_file_information.update({'source_file_name': f"{source_name}{uhd_string}{extracted_edition} BluRay"})
-
-    # get movie year only
-    movie_year = re.findall(r'\d{4}', source_name)
-    # if there is a movie year detected
-    if movie_year:
-        # if there is only 1 set of 4-digit numbers left in title name
-        if len(movie_year) == 1:
-            source_movie_year = movie_year[0]
-        # if there is more than 1, select last set of 4-digits
-        else:
-            source_movie_year = movie_year[-1]
-        # add source file year to the dictionary
-        source_file_information.update({"source_movie_year": str(source_movie_year)})
+    if source_file_information['imdb_movie_name'] != 'None':
+        source_file_information.update({'source_file_name': f"{source_file_information['imdb_movie_name']}{uhd_string}"
+                                                            f"{extracted_edition} BluRay"})
+    # if there was a connection error key 'imdb_movie_name' will be 'None', get title name manually
+    elif source_file_information['imdb_movie_name'] == 'None':
+        source_file_information.update({'source_file_name': f"{source_name}{uhd_string}"
+                                                            f"{extracted_edition} BluRay"})
 
     # update labels
     source_label.config(text=update_source_label)
@@ -785,8 +1129,8 @@ def encode_input_function(*args):
     video_track = media_info.video_tracks[0]
 
     # calculate average video bit rate for encode
-    calculate_average_video_bit_rate = round((float(video_track.stream_size) / 1000) /
-                                             ((float(video_track.duration) / 60000) * 0.0075) / 1000)
+    # calculate_average_video_bit_rate = round((float(video_track.stream_size) / 1000) /
+    #                                          ((float(video_track.duration) / 60000) * 0.0075) / 1000)
 
     # check for un-even crops
     width_value = int(str(source_file_information.get('resolution')).split('x')[0]) - int(video_track.width)
@@ -1100,6 +1444,8 @@ def encode_input_function(*args):
                              f"{str(encode_file_audio.get()).replace('DD', 'DD.')}{enc_dropped_hdr} " \
                              f"{video_track.encoded_library_name}-BHDStudio" \
                              f"{str(pathlib.Path(*args).suffix)}".replace(' ', '.')
+
+    source_file_information.update({"suggested_bhd_title": suggested_bhd_filename.replace('DD.', 'DD')})
 
     if str(pathlib.Path(*args).name) != suggested_bhd_filename:
         # rename encode window
@@ -3267,6 +3613,7 @@ def open_nfo_viewer():
 
     # nfo formatter
     def run_nfo_formatter():
+        # noinspection SpellCheckingInspection
         nfo_b64 = """
         W2NvbG9yPSNmNWM3MGFdUkVMRUFTRSBJTkZPWy9jb2xvcl0KClNvdXJjZSAgICAgICAgICAgICAgICAgIDoge2JsdXJheV9zb3VyY2V9IChUaG
         Fua3MhKQpDaGFwdGVycyAgICAgICAgICAgICAgICA6IHtjaGFwdGVyX3R5cGV9CkZpbGUgU2l6ZSAgICAgICAgICAgICAgIDoge2VuY29kZV9ma
@@ -4318,6 +4665,13 @@ def open_uploader_window(job_mode):
     elif job_mode == 'custom_advanced':
         reset_gui()
 
+    # update id variables
+    try:
+        tmdb_id_var.set(source_file_information['tmdb_id'])
+        imdb_id_var.set(source_file_information['imdb_id'])
+    except KeyError:
+        pass
+
     # uploader window exit function
     def upload_window_exit_function():
         # uploader exit parser
@@ -4425,6 +4779,12 @@ def open_uploader_window(job_mode):
     title_input_entry_box = Entry(title_options_frame, borderwidth=4, bg="#565656", fg='white',
                                   disabledforeground='white', disabledbackground="#565656")
     title_input_entry_box.grid(row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+
+    # automatically insert corrected bhdstudio name into the title box
+    if encode_file_path.get() != '':
+        title_input_entry_box.insert(END, str(pathlib.Path(pathlib.Path(encode_file_path.get()).name).with_suffix(''))
+                                     .replace('.', ' ').replace('DD 1 0', 'DD1.0').replace('DD 2 0', 'DD2.0')
+                                     .replace('DD 5 1', 'DD5.1'))
 
     upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
     upload_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
@@ -4568,337 +4928,17 @@ def open_uploader_window(job_mode):
             movie_name_extraction[-1][-1])].replace('.', ' ').strip()
         search_entry_box.insert(END, full_movie_name)  # insert this full movie name into the search box
 
-    # function to search tmdb for information
-    def search_movie_db_ids_function(*args):
-        # set parser
-        movie_window_parser = ConfigParser()
-        movie_window_parser.read(config_file)
-
-        # if there is text inside the search box enable the search
-        if movie_search_var.get().strip() != '':
-            # movie window exit function
-            def movie_info_exit_function():
-                # set stop thread to True
-                stop_thread.set()
-
-                # set parser
-                exit_movie_window_parser = ConfigParser()
-                exit_movie_window_parser.read(config_file)
-
-                # save window position/geometry
-                if movie_info_window.wm_state() == 'normal':
-                    if exit_movie_window_parser['save_window_locations']['movie_info'] != movie_info_window.geometry():
-                        if int(movie_info_window.geometry().split('x')[0]) >= movie_window_width or \
-                                int(movie_info_window.geometry().split('x')[1].split('+')[0]) >= movie_window_height:
-                            exit_movie_window_parser.set('save_window_locations', 'movie_info',
-                                                         movie_info_window.geometry())
-                            with open(config_file, 'w') as root_exit_config_file:
-                                exit_movie_window_parser.write(root_exit_config_file)
-
-                # close movie info window
-                movie_info_window.destroy()
-
-            def get_imdb_update_filename():
-                # check if imdb id is missing
-                if imdb_id_var.get() == "None":
-                    messagebox.showerror(parent=movie_info_window, title='Missing IMDB ID',
-                                         message='Please manually search for the proper IMDB ID and manually '
-                                                 'add it to the entry box')
-                    return
-
-                if 't' in imdb_id_var.get():
-                    imdb_module = Cinemagoer()
-                    movie = imdb_module.get_movie(str(imdb_id_var.get()).replace('t', ''))
-                    imdb_movie_name = f"{str(movie['title'])} {str(movie['year'])}"
-                else:
-                    return
-
-                # check edition
-                if edition_var.get() == "N/A":
-                    # if edition is set to "N/A" then check for custom
-                    if edition_entry_box.get().strip() != '':
-                        # if custom edition box is not empty define custom edition string
-                        edition_string = edition_entry_box.get().strip() + ' '
-                    else:  # if custom edition box is empty, define an empty string
-                        edition_string = ''
-                # if edition is not "N/A", get edition from menu and define string with the edition type
-                elif edition_var.get() != 'N/A':
-                    edition_string = edition_var.get() + ' '
-
-                complete_filename = ''  # define complete_filename
-
-                # create a completed filename based on all the above information for 720p/1080p files
-                if encode_file_resolution.get() == '720p' or encode_file_resolution.get() == '1080p':
-                    complete_filename = f"{edition_string}BluRay {type_var.get()} " \
-                                        f"{encode_file_audio.get()} x264-BHDStudio"
-
-                # create a completed filename based on all the above information for 2160p files
-                elif encode_file_resolution.get() == '2160p':
-                    # check for HDR string
-                    if encode_hdr_string.get() != '':
-                        add_hdr_string = ' ' + encode_hdr_string.get()
-                    complete_filename = f"{edition_string}UHD BluRay {type_var.get()} " \
-                                        f"{encode_file_audio.get()}{add_hdr_string} x265-BHDStudio"
-
-                # clear the title input entry box and replace with the new created name for BHD
-                title_input_entry_box.delete(0, END)
-                if complete_filename != '':
-                    title_input_entry_box.insert(END, f"{imdb_movie_name} {complete_filename}")
-                movie_info_exit_function()  # close movie_info_window
-
-            # movie info window
-            movie_info_window = Toplevel()
-            movie_info_window.configure(background="#363636")  # Set's the background color
-            movie_info_window.title('Movie Selection')  # Toplevel Title
-            movie_window_height = 600
-            movie_window_width = 1000
-            if movie_window_parser['save_window_locations']['movie_info'] == '':
-                movie_screen_width = movie_info_window.winfo_screenwidth()
-                movie_screen_height = movie_info_window.winfo_screenheight()
-                movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
-                movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
-                movie_info_window.geometry(f"{movie_window_width}x{movie_window_height}+"
-                                           f"{movie_x_coordinate}+{movie_y_coordinate}")
-            elif movie_window_parser['save_window_locations']['movie_info'] != '':
-                movie_info_window.geometry(movie_window_parser['save_window_locations']['movie_info'])
-            movie_info_window.grab_set()
-            movie_info_window.protocol('WM_DELETE_WINDOW', movie_info_exit_function)
-
-            # Row/Grid configures
-            for m_i_w_c in range(6):
-                movie_info_window.grid_columnconfigure(m_i_w_c, weight=1)
-            for m_i_w_r in range(4):
-                movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
-            # Row/Grid configures
-
-            movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
-            movie_listbox_frame.grid(column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W)
-            movie_listbox_frame.grid_rowconfigure(0, weight=1)
-            movie_listbox_frame.grid_columnconfigure(0, weight=1)
-
-            right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
-            bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
-
-            # Create listbox
-            movie_listbox = Listbox(movie_listbox_frame, xscrollcommand=bottom_scrollbar.set, activestyle="none",
-                                    yscrollcommand=right_scrollbar.set, bd=2, bg="black", fg="#3498db", height=10,
-                                    selectbackground='black', selectforeground='lime green', selectmode=SINGLE,
-                                    font=(set_font, set_font_size + 2))
-            movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
-
-            # add scrollbars to the listbox
-            right_scrollbar.config(command=movie_listbox.yview)
-            right_scrollbar.grid(row=0, column=5, sticky=N + W + S)
-            bottom_scrollbar.config(command=movie_listbox.xview)
-            bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
-
-            # define stop thread event
-            stop_thread = threading.Event()
-
-            # define api check function
-            def run_api_check():
-                if movie_search_active.get():
-                    return
-                movie_search_active.set(True)
-
-                movie_listbox.delete(0, END)
-                movie_listbox.insert(END, 'Loading, please wait...')
-
-                collect_title = re.finditer(r'\d{4}', movie_search_var.get().strip())
-
-                title_span = []
-                for title_only in collect_title:
-                    title_span.append(title_only.span())
-
-                try:
-                    movie_title = str(movie_search_var.get()[0:title_span[-1][0]]).replace('.', ' ').replace(
-                        '(', '').replace(')', '').strip()
-                except IndexError:
-                    movie_title = str(movie_search_var.get().strip())
-
-                collect_year = re.findall(r'\d{4}', movie_search_var.get().strip())
-                if collect_year:
-                    movie_year = collect_year[-1]
-                else:
-                    movie_year = ''
-
-                search_movie = requests.get(f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&language"
-                                            f"=en-US&page=1&include_adult=false&query={movie_title}&year={movie_year}")
-                movie_dict = {}
-
-                for results in search_movie.json()['results']:
-                    # find imdb_id data through tmdb
-                    imdb_id = requests.get(
-                        f"https://api.themoviedb.org/3/movie/{results['id']}/external_ids?api_key={tmdb_api_key}")
-                    # if release date string isn't nothing
-                    if imdb_id.json()['imdb_id'] and results['release_date']:
-                        # convert release date to standard month/day/year
-                        release_date = str(results['release_date']).split('-')
-                        full_release_date = f"{release_date[1]}-{release_date[2]}-{release_date[0]}"
-                        # update dictionary
-                        movie_dict.update({f"{results['title']} ({(release_date)[0]})": {
-                            "tvdb_id": f"{results['id']}", "imdb_id": f"{imdb_id.json()['imdb_id']}",
-                            "plot": f"{results['overview']}", "vote_average": f"{str(results['vote_average'])}",
-                            "full_release_date": full_release_date}})
-                        # if thread event stop was called
-                        if stop_thread.is_set():
-                            movie_search_active.set(False)  # set active search to false
-                            break  # break from loop
-
-                # if stop_thread was called and closed the loop
-                if not movie_search_active.get():
-                    return  # exit function
-
-                # clear movie list box
-                movie_listbox.delete(0, END)
-
-                # add all the movies into the listbox
-                for key in movie_dict.keys():
-                    movie_listbox.insert(END, key)
-
-                # function that is ran each time a movie is selected to update all the information in the window
-                def update_movie_info(event):
-                    selection = event.widget.curselection()  # get current selection
-                    # if there is a selection
-                    if selection:
-                        movie_listbox_index = selection[0]  # define index of selection
-                        movie_data = event.widget.get(movie_listbox_index)
-
-                        # delete plot text and update it
-                        plot_scrolled_text.delete("1.0", END)
-                        plot_scrolled_text.insert(END, movie_dict[movie_data]['plot'])
-
-                        # update imdb and tmdb entry box's
-                        imdb_id_var.set(movie_dict[movie_data]['imdb_id'])
-                        tmdb_id_var.set(movie_dict[movie_data]['tvdb_id'])
-
-                        # update release date label
-                        release_date_var.set(movie_dict[movie_data]['full_release_date'])
-
-                        # update rating label
-                        rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
-
-                movie_listbox.bind("<<ListboxSelect>>", update_movie_info)  # bind listbox select event to the updater
-                movie_search_active.set(False)  # once listbox has been updated, set active to False
-
-            # plot frame
-            plot_frame = LabelFrame(movie_info_window, text=' Plot ', labelanchor="nw")
-            plot_frame.grid(column=0, row=1, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
-            plot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
-            plot_frame.grid_rowconfigure(0, weight=1)
-            plot_frame.grid_columnconfigure(0, weight=1)
-
-            # plot text window
-            plot_scrolled_text = scrolledtextwidget.ScrolledText(plot_frame, height=6, wrap=WORD)
-            plot_scrolled_text.grid(row=0, column=0, columnspan=6, pady=(0, 5), padx=5, sticky=E + W)
-            plot_scrolled_text.config(bg='black', fg='#CFD2D1', bd=2)
-
-            # internal search frame
-            internal_search_frame = LabelFrame(movie_info_window, text=' Search ', labelanchor="nw")
-            internal_search_frame.grid(column=0, row=2, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
-            internal_search_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, 'bold'))
-            internal_search_frame.grid_rowconfigure(0, weight=1)
-            internal_search_frame.grid_columnconfigure(0, weight=1)
-
-            # internal search box
-            search_entry_box2 = Entry(internal_search_frame, borderwidth=4, bg="#565656", fg='white',
-                                      disabledforeground='white', disabledbackground="#565656",
-                                      textvariable=movie_search_var)
-            search_entry_box2.grid(row=0, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W)
-
-            # function to search again
-            def start_search_again(*args):
-                stop_thread.clear()  # set stop thread to false
-                threading.Thread(target=run_api_check).start()
-
-            # bind "Enter" key to run the function
-            search_entry_box2.bind("<Return>", start_search_again)
-
-            # internal search button
-            search_button2 = HoverButton(internal_search_frame, text="Search", activebackground="#23272A",
-                                         command=start_search_again,
-                                         foreground="white", background="#23272A",
-                                         borderwidth="3", activeforeground="#3498db", width=12)
-            search_button2.grid(row=0, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N)
-
-            # function to enable and disable the internal search button if a current search is active
-            def enable_disable_internal_search_btn():
-                if movie_search_active.get():  # if search is active disable button
-                    search_button2.config(state=DISABLED)
-                else:  # if search is not active enable button
-                    search_button2.config(state=NORMAL)
-                movie_info_window.after(50, enable_disable_internal_search_btn)
-
-            # start loop to check internal button
-            enable_disable_internal_search_btn()
-
-            # information frame
-            information_frame = Frame(movie_info_window, bd=0, bg="#363636")
-            information_frame.grid(column=0, row=3, columnspan=7, padx=5, pady=(5, 3), sticky=E + W)
-            information_frame.grid_rowconfigure(0, weight=1)
-            information_frame.grid_rowconfigure(1, weight=1)
-            information_frame.grid_columnconfigure(0, weight=1)
-            information_frame.grid_columnconfigure(1, weight=100)
-            information_frame.grid_columnconfigure(2, weight=1000)
-            information_frame.grid_columnconfigure(3, weight=10000)
-            information_frame.grid_columnconfigure(4, weight=100000)
-            information_frame.grid_columnconfigure(5, weight=1000000)
-            information_frame.grid_columnconfigure(6, weight=1)
-
-            # imdb clickable icon button
-            imdb_button2 = Button(information_frame, image=imdb_img, borderwidth=0, cursor='hand2', bg="#363636",
-                                  activebackground="#363636", command=open_imdb_link)
-            imdb_button2.grid(row=0, column=0, columnspan=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
-            imdb_button2.photo = imdb_img
-
-            # imdb entry box internal
-            imdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
-                                    disabledforeground='white', disabledbackground="#565656", textvariable=imdb_id_var)
-            imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
-
-            # tmdb clickable icon button
-            tmdb_button2 = Button(information_frame, image=tmdb_img, borderwidth=0, cursor='hand2', bg="#363636",
-                                  activebackground="#363636", command=open_tmdb_link)
-            tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=W)
-            tmdb_button2.photo = tmdb_img
-
-            # tmdb internal entry box
-            tmdb_entry_box2 = Entry(information_frame, borderwidth=4, bg="#565656", fg='white',
-                                    disabledforeground='white', disabledbackground="#565656", textvariable=tmdb_id_var)
-            tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=W)
-
-            # release date labels
-            release_date_label = Label(information_frame, text='Release Date:', background='#363636', fg="#3498db",
-                                       font=(set_font, set_font_size + 1, "bold"))
-            release_date_label.grid(row=0, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
-
-            release_date_label2 = Label(information_frame, textvariable=release_date_var, width=10,
-                                        background='#363636', fg="#3498db", font=(set_font, set_font_size))
-            release_date_label2.grid(row=0, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
-
-            # rating labels
-            rating_label = Label(information_frame, text='           Rating:', background='#363636', fg="#3498db",
-                                 font=(set_font, set_font_size + 1, "bold"))
-            rating_label.grid(row=1, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
-
-            rating_label2 = Label(information_frame, textvariable=rating_var, width=10,
-                                  background='#363636', fg="#3498db", font=(set_font, set_font_size))
-            rating_label2.grid(row=1, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
-
-            # confirm movie button
-            confirm_movie_btn = HoverButton(information_frame, text="Confirm", command=get_imdb_update_filename,
-                                            foreground="white", background="#23272A", borderwidth="3", width=10,
-                                            activeforeground="#3498db", activebackground="#23272A")
-            confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
-
-            movie_info_window.focus_set()  # focus's id window
-            stop_thread.clear()  # set stop thread event to false
-            threading.Thread(target=run_api_check).start()
+    # # function to search tmdb for information
+    def call_search_command(*enter_args):
+        if search_entry_box.get().strip() != '':
+            upload_window.wm_withdraw()
+            search_movie_global_function(search_entry_box.get().strip())
+            upload_window.wm_deiconify()
 
     # search button and bind to use command from "Enter" key
-    search_entry_box.bind("<Return>", search_movie_db_ids_function)
+    search_entry_box.bind("<Return>", call_search_command)
     search_button = HoverButton(imdb_tmdb_search_frame, text="Search", activebackground="#23272A",
-                                command=search_movie_db_ids_function,
+                                command=call_search_command,
                                 foreground="white", background="#23272A",
                                 borderwidth="3", activeforeground="#3498db", width=12)
     search_button.grid(row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N)
@@ -6159,13 +6199,13 @@ def check_for_latest_program_updates():
                 # exit function to kill thread
                 return
 
-            # if downloaded exe is not detected
-            if not pathlib.Path("BHDStudioUploadTool.exe").is_file():
-                # open message box failed message
-                messagebox.showinfo(parent=update_window, title='Update Status',
-                                    message="Update failed! Opening link to manual update")
-                webbrowser.open(f"https://github.com{update_download_link}")  # open browser for manual download
-                return  # exit function
+        # if downloaded exe is not detected
+        if not pathlib.Path("BHDStudioUploadTool.exe").is_file():
+            # open message box failed message
+            messagebox.showinfo(parent=update_window, title='Update Status',
+                                message="Update failed! Opening link to manual update")
+            webbrowser.open(f"https://github.com{update_download_link}")  # open browser for manual download
+            return  # exit function
 
     # update button
     update_button = HoverButton(update_frame, text='Update', command=update_program, foreground='white',
