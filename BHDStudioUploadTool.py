@@ -1507,7 +1507,15 @@ def encode_input_function(*args):
                 messagebox.showerror(parent=rename_encode_window, title='Missing Suffix',
                                      message='Filename must have ".mp4" suffix!\n\ne.g. "MovieName.mp4"')
                 return  # exit function
-            renamed_enc = pathlib.Path(*args).rename(pathlib.Path(*args).parent / custom_entry_box.get().strip())
+
+            # rename the file
+            try:
+                renamed_enc = pathlib.Path(*args).rename(pathlib.Path(*args).parent / custom_entry_box.get().strip())
+            # if file exists delete old file and rename
+            except FileExistsError:
+                pathlib.Path(pathlib.Path(*args).parent / custom_entry_box.get().strip()).unlink(missing_ok=True)
+                renamed_enc = pathlib.Path(*args).rename(pathlib.Path(*args).parent / custom_entry_box.get().strip())
+
             root.wm_attributes('-alpha', 1.0)  # restore transparency
             rename_encode_window.destroy()  # close window
             encode_input_function(pathlib.Path(renamed_enc))  # re-run encode input with the renamed file
