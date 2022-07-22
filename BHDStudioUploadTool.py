@@ -1062,13 +1062,16 @@ def source_input_function(*args):
         uhd_string = 'UHD'
 
     # add full final name and year to the dictionary
-    if source_file_information['imdb_movie_name'] != 'None':
-        source_file_information.update({'source_file_name': f"{source_file_information['imdb_movie_name']}{uhd_string}"
-                                                            f"{extracted_edition} BluRay"})
-    # if there was a connection error key 'imdb_movie_name' will be 'None', get title name manually
-    elif source_file_information['imdb_movie_name'] == 'None':
-        source_file_information.update({'source_file_name': f"{source_name}{uhd_string}"
-                                                            f"{extracted_edition} BluRay"})
+    try:
+        if source_file_information['imdb_movie_name'] != 'None':
+            source_file_information.update({'source_file_name': f"{source_file_information['imdb_movie_name']}"
+                                                                f"{uhd_string}{extracted_edition} BluRay"})
+        # if there was a connection error key 'imdb_movie_name' will be 'None', get title name manually
+        elif source_file_information['imdb_movie_name'] == 'None':
+            source_file_information.update({'source_file_name': f"{source_name}{uhd_string}"
+                                                                f"{extracted_edition} BluRay"})
+    except KeyError:
+        return  # exit this function
 
     # update labels
     source_label.config(text=update_source_label)
@@ -2664,7 +2667,7 @@ def choose_indexer_func():
 
     # index selection window
     index_selection_win = Toplevel()
-    index_selection_win.title('')
+    index_selection_win.title('Index')
     index_selection_win.configure(background="#363636")
     index_selection_win.geometry(f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
                                  f'{str(int(root.geometry().split("+")[2]) + 230)}')
