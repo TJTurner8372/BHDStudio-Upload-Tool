@@ -688,11 +688,11 @@ def source_input_function(*args):
     # attempt to get only the title and year
     try:
         source_name = str(pathlib.Path(loaded_source_file).name)[0:int(movie_name_extraction[-1][-1])].replace(
-            '.', ' ').replace('(', '').replace(')', '')
+            '.', ' ').replace('(', '').replace(')', '').title()
     # if the file name is already in the correct format set it to this
     except IndexError:
         source_name = str(pathlib.Path(loaded_source_file).name).replace(
-            '.', ' ').replace('(', '').replace(')', '').replace(':', '').strip()
+            '.', ' ').replace('(', '').replace(')', '').replace(':', '').strip().title()
 
     # edition check
     edition_testing = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
