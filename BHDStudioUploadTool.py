@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.31"
+main_root_title = "BHDStudio Upload Tool v1.32"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -2803,13 +2803,40 @@ def check_crop_values():
                                   "top": top_entry_box.get().strip(),
                                   "bottom": bottom_entry_box.get().strip()}})
 
+        # ensure all values are only numbers
+        try:
+            int(left_entry_box.get().strip())
+            int(right_entry_box.get().strip())
+            int(top_entry_box.get().strip())
+            int(bottom_entry_box.get().strip())
+        except ValueError:
+            messagebox.showerror(parent=check_crop_win, title='Error', message='Values can only be numbers!\n\n'
+                                                                               'If crop is nothing leave this at 0')
+            return  # exit the function
+
+        if left_entry_box.get().strip() == '' or left_entry_box.get().strip() == '0':
+            dict_left_crop = '0'
+        else:
+            dict_left_crop = left_entry_box.get().strip()
+
+        if right_entry_box.get().strip() == '' or right_entry_box.get().strip() == '0':
+            dict_right_crop = '0'
+        else:
+            dict_right_crop = right_entry_box.get().strip()
+
+        if top_entry_box.get().strip() == '' or top_entry_box.get().strip() == '0':
+            dict_top_crop = '0'
+        else:
+            dict_top_crop = top_entry_box.get().strip()
+
+        if bottom_entry_box.get().strip() == '' or bottom_entry_box.get().strip() == '0':
+            dict_bottom_crop = '0'
+        else:
+            dict_bottom_crop = bottom_entry_box.get().strip()
+
         # update dictionary crop info
-        if left_entry_box.get().strip() != '' or right_entry_box.get().strip() != '' or \
-                top_entry_box.get().strip() != '' or bottom_entry_box.get().strip() != '':
-            source_file_information.update({"crop": {"left": left_entry_box.get().strip(),
-                                                     "right": right_entry_box.get().strip(),
-                                                     "top": top_entry_box.get().strip(),
-                                                     "bottom": bottom_entry_box.get().strip()}})
+        source_file_information.update({"crop": {"left": dict_left_crop, "right": dict_right_crop,
+                                                 "top": dict_top_crop, "bottom": dict_bottom_crop}})
 
         check_crop_win.destroy()  # exit the window
 
@@ -2880,12 +2907,35 @@ def check_crop_values():
                              activebackground="#23272A")
     accept_btn.grid(row=0, column=2, padx=7, pady=5, sticky=S + E)
 
-    # update all the crop values
+    # update all the crop values to be displayed in the window
     if source_file_information['crop'] != 'None':
-        left_entry_box.insert(0, source_file_information['crop']['left'])
-        right_entry_box.insert(0, source_file_information['crop']['right'])
-        top_entry_box.insert(0, source_file_information['crop']['top'])
-        bottom_entry_box.insert(0, source_file_information['crop']['bottom'])
+        # left crop
+        if source_file_information['crop']['left'] == '':
+            left_entry_box.insert(0, '0')
+        else:
+            left_entry_box.insert(0, source_file_information['crop']['left'])
+        # right crop
+        if source_file_information['crop']['right'] == '':
+            right_entry_box.insert(0, '0')
+        else:
+            right_entry_box.insert(0, source_file_information['crop']['right'])
+        # top crop
+        if source_file_information['crop']['top'] == '':
+            top_entry_box.insert(0, '0')
+        else:
+            top_entry_box.insert(0, source_file_information['crop']['top'])
+        # bottom crop
+        if source_file_information['crop']['bottom'] == '':
+            bottom_entry_box.insert(0, '0')
+        else:
+            bottom_entry_box.insert(0, source_file_information['crop']['bottom'])
+
+    # if there was no crop fill the window with 0's
+    else:
+        left_entry_box.insert(0, '0')
+        right_entry_box.insert(0, '0')
+        top_entry_box.insert(0, '0')
+        bottom_entry_box.insert(0, '0')
 
     check_crop_win.wait_window()  # wait for window to be closed
 
