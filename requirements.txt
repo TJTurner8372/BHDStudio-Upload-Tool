@@ -1,4 +1,4 @@
-awsmfunc==1.3.2
+awsmfunc==1.3.1
 beautifulsoup4==4.11.1
 cryptography==37.0.2
 Custom_Tooltip==1.3
