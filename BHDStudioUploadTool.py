@@ -1060,7 +1060,8 @@ def source_input_function(*args):
 
     # edition check
     edition_testing = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
-                                'special.*edition|theatrical.*cut|uncut|unrated', loaded_source_file, re.IGNORECASE)
+                                'special.*edition|theatrical.*cut|uncut|unrated',
+                                pathlib.Path(loaded_source_file).name, re.IGNORECASE)
     # if edition is detected add it to the name
     if edition_testing:
         extracted_edition = f" {edition_testing.group()}"
@@ -1463,6 +1464,9 @@ def encode_input_function(*args):
 
     source_file_information.update({"suggested_bhd_title": suggested_bhd_filename.replace('DD.', 'DD')})
 
+    # need to retain ':' if it exists for the dictionary above but remove it for the rename function
+    suggested_bhd_filename = suggested_bhd_filename.replace(':', '')
+
     if str(pathlib.Path(*args).name) != suggested_bhd_filename:
         # rename encode window
         rename_encode_window = Toplevel()
@@ -1473,8 +1477,7 @@ def encode_input_function(*args):
         rename_encode_window.resizable(False, False)
         rename_encode_window.grab_set()
         rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: [rename_encode_window.destroy(),
-                                                                   root.wm_attributes('-alpha', 1.0),
-                                                                   delete_encode_entry()])
+                                                                   root.wm_attributes('-alpha', 1.0)])
         root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
         rename_encode_window.grid_rowconfigure(0, weight=1)
         rename_encode_window.grid_columnconfigure(0, weight=1)
@@ -1548,7 +1551,7 @@ def encode_input_function(*args):
         # create 'Cancel' button
         rename_cancel_btn = HoverButton(rename_enc_frame, text="Cancel", activeforeground="#3498db", width=8,
                                         command=lambda: [rename_encode_window.destroy(),
-                                                         root.wm_attributes('-alpha', 1.0), delete_encode_entry()],
+                                                         root.wm_attributes('-alpha', 1.0)],
                                         foreground="white", background="#23272A", borderwidth="3",
                                         activebackground="#23272A")
         rename_cancel_btn.grid(row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
@@ -4953,9 +4956,8 @@ def open_uploader_window(job_mode):
 
     # automatically insert corrected bhdstudio name into the title box
     if encode_file_path.get() != '':
-        title_input_entry_box.insert(END, str(pathlib.Path(pathlib.Path(encode_file_path.get()).name).with_suffix(''))
-                                     .replace('.', ' ').replace('DD 1 0', 'DD1.0').replace('DD 2 0', 'DD2.0')
-                                     .replace('DD 5 1', 'DD5.1'))
+        title_input_entry_box.insert(END, str(source_file_information['suggested_bhd_title']).replace('.', ' ')
+                                     .replace('DD 1 0', 'DD1.0').replace('DD 2 0', 'DD2.0').replace('DD 5 1', 'DD5.1'))
 
     upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
     upload_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
