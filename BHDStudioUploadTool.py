@@ -1464,8 +1464,8 @@ def encode_input_function(*args):
 
     source_file_information.update({"suggested_bhd_title": suggested_bhd_filename.replace('DD.', 'DD')})
 
-    # need to retain ':' if it exists for the dictionary above but remove it for the rename function
-    suggested_bhd_filename = suggested_bhd_filename.replace(':', '')
+    # remove any special characters from the filename
+    suggested_bhd_filename = re.sub(r'[:#%&{}\\<>*?/$!\"@+`|=]', '', suggested_bhd_filename)
 
     if str(pathlib.Path(*args).name) != suggested_bhd_filename:
         # rename encode window
@@ -2973,10 +2973,11 @@ def auto_screen_shot_status_window():
         return  # exit this function
 
     # check crop
-    checking_crop = check_crop_values()
+    if source_file_information['crop'] != 'None':
+        checking_crop = check_crop_values()
 
-    if not checking_crop:
-        return  # exit this function
+        if not checking_crop:
+            return  # exit this function
 
     # choose indexer
     get_indexer = choose_indexer_func()
