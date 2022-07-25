@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.34"
+main_root_title = "BHDStudio Upload Tool v1.35"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -1465,7 +1465,7 @@ def encode_input_function(*args):
     source_file_information.update({"suggested_bhd_title": suggested_bhd_filename.replace('DD.', 'DD')})
 
     # remove any special characters from the filename
-    suggested_bhd_filename = re.sub(r'[:#%&{}\\<>*?/$!\"@+`|=]', '', suggested_bhd_filename)
+    suggested_bhd_filename = re.sub(r'[:#%&{}\\<>*?/$!\"@+`|=-][..]', '', suggested_bhd_filename)
 
     if str(pathlib.Path(*args).name) != suggested_bhd_filename:
         # rename encode window
