@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.33"
+main_root_title = "BHDStudio Upload Tool v1.34"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -666,7 +666,20 @@ def search_movie_global_function(*args):
                               disabledforeground='white', disabledbackground="#565656",
                               textvariable=movie_search_var)
     search_entry_box2.grid(row=1, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W)
-    movie_search_var.set(*args)
+
+    # strip editions from title name if they exist and insert movie into search box automatically
+    check_for_edition_str = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
+                                      'special.*edition|theatrical.*cut|uncut|unrated', *args, re.IGNORECASE)
+
+    # if edition is detected remove it from name (use join to remove extra whitespace from string)
+    if check_for_edition_str:
+        movie_input_filtered = ' '.join(re.sub(check_for_edition_str.group(), '', *args).split())
+    # if edition is not detected use the regular name
+    else:
+        movie_input_filtered = ' '.join(str(args[0]).split())
+
+    # insert movie into entry box/update var
+    movie_search_var.set(movie_input_filtered)
 
     # function to search again
     def start_search_again(*enter_args):
@@ -1459,7 +1472,9 @@ def encode_input_function(*args):
                                       f'{str(int(root.geometry().split("+")[2]) + 230)}')
         rename_encode_window.resizable(False, False)
         rename_encode_window.grab_set()
-        rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: rename_file_func())
+        rename_encode_window.protocol('WM_DELETE_WINDOW', lambda: [rename_encode_window.destroy(),
+                                                                   root.wm_attributes('-alpha', 1.0),
+                                                                   delete_encode_entry()])
         root.wm_attributes('-alpha', 0.90)  # set parent window to be slightly transparent
         rename_encode_window.grid_rowconfigure(0, weight=1)
         rename_encode_window.grid_columnconfigure(0, weight=1)
@@ -1521,8 +1536,8 @@ def encode_input_function(*args):
 
             root.wm_attributes('-alpha', 1.0)  # restore transparency
             rename_encode_window.destroy()  # close window
-            encode_input_function(pathlib.Path(renamed_enc))  # re-run encode input with the renamed file
             encode_file_path.set(renamed_enc)  # update global variable
+            encode_input_function(pathlib.Path(renamed_enc))  # re-run encode input with the renamed file
 
         # create 'Rename' button
         rename_okay_btn = HoverButton(rename_enc_frame, text="Rename", command=rename_file_func, foreground="white",
@@ -1533,7 +1548,7 @@ def encode_input_function(*args):
         # create 'Cancel' button
         rename_cancel_btn = HoverButton(rename_enc_frame, text="Cancel", activeforeground="#3498db", width=8,
                                         command=lambda: [rename_encode_window.destroy(),
-                                                         root.wm_attributes('-alpha', 1.0), reset_gui()],
+                                                         root.wm_attributes('-alpha', 1.0), delete_encode_entry()],
                                         foreground="white", background="#23272A", borderwidth="3",
                                         activebackground="#23272A")
         rename_cancel_btn.grid(row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
