@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.35"
+main_root_title = "BHDStudio Upload Tool v1.36"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -416,6 +416,67 @@ def open_tmdb_link():
         webbrowser.open('https://www.themoviedb.org/movie')
 
 
+def edition_title_extractor(name_to_check):
+    """function to check edition and get title of movie only"""
+    check_for_edition_lst = re.findall("collector(?:'s)?(?:.edition)?|director(?:'s)?(?:.cut)?|extended(?:.cut)?|"
+                                       "limited(?:.edition)?|special(?:.edition)?|theatrical(?:.cut)?"
+                                       "|uncut|unrated", name_to_check, flags=re.IGNORECASE)
+
+    extracted_editions = ''
+    movie_input_filtered = name_to_check
+
+    # extracted edition(s)
+    if check_for_edition_lst:
+        if len(check_for_edition_lst) == 1:
+            extracted_editions = check_for_edition_lst[0]
+        elif len(check_for_edition_lst) > 1:
+            for edition in check_for_edition_lst:
+                extracted_editions = extracted_editions + edition + ' '
+            # strip away extra white space on the right side
+            extracted_editions = extracted_editions.rstrip().replace('.', ' ')
+
+    # if edition is detected remove it from the name
+    if check_for_edition_lst:
+        for x in check_for_edition_lst:
+            movie_input_filtered = re.sub(x, '', movie_input_filtered)
+
+    # detect as much extra stuff from title as possible
+    remove_extra_stuff = re.findall(r'\brepack\b|\b2160p\b|\b1080p\b|\bdts.?hd.?ma\b|\btrue.?hd\b|\batmos\b|\bhybrid\b'
+                                    r'|\bavc\b|\bvc.?.?\b|\b5\.1\b|\b7\.1\b|\b2\.0\b|\b1\.0\b|\bremux\b|\buhd\b|\bdv\b'
+                                    r'|\bflac\b|\bdovi\b|\b.?pcm\b|\bmpeg.?.?\b|\bhevc\b|\b1080i\b|\bproper\b',
+                                    movie_input_filtered, flags=re.IGNORECASE)
+
+    # if extra stuff is detected loop through and remove it from the string
+    if remove_extra_stuff:
+        for rem in remove_extra_stuff:
+            movie_input_filtered = re.sub(rem, '', movie_input_filtered)
+
+    # change all variants of bluray to a basic bluray string
+    movie_input_filtered = re.sub(r'blu.?ray', 'bluray', movie_input_filtered, flags=re.IGNORECASE)
+
+    # remove all non word characters
+    movie_input_filtered = re.sub(r'\W', '.', movie_input_filtered)
+
+    # remove all spaces
+    movie_input_filtered = re.sub(r'\s', '.', movie_input_filtered)
+
+    # remove extra '.'s
+    movie_input_filtered = re.sub(r'\.{2,}', '.', movie_input_filtered)
+
+    # search for bluray string and get everything to the left of it
+    if 'bluray' in movie_input_filtered:
+        search_index = movie_input_filtered.find('bluray')
+        movie_input_filtered = movie_input_filtered[:search_index]
+
+    # split string
+    movie_input_filtered = movie_input_filtered.split('.')
+
+    # rejoin string and strip off any excess white space
+    movie_input_filtered = ' '.join(movie_input_filtered).strip()
+
+    return extracted_editions, movie_input_filtered
+
+
 # function to search tmdb for information
 def search_movie_global_function(*args):
     # set parser
@@ -667,16 +728,9 @@ def search_movie_global_function(*args):
                               textvariable=movie_search_var)
     search_entry_box2.grid(row=1, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W)
 
-    # strip editions from title name if they exist and insert movie into search box automatically
-    check_for_edition_str = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
-                                      'special.*edition|theatrical.*cut|uncut|unrated', *args, re.IGNORECASE)
-
-    # if edition is detected remove it from name (use join to remove extra whitespace from string)
-    if check_for_edition_str:
-        movie_input_filtered = ' '.join(re.sub(check_for_edition_str.group(), '', *args).split())
-    # if edition is not detected use the regular name
-    else:
-        movie_input_filtered = ' '.join(str(args[0]).split())
+    # run function to get title name only
+    movie_input_filtered = edition_title_extractor(str(pathlib.Path(
+        pathlib.Path(source_file_information["source_path"]).name).with_suffix("")))[1]
 
     # insert movie into entry box/update var
     movie_search_var.set(movie_input_filtered)
@@ -1035,38 +1089,18 @@ def source_input_function(*args):
     if video_track.format:
         source_file_information.update({'format': f"{str(video_track.format)}"})
 
-    # get source input title name only
-    # find all 4-digit numbers
-    source_movie_name = re.finditer(r'\d{4}(?!p)', str(pathlib.Path(loaded_source_file).name), re.IGNORECASE)
-
-    # create empty list and add all numbers to the list
-    movie_name_extraction = []
-    for digit_matches in source_movie_name:
-        movie_name_extraction.append(digit_matches.span())
-
-    # attempt to get only the title and year
-    try:
-        source_name = str(pathlib.Path(loaded_source_file).name)[0:int(movie_name_extraction[-1][-1])].replace(
-            '.', ' ').replace('(', '').replace(')', '')
-    # if the file name is already in the correct format set it to this
-    except IndexError:
-        source_name = str(pathlib.Path(loaded_source_file).name).replace(
-            '.', ' ').replace('(', '').replace(')', '').replace(':', '').strip()
+    # run function to get filename only
+    source_name = edition_title_extractor(str(pathlib.Path(loaded_source_file).name))
 
     # use imdb to check to double-check detected title
     root.withdraw()  # hide root window
-    search_movie_global_function(source_name)  # run movie search function
+    search_movie_global_function(source_name[1])  # run movie search function
     advanced_root_deiconify()  # re-open root window
 
-    # edition check
-    edition_testing = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|'
-                                'special.*edition|theatrical.*cut|uncut|unrated',
-                                pathlib.Path(loaded_source_file).name, re.IGNORECASE)
-    # if edition is detected add it to the name
-    if edition_testing:
-        extracted_edition = f" {edition_testing.group()}"
-    else:
-        extracted_edition = ''
+    # get edition from source name results
+    extracted_edition = ''
+    if source_name[0] != '':
+        extracted_edition = f" {source_name[0]}"
 
     # add 'UHD' to filename if it's 2160p
     source_file_width = video_track.width
@@ -1465,7 +1499,10 @@ def encode_input_function(*args):
     source_file_information.update({"suggested_bhd_title": suggested_bhd_filename.replace('DD.', 'DD')})
 
     # remove any special characters from the filename
-    suggested_bhd_filename = re.sub(r'[:#%&{}\\<>*?/$!\"@+`|=-][..]', '', suggested_bhd_filename)
+    suggested_bhd_filename = re.sub(r'[:#%&{}\\<>*?/$!\"@+`|=-][..]', '.', suggested_bhd_filename)
+
+    # remove double '.'s from file name
+    suggested_bhd_filename = re.sub(r'\.{2,}', '', suggested_bhd_filename)
 
     if str(pathlib.Path(*args).name) != suggested_bhd_filename:
         # rename encode window
@@ -3419,6 +3456,9 @@ def upload_to_beyond_hd_co_window():
             img = re.search(r"[\d{1,3}]\)\s(.+)", loaded_images)
             list_of_pngs.append(str(pathlib.Path(img.group(1))))
 
+        # sort list
+        list_of_pngs.sort()
+
         # check if status window is closed
         if upload_error.get():
             return  # exit function
@@ -4958,7 +4998,8 @@ def open_uploader_window(job_mode):
     # automatically insert corrected bhdstudio name into the title box
     if encode_file_path.get() != '':
         title_input_entry_box.insert(END, str(source_file_information['suggested_bhd_title']).replace('.', ' ')
-                                     .replace('DD 1 0', 'DD1.0').replace('DD 2 0', 'DD2.0').replace('DD 5 1', 'DD5.1'))
+                                     .replace('DD1 0', 'DD1.0').replace('DD2 0', 'DD2.0').replace('DD5 1', 'DD5.1')
+                                     .replace('mp4', '').strip())
 
     upload_options_frame = LabelFrame(upload_window, text=' Options ', labelanchor="nw")
     upload_options_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
@@ -5023,25 +5064,24 @@ def open_uploader_window(job_mode):
     # function to automatically grab edition based off of file name
     def check_edition_function():
         if encode_file_path.get().strip() != '' and pathlib.Path(encode_file_path.get()).is_file():
-            edition_check = re.search('collector.*edition|director.*cut|extended.*cut|limited.*edition|s'
-                                      'pecial.*edition|theatrical.*cut|uncut|unrated',
-                                      pathlib.Path(encode_file_path.get()).stem, re.IGNORECASE)
+            edition_check = edition_title_extractor(str(pathlib.Path(encode_file_path.get()).name))[0]
+
             if edition_check:
-                if 'collector' in str(edition_check.group()).lower():
+                if 'collector' in str(edition_check).lower():
                     edition_var.set("Collector's Edition")
-                elif 'director' in str(edition_check.group()).lower():
+                elif 'director' in str(edition_check).lower():
                     edition_var.set("Director's Cut")
-                elif 'extended' in str(edition_check.group()).lower():
+                elif 'extended' in str(edition_check).lower():
                     edition_var.set("Extended Cut")
-                elif 'limited' in str(edition_check.group()).lower():
+                elif 'limited' in str(edition_check).lower():
                     edition_var.set("Limited Edition")
-                elif 'special' in str(edition_check.group()).lower():
+                elif 'special' in str(edition_check).lower():
                     edition_var.set("Special Edition")
-                elif 'theatrical' in str(edition_check.group()).lower():
+                elif 'theatrical' in str(edition_check).lower():
                     edition_var.set("Theatrical Cut")
-                elif 'uncut' in str(edition_check.group()).lower():
+                elif 'uncut' in str(edition_check).lower():
                     edition_var.set("Uncut")
-                elif 'unrated' in str(edition_check.group()).lower():
+                elif 'unrated' in str(edition_check).lower():
                     edition_var.set("Unrated")
 
     check_edition_function()  # run function to check edition upon opening the window automatically
@@ -5090,17 +5130,15 @@ def open_uploader_window(job_mode):
     search_entry_box.grid(row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W)
 
     # if encode file is loaded, parse the name of the file to get autoload it into the search box for the user
-    if pathlib.Path(encode_file_path.get()).stem != '':
-        search_entry_box.delete(0, END)  # clear the search box
-        # use regex to find the movie name
-        movie_name = re.finditer(r'\d{4}(?!p)', pathlib.Path(encode_file_path.get()).stem, re.IGNORECASE)
-        movie_name_extraction = []  # create empty list
-        for match in movie_name:  # get the "span" from the movie name
-            movie_name_extraction.append(match.span())
-        # extract the full movie name (removing anything that is not needed from the filename)
-        full_movie_name = pathlib.Path(encode_file_path.get()).stem[0:int(
-            movie_name_extraction[-1][-1])].replace('.', ' ').strip()
-        search_entry_box.insert(END, full_movie_name)  # insert this full movie name into the search box
+    if pathlib.Path(encode_file_path.get()) != '':
+        # clear the search box
+        search_entry_box.delete(0, END)
+
+        # run function to get movie name
+        encode_movie_str = edition_title_extractor(str(pathlib.Path(encode_file_path.get()).name))[1]
+
+        # insert movie name into search box
+        search_entry_box.insert(END, encode_movie_str)
 
     # # function to search tmdb for information
     def call_search_command(*enter_args):
