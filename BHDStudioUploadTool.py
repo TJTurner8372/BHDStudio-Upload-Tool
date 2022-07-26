@@ -58,7 +58,7 @@ elif app_type == 'script':
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.37"
+main_root_title = "BHDStudio Upload Tool v1.38"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / 'Runtime').mkdir(parents=True, exist_ok=True)
@@ -855,6 +855,7 @@ def source_input_function(*args):
     delete_encode_entry()  # clear encode entry
     source_file_information.clear()  # clear dictionary
     delete_source_entry()  # clear source entry
+    clear_all_variables()  # clear all variables
     audio_pop_up_var = StringVar()  # audio pop up var
 
     # check if script is avisynth
