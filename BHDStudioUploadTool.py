@@ -2353,12 +2353,8 @@ def automatic_screenshot_generator():
     image_preview_frame.grid_columnconfigure(0, weight=1)
     image_preview_frame.grid_rowconfigure(0, weight=1)
 
-    # create emtpy image list
-    comparison_img_list = []
-
-    # loop through comparison directory and get all images
-    for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
-        comparison_img_list.append(x_img)
+    # create image list
+    comparison_img_list = sorted([x_img for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png")])
 
     # set index variable
     comparison_index = 0
@@ -2516,6 +2512,18 @@ def automatic_screenshot_generator():
     # create variable to be updated for index purposes
     selected_index_var = 0
 
+    def sort_list(listbox):
+        """
+        function to sort listbox items case-insensitive
+        """
+        temp_list = list(listbox.get(0, END))
+        temp_list.sort(key=str.lower)
+        # delete contents of present listbox
+        listbox.delete(0, END)
+        # load listbox with sorted data
+        for item in temp_list:
+            listbox.insert(END, item)
+
     # remove pair from listbox function
     def remove_pair_from_listbox():
         nonlocal comparison_index, comparison_img_list, selected_index_var
@@ -2539,12 +2547,16 @@ def automatic_screenshot_generator():
             for x in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
                 img_viewer_listbox.insert(END, x.name)
 
+            # sort listbox
+            # no longer needed since list comprehension will overwrite
+            sort_list(img_viewer_listbox)
+
             # clear the comparison image list
             comparison_img_list.clear()
 
             # update the comparison image list with everything in the directory
-            for x in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
-                comparison_img_list.append(x)
+            comparison_img_list = sorted([x_img for x_img in pathlib.Path(
+                screenshot_comparison_var.get()).glob("*.png")])
 
             # if there is at least 1 item in the list
             if comparison_img_list:
@@ -2598,10 +2610,12 @@ def automatic_screenshot_generator():
         for x_l in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
             img_viewer_listbox.insert(END, x_l.name)
 
+        # sort listbox
+        sort_list(img_viewer_listbox)
+
         # update image info and preview info
         comparison_img_list.clear()
-        for x_c in pathlib.Path(screenshot_comparison_var.get()).glob("*.png"):
-            comparison_img_list.append(x_c)
+        comparison_img_list = sorted([x_img for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png")])
 
         # if there is anything left in the comparison img list
         if comparison_img_list:
@@ -2609,7 +2623,7 @@ def automatic_screenshot_generator():
             try:
                 comparison_index = selected_index_var
                 im = Image.open(comparison_img_list[comparison_index])
-            # if unable to use that index subtract 2 from it (this prevents errors at the end of the list)
+            # if unable to use that index, subtract 2 from it (this prevents errors at the end of the list)
             except IndexError:
                 comparison_index = selected_index_var - 2
                 im = Image.open(comparison_img_list[comparison_index])
