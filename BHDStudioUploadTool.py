@@ -4732,8 +4732,8 @@ def auto_screen_shot_status_window():
                 automatic_screenshot_generator()
                 return  # exit this loop
 
-        # loop every 60 milliseconds to check the queue
-        root.after(60, gui_loop_checker)
+        # loop every millisecond to check the queue
+        root.after(1, gui_loop_checker)
 
     # define thread
     ss_gen_thread = threading.Thread(
@@ -6607,8 +6607,115 @@ def torrent_function_window():
     # insert string 'BHD' into source
     torrent_source_entry_box.insert(END, "BHD")
 
-    # create torrent
-    def create_torrent():
+    # create queue instance
+    torrent_queue = Queue()
+
+    def create_torrent(tor_queue):
+        """create torrent in a separate thread"""
+
+        error = False  # set temporary error variable
+        try:
+            build_torrent = Torrent(
+                path=pathlib.Path(encode_file_path.get()),
+                trackers=str(torrent_tracker_url_entry_box.get()).strip(),
+                private=True,
+                source=torrent_source_entry_box.get().strip(),
+                piece_size=torrent_piece_choices[torrent_piece.get()],
+            )
+        except torf.URLError:  # if tracker url is invalid
+            tor_queue.put("Error Tracker URL is invalid, exiting")
+            error = True  # set error to true
+        except torf.PathError:  # if path to encoded file is invalid
+            tor_queue.put("Error Path to encoded file is invalid, exiting")
+            error = True  # set error to true
+        except torf.PieceSizeError:  # if piece size is incorrect
+            tor_queue.put("Error Piece size is incorrect, exiting")
+            error = True  # set error to true
+
+        if error:  # if error is true
+            return  # exit the function
+
+        def torrent_progress(torrent, filepath, pieces_done, pieces_total):
+            """call back method to read/abort progress"""
+
+            # update progress bar
+            tor_queue.put(f"Progress {pieces_done / pieces_total * 100:3.0f}")
+
+            # if pieces are done and torrent file is present send "Complete" to the Queue
+            if pieces_done == pieces_total:
+                if pathlib.Path(torrent_file_path.get()).is_file():
+                    tor_queue.put("Complete")
+
+        # if callback torrent_progress returns anything other than None, exit the function
+        if not build_torrent.generate(callback=torrent_progress):
+            return  # exit function
+
+        # once hash is completed build torrent file, overwrite automatically
+        build_torrent.write(pathlib.Path(torrent_file_path.get()), overwrite=True)
+
+    # progress bar
+    app_progress_bar = ttk.Progressbar(
+        torrent_window,
+        orient=HORIZONTAL,
+        mode="determinate",
+        style="text.Horizontal.TProgressbar",
+    )
+    app_progress_bar.grid(row=3, column=0, columnspan=10, sticky=W + E, pady=5, padx=5)
+
+    # set text to progress bar every time window opens to ""
+    custom_style.configure("text.Horizontal.TProgressbar", text="")
+
+    def torrent_queue_loop():
+        """constantly check the torrent queue data for updates"""
+
+        # if there is data set it to a variable
+        try:
+            torrent_queue_data = torrent_queue.get_nowait()
+        except Empty:
+            torrent_queue_data = None
+
+        # if data is not equal to None
+        if torrent_queue_data is not None:
+            # if the data has Error in the beginning of the string, use this to spawn message box's
+            if str(torrent_queue_data).split()[0] == "Error":
+                messagebox.showerror(
+                    parent=torrent_window,
+                    title="Error",
+                    message=f"{str(torrent_queue_data).replace('Error ', '')}",
+                )
+                # exit this loop
+                return
+
+            # if the data has Progress in the beginning of the string, use this to update the progress bar
+            elif str(torrent_queue_data).split()[0].strip() == "Progress":
+                try:
+                    app_progress_bar["value"] = int(
+                        str(torrent_queue_data).split()[1].strip()
+                    )
+                    custom_style.configure(
+                        "text.Horizontal.TProgressbar",
+                        text=f"{str(torrent_queue_data).split()[1].strip()}",
+                    )
+                except TclError:
+                    # exit this function
+                    return
+
+            # if the data has Complete sent to it, confirm that the torrent file is there and call the exit function
+            elif str(torrent_queue_data) == "Complete":
+                # if *.torrent exists then exit the window
+                if pathlib.Path(torrent_file_path.get()).is_file():
+                    torrent_window_exit_function()
+
+                # exit this loop
+                return
+
+        # keep polling data every milisecond
+        root.after(1, torrent_queue_loop)
+
+    def create_torrent_btn_func():
+        """function ran when create torrent is selected"""
+
+        # if file already exists
         if pathlib.Path(torrent_file_path.get()).is_file():
             # ask user if they would like to use the existing torrent file
             use_existing_file = messagebox.askyesno(
@@ -6631,87 +6738,31 @@ def torrent_function_window():
                     title="Overwrite File?",
                     message="Would you like to overwrite file?",
                 )
-                if not check_overwrite:  # if user does not want to overwrite file
-                    save_new_file = (
-                        torrent_save_output()
-                    )  # call the torrent_save_output() function
-                    if (
-                        not save_new_file
-                    ):  # if user press cancel in the torrent_save_output() window
+                # if user does not want to overwrite file
+                if not check_overwrite:
+                    # call the torrent_save_output() function
+                    save_new_file = torrent_save_output()
+                    # if user press cancel in the torrent_save_output() window
+                    if not save_new_file:
                         return  # exit this function
 
-        error = False  # set temporary error variable
-        try:
-            build_torrent = Torrent(
-                path=pathlib.Path(encode_file_path.get()),
-                trackers=str(torrent_tracker_url_entry_box.get()).strip(),
-                private=True,
-                source=torrent_source_entry_box.get().strip(),
-                piece_size=torrent_piece_choices[torrent_piece.get()],
+            # define a torrent thread
+            torrent_thread = threading.Thread(
+                target=create_torrent, args=(torrent_queue,), daemon=True
             )
-        except torf.URLError:  # if tracker url is invalid
-            messagebox.showerror(
-                parent=torrent_window, title="Error", message="Invalid Tracker URL"
-            )
-            error = True  # set error to true
-        except torf.PathError:  # if path to encoded file is invalid
-            messagebox.showerror(
-                parent=torrent_window,
-                title="Error",
-                message="Path to encoded file is invalid",
-            )
-            error = True  # set error to true
-        except torf.PieceSizeError:  # if piece size is incorrect
-            messagebox.showerror(
-                parent=torrent_window, title="Error", message="Piece size is incorrect"
-            )
-            error = True  # set error to true
 
-        if error:  # if error is true
-            return  # exit the function
+            # after 500 milliseconds start the torrent queue loop
+            root.after(500, torrent_queue_loop)
 
-        # call back method to read/abort progress
-        def torrent_progress(torrent, filepath, pieces_done, pieces_total):
-            try:
-                app_progress_bar["value"] = int(
-                    f"{pieces_done / pieces_total * 100:3.0f}"
-                )
-                custom_style.configure(
-                    "text.Horizontal.TProgressbar",
-                    text=f"{pieces_done / pieces_total * 100:3.0f}",
-                )
-            except TclError:  # if window is closed return 0
-                return 0  # returning 0 ends process
-
-        # if callback torrent_progress returns anything other than None, exit the function
-        if not build_torrent.generate(callback=torrent_progress):
-            return  # exit function
-
-        # once hash is completed build torrent file, overwrite automatically
-        build_torrent.write(pathlib.Path(torrent_file_path.get()), overwrite=True)
-
-        # if *.torrent exists then exit the window
-        if pathlib.Path(torrent_file_path.get()).is_file():
-            torrent_window_exit_function()
-
-    # progress bar
-    app_progress_bar = ttk.Progressbar(
-        torrent_window,
-        orient=HORIZONTAL,
-        mode="determinate",
-        style="text.Horizontal.TProgressbar",
-    )
-    app_progress_bar.grid(row=3, column=0, columnspan=10, sticky=W + E, pady=5, padx=5)
-
-    # set text to progress bar every time window opens to ''
-    custom_style.configure("text.Horizontal.TProgressbar", text="")
+            # start the torrent thread
+            torrent_thread.start()
 
     # create torrent button
     create_torrent_button = HoverButton(
         torrent_window,
         text="Create",
         activebackground="#23272A",
-        command=lambda: threading.Thread(target=create_torrent).start(),
+        command=create_torrent_btn_func,
         foreground="white",
         background="#23272A",
         borderwidth="3",
