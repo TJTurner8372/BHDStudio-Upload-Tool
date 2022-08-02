@@ -7799,71 +7799,68 @@ def open_uploader_window(job_mode):
                 {"custom_edition": edition_entry_box.get().strip()}
             )
 
-        # upload function in a different thread
-        def run_upload_in_different_thread():
-            try:  # try to upload
-                upload_job = requests.post(
-                    api_link,
-                    upload_payload_params,
-                    files={
-                        "file": open(pathlib.Path(torrent_file_path.get()), "rb"),
-                        "mediainfo": encode_media_info.get(),
-                    },
-                )
-            except requests.exceptions.ConnectionError:  # if there is a connection error show function
-                encoder_okay_func()  # this runs the okay button function to close the window and restore transparency
-                messagebox.showerror(
-                    parent=upload_window,
-                    title="Error",
-                    message="There is a connection error, check "
-                    "your internet connection",
-                )
-                return  # exit the function
+        try:  # try to upload
+            upload_job = requests.post(
+                api_link,
+                upload_payload_params,
+                files={
+                    "file": open(pathlib.Path(torrent_file_path.get()), "rb"),
+                    "mediainfo": encode_media_info.get(),
+                },
+            )
+        except requests.exceptions.ConnectionError:  # if there is a connection error show function
+            encoder_okay_func()  # this runs the okay button function to close the window and restore transparency
+            messagebox.showerror(
+                parent=upload_window,
+                title="Error",
+                message="There is a connection error, check "
+                "your internet connection",
+            )
+            return  # exit the function
 
-            upload_status_info.config(state=NORMAL)  # enable scrolled text box
-            upload_status_info.delete("1.0", END)  # delete all contents of the box
+        upload_status_info.config(state=NORMAL)  # enable scrolled text box
+        upload_status_info.delete("1.0", END)  # delete all contents of the box
+
+        # if upload returns a status code '200', assume success
+        if upload_job.status_code == 200:
             if (
-                upload_job.status_code == 200
-            ):  # if upload returns a status code '200', assume success
-                if (
-                    upload_job.json()["status_code"] == 1
-                    and "saved" in upload_job.json()["status_message"]
-                    and upload_job.json()["success"]
-                ):
-                    upload_status_info.insert(
-                        END,
-                        "Upload is successful!\n\nUpload has been successfully "
-                        "saved as a draft on site",
-                    )
-                else:
-                    upload_status_info.insert(
-                        END,
-                        f"There was an error:\n\n{upload_job.json()['status_message']}",
-                    )
-            elif (
-                upload_job.status_code == 404
-            ):  # if upload returns a status code '400', site error
+                upload_job.json()["status_code"] == 1
+                and "saved" in upload_job.json()["status_message"]
+                and upload_job.json()["success"]
+            ):
                 upload_status_info.insert(
                     END,
-                    f"Upload failed! This is likely a problem with the site\n\n"
-                    f"{upload_job.json()['status_message']}",
+                    "Upload is successful!\n\nUpload has been successfully "
+                    "saved as a draft on site",
                 )
-            elif (
-                upload_job.status_code == 500
-            ):  # if upload returns a status code '400', critical site error
+            else:
                 upload_status_info.insert(
                     END,
-                    "Error!\n\nThe site isn't returning the upload status.\n"
-                    "This is a critical error from the site.\n"
-                    f"Status code:{str(upload_job.status_code)}",
+                    f"There was an error:\n\n{upload_job.json()['status_message']}",
                 )
-            else:  # if it returns any other status code, raise a pythonic error to be shown and print unknown error
-                upload_status_info.insert(END, "Unknown error!")
-                upload_job.raise_for_status()
-            upload_status_info.config(state=DISABLED)  # disable scrolled textbox
 
-        # start upload in a thread
-        threading.Thread(target=run_upload_in_different_thread).start()
+        # if upload returns a status code '400', site error
+        elif upload_job.status_code == 404:
+            upload_status_info.insert(
+                END,
+                f"Upload failed! This is likely a problem with the site\n\n"
+                f"{upload_job.json()['status_message']}",
+            )
+
+        # if upload returns a status code '400', critical site error
+        elif upload_job.status_code == 500:
+            upload_status_info.insert(
+                END,
+                "Error!\n\nThe site isn't returning the upload status.\n"
+                "This is a critical error from the site.\n"
+                f"Status code:{str(upload_job.status_code)}",
+            )
+
+        # if it returns any other status code, raise a pythonic error to be shown and print unknown error
+        else:
+            upload_status_info.insert(END, "Unknown error!")
+            upload_job.raise_for_status()
+        upload_status_info.config(state=DISABLED)  # disable scrolled textbox
 
     # enabled upload img
     decode_resize_tmdb_image = Image.open(
