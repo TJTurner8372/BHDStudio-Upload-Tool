@@ -4453,16 +4453,68 @@ def auto_screen_shot_status_window():
             ss_queue.put("Indexing source...")
 
             # index source file
-            source_file = core.lsmas.LWLibavSource(source_file_path.get())
-            # update queue with information
+            # if index is found in the staxrip temp working directory, attempt to use it
+            if (
+                pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix("")) + "_temp/"
+                ).is_dir()
+                and pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix(""))
+                    + "_temp/temp.lwi"
+                ).is_file()
+            ):
 
+                # update queue with information
+                ss_queue.put("\nIndex found in staxrip temp, attempting to use...")
+
+                # define cache path
+                lwi_cache_path = pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix(""))
+                    + "_temp/temp.lwi"
+                )
+
+                # try to use index on source file with the cache path
+                try:
+                    source_file = core.lsmas.LWLibavSource(
+                        source=source_file_path.get(), cachefile=lwi_cache_path
+                    )
+
+                # if index cannot be used
+                except vs.Error:
+
+                    # update queue with information
+                    ss_queue.put(
+                        "\nL-Smash version miss-match, indexing source again..."
+                    )
+
+                    # index source file
+                    source_file = core.lsmas.LWLibavSource(source_file_path.get())
+
+            # if no existing index is found index source file
+            else:
+                try:
+                    # create index
+                    source_file = core.lsmas.LWLibavSource(source_file_path.get())
+                except vs.Error:
+                    # delete index
+                    pathlib.Path(source_file_path.get() + ".lwi").unlink(
+                        missing_ok=True
+                    )
+                    # create index
+                    source_file = core.lsmas.LWLibavSource(source_file_path.get())
+
+            # update queue with information
             ss_queue.put(" Done!\nIndexing encode...")
 
             # index encode file
-            encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
-
-            # update queue with information
-            ss_queue.put(" Done!")
+            try:
+                # create index
+                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+            except vs.Error:
+                # delete index
+                pathlib.Path(encode_file_path.get() + ".lwi").unlink(missing_ok=True)
+                # create index
+                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
 
         # index the source file with ffms
         elif get_indexer == "ffms":
@@ -4470,16 +4522,73 @@ def auto_screen_shot_status_window():
             ss_queue.put("Indexing source...")
 
             # index source file
-            source_file = core.ffms2.Source(source_file_path.get())
+            # if index is found in the staxrip temp working directory, attempt to use it
+            if (
+                pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix("")) + "_temp/"
+                ).is_dir()
+                and pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix(""))
+                    + "_temp/temp.ffindex"
+                ).is_file()
+            ):
+
+                # update queue with information
+                ss_queue.put("\nIndex found in staxrip temp, attempting to use...")
+
+                # define cache path
+                ffindex_cache_path = pathlib.Path(
+                    str(pathlib.Path(source_file_path.get()).with_suffix(""))
+                    + "_temp/temp.ffindex"
+                )
+
+                # try to use index on source file with the cache path
+                try:
+                    source_file = core.ffms2.Source(
+                        source=source_file_path.get(), cachefile=ffindex_cache_path
+                    )
+
+                # if index cannot be used
+                except vs.Error:
+
+                    # update queue with information
+                    ss_queue.put(
+                        "\nFFINDEX version miss-match, indexing source again..."
+                    )
+
+                    # index source file
+                    source_file = core.ffms2.Source(source_file_path.get())
+
+            # if no existing index is found index source file
+            else:
+                try:
+                    # create index
+                    source_file = core.ffms2.Source(source_file_path.get())
+                except vs.Error:
+                    # delete index
+                    pathlib.Path(source_file_path.get() + ".ffindex").unlink(
+                        missing_ok=True
+                    )
+                    # create index
+                    source_file = core.ffms2.Source(source_file_path.get())
 
             # update queue with information
             ss_queue.put(" Done!\nIndexing encode...")
 
             # index encode file
-            encode_file = core.ffms2.Source(encode_file_path.get())
+            try:
+                # create index
+                encode_file = core.ffms2.Source(encode_file_path.get())
+            except vs.Error:
+                # delete index
+                pathlib.Path(encode_file_path.get() + ".ffindex").unlink(
+                    missing_ok=True
+                )
+                # create index
+                encode_file = core.ffms2.Source(encode_file_path.get())
 
-            # update queue with information
-            ss_queue.put(" Done!")
+        # update queue with information
+        ss_queue.put(" Done!")
 
         # get the total number of frames from source file
         num_source_frames = len(source_file)
@@ -4606,6 +4715,7 @@ def auto_screen_shot_status_window():
         ss_status_info.config(state=NORMAL)
         ss_status_info.insert(END, str(text))
         ss_status_info.config(state=DISABLED)
+        ss_status_info.see(END)
 
     def gui_loop_checker():
         """loop to constantly check queue and update program depending on the output"""
