@@ -14,6 +14,7 @@ import zipfile
 from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
+from queue import Queue, Empty
 from tkinter import (
     filedialog,
     StringVar,
@@ -438,12 +439,11 @@ class Logger(
                 row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N
             )
 
-            def right_click_menu_func(
-                x_y_pos,
-            ):  # Function for mouse button 3 (right click) to pop up menu
-                right_click_menu.tk_popup(
-                    x_y_pos.x_root, x_y_pos.y_root
-                )  # This gets the position of cursor
+            def right_click_menu_func(x_y_pos):
+                """mouse button 3 (right click) to pop up menu"""
+
+                # get the position of cursor
+                right_click_menu.tk_popup(x_y_pos.x_root, x_y_pos.y_root)
 
             right_click_menu = Menu(
                 info_scrolled, tearoff=False
@@ -771,8 +771,8 @@ def search_movie_global_function(*args):
     # define stop thread event
     stop_thread = threading.Event()
 
-    # define api check function
     def run_api_check():
+        """search tmdb for input"""
         if movie_search_active.get():
             return
         movie_search_active.set(True)
@@ -883,12 +883,11 @@ def search_movie_global_function(*args):
                 # update rating label
                 rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
 
-        movie_listbox.bind(
-            "<<ListboxSelect>>", update_movie_info
-        )  # bind listbox select event to the updater
-        movie_search_active.set(
-            False
-        )  # once listbox has been updated, set active to False
+        # bind listbox select event to the updater
+        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
+
+        # once listbox has been updated, set active to False
+        movie_search_active.set(False)
 
     # plot frame
     plot_frame = LabelFrame(movie_info_window, text=" Plot ", labelanchor="nw")
@@ -984,8 +983,11 @@ def search_movie_global_function(*args):
 
     # function to search again
     def start_search_again(*enter_args):
-        stop_thread.clear()  # set stop thread to false
-        threading.Thread(target=run_api_check).start()
+        # set stop thread to false
+        stop_thread.clear()
+
+        # start thread again to search for movie title
+        threading.Thread(target=run_api_check, daemon=True).start()
 
     # bind "Enter" key to run the function
     search_entry_box2.bind("<Return>", start_search_again)
@@ -1142,11 +1144,18 @@ def search_movie_global_function(*args):
     confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
 
     movie_info_window.focus_set()  # focus's id window
-    stop_thread.clear()  # set stop thread event to false
-    threading.Thread(
-        target=run_api_check
-    ).start()  # start thread to search for movie title
-    movie_info_window.wait_window()  # wait for window to close
+
+    # clear movie list box
+    movie_listbox.delete(0, END)
+
+    # set stop thread event to false
+    stop_thread.clear()
+
+    # start thread to search for movie title
+    threading.Thread(target=run_api_check, daemon=True).start()
+
+    # wait for window to close
+    movie_info_window.wait_window()
 
 
 def source_input_function(*args):
@@ -4314,8 +4323,9 @@ def check_crop_values():
     return crop_var
 
 
-# auto screenshot status window
 def auto_screen_shot_status_window():
+    """auto screenshot function"""
+
     # select desired amount of screenshots
     screen_amount_check = screen_shot_count_spinbox()
 
@@ -4334,6 +4344,9 @@ def auto_screen_shot_status_window():
 
     if get_indexer == "":
         return  # exit this function
+
+    # start a queue for multi-threaded communication
+    ss_status_queue = Queue()
 
     # screenshot status window
     screenshot_status_window = Toplevel()
@@ -4370,21 +4383,14 @@ def auto_screen_shot_status_window():
     )
     ss_status_info.config(state=DISABLED)
 
-    force_cancel = False
-
-    # function to exit the status window
     def screenshot_close_button():
-        nonlocal force_cancel
+        """exit the status window"""
         check_exit = messagebox.askyesno(
             parent=screenshot_status_window,
             title="Close?",
-            message="Closing this window will kill the entire program. This is the only "
-            "way to ensure all threads are safely destroyed.\n\nWould you like "
-            "to exit?",
+            message="Are you sure you want to end the process?\nNote: This will kill the entire program!",
         )
         if check_exit:
-            force_cancel = True
-            # kill root (fully destroy root to close all threads)
             root.destroy()
 
     # create 'Close' button
@@ -4402,8 +4408,9 @@ def auto_screen_shot_status_window():
     ss_close_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
     screenshot_status_window.protocol("WM_DELETE_WINDOW", screenshot_close_button)
 
-    # image comparison code (semi automatic)
-    def semi_automatic_screenshots():
+    def semi_automatic_screenshots(ss_queue):
+        """threaded function to index and generate screenshots"""
+
         # define config parser
         semi_auto_img_parser = ConfigParser()
         semi_auto_img_parser.read(config_file)
@@ -4433,225 +4440,46 @@ def auto_screen_shot_status_window():
         except vs.Error:
             pass
 
-        # define variable to update within function for ffms
-        ffms_final_source_path = ""
-        ffms_cache_path = ""
-
-        # function to index source file
-        def index_source_file_func():
-            nonlocal ffms_final_source_path, ffms_cache_path
-            # index the source file with lwlibavsource
-            if get_indexer == "lwlibav":
-                # if index file already exists
-                if pathlib.Path(source_file_path.get() + ".lwi").is_file():
-                    src_use_existing = messagebox.askyesno(
-                        parent=screenshot_status_window,
-                        title="Indexing: Source",
-                        message="Source index file already exists. "
-                        "Would you like to use existing index file?",
-                    )
-                    # if user does not want to use existing index file
-                    if not src_use_existing:
-                        # delete index
-                        pathlib.Path(source_file_path.get() + ".lwi").unlink(
-                            missing_ok=True
-                        )
-                        # create new index
-                        core.lsmas.LWLibavSource(source_file_path.get())
-                # if index does not exist create index file
-                else:
-                    core.lsmas.LWLibavSource(source_file_path.get())
-
-            # index the source file with ffms
-            elif get_indexer == "ffms":
-                # if index file already exists on same path as the source
-                if pathlib.Path(source_file_path.get() + ".ffindex").is_file():
-                    # ask user if they want to use the index
-                    src_use_existing = messagebox.askyesno(
-                        parent=screenshot_status_window,
-                        title="Indexing: Source",
-                        message="Source index file already exists. "
-                        "Would you like to use existing index file?",
-                    )
-                    # if user does not want to use existing index file
-                    if not src_use_existing:
-                        # delete index
-                        pathlib.Path(source_file_path.get() + ".ffindex").unlink(
-                            missing_ok=True
-                        )
-                        # create new index
-                        core.ffms2.Source(source_file_path.get())
-                        # update variable
-                        ffms_final_source_path = source_file_path.get()
-                    # if user wants to use existing index
-                    elif src_use_existing:
-                        ffms_final_source_path = pathlib.Path(source_file_path.get())
-
-                # check for staxrip ffindex file in temp folder
-                elif (
-                    pathlib.Path(
-                        str(pathlib.Path(source_file_path.get()).with_suffix(""))
-                        + "_temp/"
-                    ).is_dir()
-                    and pathlib.Path(
-                        str(pathlib.Path(source_file_path.get()).with_suffix(""))
-                        + "_temp/temp.ffindex"
-                    ).is_file()
-                ):
-                    # ask user if they want to use the index
-                    src_use_existing = messagebox.askyesno(
-                        parent=screenshot_status_window,
-                        title="Indexing: Source",
-                        message="Source index file already exists. "
-                        "Would you like to use existing index file?",
-                    )
-                    # if user does not want to use existing index file
-                    if not src_use_existing:
-                        # create new index
-                        core.ffms2.Source(source=source_file_path.get())
-                        # update variable
-                        ffms_final_source_path = pathlib.Path(source_file_path.get())
-                    # if user wants to use existing index
-                    elif src_use_existing:
-                        ffms_final_source_path = pathlib.Path(source_file_path.get())
-                        ffms_cache_path = pathlib.Path(
-                            str(pathlib.Path(source_file_path.get()).with_suffix(""))
-                            + "_temp/temp.ffindex"
-                        )
-
-                # if index does not exist create index file beside the source file and update variable
-                else:
-                    core.ffms2.Source(source=source_file_path.get())
-                    ffms_final_source_path = pathlib.Path(source_file_path.get())
-
-            # update status window
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "\nSource index completed!\n\n")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
-
-        # function to index encode file
-        def index_encode_file_func():
-            # index the source file with lwlibavsource
-            if get_indexer == "lwlibav":
-                # if index file already exists
-                if pathlib.Path(encode_file_path.get() + ".lwi").is_file():
-                    enc_use_existing = messagebox.askyesno(
-                        parent=screenshot_status_window,
-                        title="Indexing: Encode",
-                        message="Encode index file already exists. "
-                        "Would you like to use existing index file?",
-                    )
-                    # if user does not want to use existing index file
-                    if not enc_use_existing:
-                        # delete index
-                        pathlib.Path(encode_file_path.get() + ".lwi").unlink(
-                            missing_ok=True
-                        )
-                        # create new index
-                        core.lsmas.LWLibavSource(encode_file_path.get())
-                # if index does not exist create index file
-                else:
-                    core.lsmas.LWLibavSource(encode_file_path.get())
-
-            # index the source file with ffms
-            elif get_indexer == "ffms":
-                # if index file already exists
-                if pathlib.Path(encode_file_path.get() + ".ffindex").is_file():
-                    enc_use_existing = messagebox.askyesno(
-                        parent=screenshot_status_window,
-                        title="Indexing: Encode",
-                        message="Encode index file already exists. "
-                        "Would you like to use existing index file?",
-                    )
-                    # if user does not want to use existing index file
-                    if not enc_use_existing:
-                        # delete index
-                        pathlib.Path(encode_file_path.get() + ".ffindex").unlink(
-                            missing_ok=True
-                        )
-                        # create new index
-                        core.ffms2.Source(encode_file_path.get())
-                # if index does not exist create index file
-                else:
-                    core.ffms2.Source(encode_file_path.get())
-
-            # update status window
-            ss_status_info.config(state=NORMAL)
-            ss_status_info.insert(END, "\nEncode index completed!\n\n")
-            ss_status_info.see(END)
-            ss_status_info.config(state=DISABLED)
-
-        # update status window
-        ss_status_info.config(state=NORMAL)
-        ss_status_info.insert(
-            END,
+        # update queue with information
+        ss_queue.put(
             f"Indexing {str(pathlib.Path(source_file_path.get()).name)} and  "
             f"{str(pathlib.Path(encode_file_path.get()).name)} with {get_indexer}. "
-            f"This could take a while depending on your systems storage speed...\n\n",
+            f"\n\nThis could take a while depending on your systems storage speed...\n\n"
         )
-        ss_status_info.see(END)
-        ss_status_info.config(state=DISABLED)
 
-        # run index functions
-        # if files are on separate drives execute them both at the same time
-        if (
-            pathlib.Path(source_file_path.get()).drive
-            != pathlib.Path(encode_file_path.get()).drive
-        ):
-            # define threads
-            t1 = threading.Thread(target=index_source_file_func)
-            t2 = threading.Thread(target=index_encode_file_func)
-
-            # start threads
-            t1.start()
-            t2.start()
-
-            # wait for threads to finish
-            t1.join()
-            t2.join()
-
-        # if files are on the same drive execute them 1 at a time
-        else:
-            index_source_file_func()
-            index_encode_file_func()
-
-        # define source and encode file index files as variables
+        # index the source file with lwlibavsource
         if get_indexer == "lwlibav":
+            # update queue with information
+            ss_queue.put("Indexing source...")
+
+            # index source file
             source_file = core.lsmas.LWLibavSource(source_file_path.get())
+            # update queue with information
+
+            ss_queue.put(" Done!\nIndexing encode...")
+
+            # index encode file
             encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+
+            # update queue with information
+            ss_queue.put(" Done!")
+
+        # index the source file with ffms
         elif get_indexer == "ffms":
-            # try to load index file
-            try:
-                if ffms_cache_path != "":
-                    source_file = core.ffms2.Source(
-                        source=ffms_final_source_path, cachefile=ffms_cache_path
-                    )
-                else:
-                    source_file = core.ffms2.Source(source=ffms_final_source_path)
-            # if index file is a different version than the included ffms
-            except vs.Error:
-                # update status window with error
-                ss_status_info.config(state=NORMAL)
-                ss_status_info.insert(
-                    END,
-                    "\nFailed to open existing source index.\nIndexing source file now with "
-                    "included FFMS. Please wait...",
-                )
-                ss_status_info.see(END)
-                ss_status_info.config(state=DISABLED)
+            # update queue with information
+            ss_queue.put("Indexing source...")
 
-                # index source file
-                source_file = core.ffms2.Source(source=source_file_path.get())
+            # index source file
+            source_file = core.ffms2.Source(source_file_path.get())
 
-                # update status window
-                ss_status_info.config(state=NORMAL)
-                ss_status_info.insert(END, "Done!\n\n")
-                ss_status_info.see(END)
-                ss_status_info.config(state=DISABLED)
+            # update queue with information
+            ss_queue.put(" Done!\nIndexing encode...")
 
-            # encode file variable
+            # index encode file
             encode_file = core.ffms2.Source(encode_file_path.get())
+
+            # update queue with information
+            ss_queue.put(" Done!")
 
         # get the total number of frames from source file
         num_source_frames = len(source_file)
@@ -4674,15 +4502,11 @@ def auto_screen_shot_status_window():
         else:
             comparison_img_count = 20
 
-        # update status window
-        ss_status_info.config(state=NORMAL)
-        ss_status_info.insert(
-            END,
-            f"Collecting {str(comparison_img_count)} random 'B' frames to generate "
-            "comparison images from...",
+        # update queue with information
+        ss_queue.put(
+            f"\n\nCollecting {str(comparison_img_count)} random 'B' frames to generate "
+            "comparison images from..."
         )
-        ss_status_info.see(END)
-        ss_status_info.config(state=DISABLED)
 
         # collect a range of random b frames from encode and put them in a list
         b_frames = []
@@ -4690,16 +4514,13 @@ def auto_screen_shot_status_window():
             random_frame = random.randint(5000, num_source_frames - 10000)
             if encode_file.get_frame(random_frame).props["_PictType"].decode() == "B":
                 b_frames.append(random_frame)
+                root.update_idletasks()
 
-        # update status window
-        ss_status_info.config(state=NORMAL)
-        ss_status_info.insert(
-            END,
+        # update queue with information
+        ss_queue.put(
             f" Completed!\n\nGenerating {str(comparison_img_count)} sets of comparisons... "
-            f"This depends on system storage speed...",
+            f"This depends on system storage speed..."
         )
-        ss_status_info.see(END)
-        ss_status_info.config(state=DISABLED)
 
         # make temporary image folder
         image_output_dir = pathlib.Path(
@@ -4765,7 +4586,10 @@ def auto_screen_shot_status_window():
             clip=encode_file, title="BHDStudio", style=selected_sub_style
         )
 
-        # generate comparisons
+        # update queue with information
+        ss_queue.put("\n\nGenerating Screenshots, please wait...")
+
+        # generate screenshots with awmfunc screengen
         awsmfunc.ScreenGen(
             [vs_source_info, vs_encode_info],
             frame_numbers=b_frames,
@@ -4774,21 +4598,45 @@ def auto_screen_shot_status_window():
             suffix=["a_source__%d", "b_encode__%d"],
         )
 
-        # close status window
-        screenshot_status_window.destroy()  # close screenshot status window
+        # update queue with information
+        ss_queue.put("Completed")
 
-    # multithread the image comparison code and start the function
-    auto_ss_thread = threading.Thread(target=semi_automatic_screenshots, daemon=True)
+    def update_status(text):
+        """function to update status window with text"""
+        ss_status_info.config(state=NORMAL)
+        ss_status_info.insert(END, str(text))
+        ss_status_info.config(state=DISABLED)
 
+    def gui_loop_checker():
+        """loop to constantly check queue and update program depending on the output"""
+
+        # check if queue has any ss_queue_data in it
+        try:
+            ss_queue_data = ss_status_queue.get_nowait()
+        # if it is empty set variable to None
+        except Empty:
+            ss_queue_data = None
+
+        # if ss_queue_data is not empty update status
+        if ss_queue_data is not None:
+            update_status(ss_queue_data)
+            # if ss_queue_data is 'Completed' close the window and continue
+            if ss_queue_data == "Completed":
+                screenshot_status_window.destroy()
+                automatic_screenshot_generator()
+                return  # exit this loop
+
+        # loop every 60 milliseconds to check the queue
+        root.after(60, gui_loop_checker)
+
+    # define thread
+    ss_gen_thread = threading.Thread(
+        target=semi_automatic_screenshots, args=(ss_status_queue,), daemon=True
+    )
+    # start ss queue checker
+    gui_loop_checker()
     # start thread
-    auto_ss_thread.start()
-
-    # wait on screenshot status to close
-    screenshot_status_window.wait_window()
-
-    if not force_cancel:
-        # open image viewer
-        automatic_screenshot_generator()
+    ss_gen_thread.start()
 
 
 # auto generate button
@@ -8969,8 +8817,9 @@ def generate_button_checker():
 generate_button_checker()
 
 
-# check for updates
 def check_for_latest_program_updates():
+    """check program for updates against the project GitHub releases"""
+
     def error_message_open_browser():
         auto_error = messagebox.askyesno(
             parent=root,
@@ -9052,7 +8901,8 @@ def check_for_latest_program_updates():
     update_window.grid_rowconfigure(0, weight=1)
     update_window.grid_rowconfigure(1, weight=1)
     update_window.grid_rowconfigure(2, weight=1)
-    update_window.grab_set()
+    update_window.grab_set()  # only allow input on update window until it's closed
+    update_window.wm_transient(root)  # bring window above the main window
 
     # basic update label to show parsed version
     update_label = Label(
@@ -9297,7 +9147,7 @@ def check_for_latest_program_updates():
 
 # start check for updates function in a new thread
 if app_type == "bundled":
-    check_update = threading.Thread(target=check_for_latest_program_updates).start()
+    check_for_latest_program_updates()
 
 # if program was opened with a dropped video file load it into the source function
 if cli_command:
