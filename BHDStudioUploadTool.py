@@ -469,13 +469,9 @@ class Logger(
         # self.error_log_file.close()  # Close file
 
 
-def start_logger():
-    if enable_error_logger:  # If True
-        sys.stderr = Logger()  # Start the Logger() class to write to console and file
-
-
-# start logger
-threading.Thread(target=start_logger).start()
+# start logger if enabled
+if enable_error_logger:
+    sys.stderr = Logger()
 
 # variables to be used within the program
 source_file_path = StringVar()
