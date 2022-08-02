@@ -4347,7 +4347,7 @@ def auto_screen_shot_status_window():
     # screenshot status window
     screenshot_status_window = Toplevel()
     screenshot_status_window.configure(background="#363636")
-    screenshot_status_window.title("")
+    screenshot_status_window.title("Screenshot Status")
     screenshot_status_window.geometry(
         f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -4763,13 +4763,17 @@ auto_screens_multi_btn.grid(
 )
 
 
-# upload pictures to beyond.co and return medium linked images
 def upload_to_beyond_hd_co_window():
+    """upload pictures to beyond.co and return medium linked images"""
+
+    # create queue instance
+    upload_to_bhdco_queue = Queue()
+
     # define upload error variable
     upload_error = BooleanVar()
 
-    # function to manipulate scrolled text box to reduce code
     def manipulate_ss_upload_window(update_string):
+        """manipulate scrolled text box to reduce code"""
         try:
             upload_ss_info.config(state=NORMAL)
             upload_ss_info.delete("1.0", END)
@@ -4778,85 +4782,8 @@ def upload_to_beyond_hd_co_window():
         except TclError:
             return  # exit the function
 
-    # function to upload to beyond hd
-    def upload_to_beyond_hd_co():
-        # if user and pass bin exists
-        if (
-            pathlib.Path("Runtime/user.bin").is_file()
-            and pathlib.Path("Runtime/pass.bin").is_file()
-        ):
-
-            # start fernet instance to convert stored username and password files
-            pass_user_decoder = Fernet(crypto_key)
-
-            # open both user and pass bin files
-            with open("Runtime/user.bin", "rb") as user_file, open(
-                "Runtime/pass.bin", "rb"
-            ) as pass_file:
-                # decode and insert user name
-                decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
-                    "utf-8"
-                )
-                # decode and insert password
-                decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode(
-                    "utf-8"
-                )
-
-            # if username or password equals nothing send error
-            if decode_user == "" or decode_pass == "":
-                missing_info = messagebox.askyesno(
-                    parent=upload_ss_status,
-                    title="Missing credentials",
-                    message="Missing user name and password for beyondhd.co\n\nWould "
-                    "you like to add these now?",
-                )
-                # if user selects yes
-                if missing_info:
-                    # open login window
-                    bhd_co_login_window()
-                    # update login variables
-                    pass_user_decoder = Fernet(crypto_key)
-                    with open("Runtime/user.bin", "rb") as user_file, open(
-                        "Runtime/pass.bin", "rb"
-                    ) as pass_file:
-                        decode_user = pass_user_decoder.decrypt(
-                            user_file.read()
-                        ).decode("utf-8")
-                        decode_pass = pass_user_decoder.decrypt(
-                            pass_file.read()
-                        ).decode("utf-8")
-                else:  # if user selects no
-                    manipulate_ss_upload_window(
-                        "Missing username and/or password. Cannot continue..."
-                    )
-                    return  # exit function
-        else:  # if user or path bins do not exist
-            missing_info = messagebox.askyesno(
-                parent=upload_ss_status,
-                title="Missing credentials",
-                message="Missing user name and password for beyondhd.co\n\nWould you "
-                "like to add these now?",
-            )
-            # if user selects yes
-            if missing_info:
-                # open login window
-                bhd_co_login_window()
-                # update login variables
-                pass_user_decoder = Fernet(crypto_key)
-                with open("Runtime/user.bin", "rb") as user_file, open(
-                    "Runtime/pass.bin", "rb"
-                ) as pass_file:
-                    decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
-                        "utf-8"
-                    )
-                    decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode(
-                        "utf-8"
-                    )
-            else:  # if user selects no
-                manipulate_ss_upload_window(
-                    "Missing username and/or password. Cannot continue..."
-                )
-                return  # exit function
+    def upload_to_beyond_hd_co(upload_bhdco_queue):
+        """threaded function to upload to beyond hd"""
 
         # create empty list
         list_of_pngs = []
@@ -4882,11 +4809,11 @@ def upload_to_beyond_hd_co_window():
             return  # exit function
 
         # get raw text of web page
-        manipulate_ss_upload_window("Getting auth token from beyondhd.co")
+        upload_bhdco_queue.put("Getting auth token from beyondhd.co\n\n")
         try:
             auth_raw = session.get("https://beyondhd.co/login", timeout=10).text
         except requests.exceptions.ConnectionError:
-            manipulate_ss_upload_window("No internet connection")
+            upload_bhdco_queue.put("No internet connection")
             return  # exit the function
 
         # check if status window is closed
@@ -4895,7 +4822,7 @@ def upload_to_beyond_hd_co_window():
 
         # if web page didn't return a response
         if not auth_raw:
-            manipulate_ss_upload_window("Could not access beyondhd.co")
+            upload_bhdco_queue.put("Could not access beyondhd.co")
             return  # exit the function
 
         # split auth token out of raw web page for later use
@@ -4904,9 +4831,9 @@ def upload_to_beyond_hd_co_window():
             .split(";")[0]
             .replace('"', "")
         )
-        manipulate_ss_upload_window("Auth token found")
+        upload_bhdco_queue.put("Auth token found")
         if not auth_code:
-            manipulate_ss_upload_window("Could not find auth token")
+            upload_bhdco_queue.put("Could not find auth token")
             return  # exit the function
 
         # login payload
@@ -4921,7 +4848,7 @@ def upload_to_beyond_hd_co_window():
             return  # exit function
 
         # login post
-        manipulate_ss_upload_window(
+        upload_bhdco_queue.put(
             f"Logging in to beyondhd.co as {login_payload['login-subject']}"
         )
         try:
@@ -4929,7 +4856,7 @@ def upload_to_beyond_hd_co_window():
                 "https://beyondhd.co/login", data=login_payload, timeout=10
             )
         except requests.exceptions.ConnectionError:
-            manipulate_ss_upload_window("No internet connection")
+            upload_bhdco_queue.put("No internet connection")
             return  # exit the function
 
         # check if status window is closed
@@ -4940,11 +4867,11 @@ def upload_to_beyond_hd_co_window():
         confirm_login = re.search(
             r"CHV.obj.logged_user =(.+);", login_post.text, re.MULTILINE
         )
-        manipulate_ss_upload_window(f"Successfully logged in as {decode_user}")
+        upload_bhdco_queue.put(f"Successfully logged in as {decode_user}")
 
         # if post confirm_login is none
         if not confirm_login:
-            manipulate_ss_upload_window("Incorrect username or password")
+            upload_bhdco_queue.put("Incorrect username or password")
             return  # exit the function
 
         # generate album name
@@ -4986,19 +4913,19 @@ def upload_to_beyond_hd_co_window():
             return  # exit function
 
         # create album post
-        manipulate_ss_upload_window(f"Creating album:\n{generated_album_name}")
+        upload_bhdco_queue.put(f"Creating album:\n{generated_album_name}")
         try:
             album_post = session.post(
                 "https://beyondhd.co/json", data=album_payload, timeout=10
             )
         except requests.exceptions.ConnectionError:
-            manipulate_ss_upload_window("No internet connection")
+            upload_bhdco_queue.put("No internet connection")
             return  # exit the function
-        manipulate_ss_upload_window(f"{generated_album_name} album was created")
+        upload_bhdco_queue.put(f"{generated_album_name} album was created")
 
         # check for success message
         if not album_post.json()["success"]["message"] == "Content added to album":
-            manipulate_ss_upload_window(album_post.json()["success"]["message"])
+            upload_bhdco_queue.put(album_post.json()["success"]["message"])
             return  # exit the function
 
         # get album_id for later use
@@ -5030,15 +4957,12 @@ def upload_to_beyond_hd_co_window():
         description_info = ""
 
         # clear screenshot info window
-        manipulate_ss_upload_window("")
+        upload_bhdco_queue.put("")
 
         # upload image 1 at a time
         for (png_num, current_image) in enumerate(bytes_converter_png_list, start=1):
             if not upload_error.get():
-                upload_ss_info.config(state=NORMAL)
-                upload_ss_info.insert(END, f"Uploading image {png_num}/{images_len}\n")
-                upload_ss_info.see(END)
-                upload_ss_info.config(state=DISABLED)
+                upload_bhdco_queue.put(f"Uploading image {png_num}/{images_len}\n")
                 # upload files
                 try:
                     upload_file_post = session.post(
@@ -5047,7 +4971,7 @@ def upload_to_beyond_hd_co_window():
                         data=upload_files_payload,
                     )
                 except requests.exceptions.ConnectionError:  # if there is a connection error show an error
-                    manipulate_ss_upload_window("Upload connection error")
+                    upload_bhdco_queue.put("Upload connection error")
                     upload_error.set(True)  # set error to True
                     return  # exit the function
 
@@ -5068,29 +4992,46 @@ def upload_to_beyond_hd_co_window():
 
                 else:
                     upload_error.set(True)  # set error to True
-                    manipulate_ss_upload_window(
+                    upload_bhdco_queue.put(
                         f"Error code from beyondhd.co {str(upload_file_post.status_code)}"
                     )
                     return  # exit the function
 
-        # if images are uploaded/returned, change tabs to 'URLs' and insert the image description string
+        # if images are uploaded/returned
         if not upload_error.get():
-            # clear screenshot box
-            screenshot_scrolledtext.delete("1.0", END)
-            # add description string to screenshot box
-            screenshot_scrolledtext.insert(END, description_info)
-            tabs.select(url_tab)  # swap tab
-            # add success message to upload status window
-            manipulate_ss_upload_window(
-                f"Upload is successful!\n\nImages are upload to album:\n"
-                f"{generated_album_name}\n\nClick OK to continue"
-            )
+            # send completed to kill the polling loop
+            upload_bhdco_queue.put("Completed!")
+            screenshot_final_func(description_info, generated_album_name)
 
-    # function to exit the screenshot upload window
+    def screenshot_final_func(description_info, generated_album_name):
+        """change tabs to 'URLs' and insert the image description string"""
+
+        # clear screenshot box
+        screenshot_scrolledtext.delete("1.0", END)
+
+        # add description string to screenshot box
+        screenshot_scrolledtext.insert(END, description_info)
+
+        # swap tab
+        tabs.select(url_tab)
+
+        # add success message to upload status window
+        manipulate_ss_upload_window(
+            f"Upload is successful!\n\nImages are upload to album:\n"
+            f"{generated_album_name}\n\nClick OK to continue"
+        )
+
     def upload_ss_exit_func():
-        upload_error.set(True)  # exit function at next chance
-        upload_ss_status.destroy()  # close window
-        advanced_root_deiconify()  # re-open root window
+        """function to exit the screenshot upload window"""
+
+        # exit function at next chance
+        upload_error.set(True)
+
+        # close window
+        upload_ss_status.destroy()
+
+        # re-open root window
+        advanced_root_deiconify()
 
     # upload status window
     upload_ss_status = Toplevel()
@@ -5151,8 +5092,111 @@ def upload_to_beyond_hd_co_window():
     # ensure error is set to False
     upload_error.set(False)
 
-    # start upload in another thread
-    threading.Thread(target=upload_to_beyond_hd_co).start()
+    # if user and pass bin exists
+    if (
+        pathlib.Path("Runtime/user.bin").is_file()
+        and pathlib.Path("Runtime/pass.bin").is_file()
+    ):
+        # start fernet instance to convert stored username and password files
+        pass_user_decoder = Fernet(crypto_key)
+
+        # open both user and pass bin files
+        with open("Runtime/user.bin", "rb") as user_file, open(
+            "Runtime/pass.bin", "rb"
+        ) as pass_file:
+            # decode and insert user name
+            decode_user = pass_user_decoder.decrypt(user_file.read()).decode("utf-8")
+            # decode and insert password
+            decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode("utf-8")
+
+        # if username or password equals nothing send error
+        if decode_user == "" or decode_pass == "":
+            missing_info = messagebox.askyesno(
+                parent=upload_ss_status,
+                title="Missing credentials",
+                message="Missing user name and password for beyondhd.co\n\nWould "
+                "you like to add these now?",
+            )
+            # if user selects yes
+            if missing_info:
+                # open login window
+                bhd_co_login_window()
+                # update login variables
+                pass_user_decoder = Fernet(crypto_key)
+                with open("Runtime/user.bin", "rb") as user_file, open(
+                    "Runtime/pass.bin", "rb"
+                ) as pass_file:
+                    decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
+                        "utf-8"
+                    )
+                    decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode(
+                        "utf-8"
+                    )
+            else:  # if user selects no
+                manipulate_ss_upload_window(
+                    "Missing username and/or password. Cannot continue..."
+                )
+                return  # exit function
+    else:  # if user or path bins do not exist
+        missing_info = messagebox.askyesno(
+            parent=upload_ss_status,
+            title="Missing credentials",
+            message="Missing user name and password for beyondhd.co\n\nWould you "
+            "like to add these now?",
+        )
+        # if user selects yes
+        if missing_info:
+            # open login window
+            bhd_co_login_window()
+            # update login variables
+            pass_user_decoder = Fernet(crypto_key)
+            with open("Runtime/user.bin", "rb") as user_file, open(
+                "Runtime/pass.bin", "rb"
+            ) as pass_file:
+                decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
+                    "utf-8"
+                )
+                decode_pass = pass_user_decoder.decrypt(pass_file.read()).decode(
+                    "utf-8"
+                )
+        else:  # if user selects no
+            manipulate_ss_upload_window(
+                "Missing username and/or password. Cannot continue..."
+            )
+            return  # exit function
+
+    def beyond_hd_co_queue_loop():
+        """constantly check the bhdco queue data for updates"""
+
+        # if there is data set it to a variable
+        try:
+            bhd_co_data = upload_to_bhdco_queue.get_nowait()
+        except Empty:
+            bhd_co_data = None
+
+        # if data is not equal to None
+        if bhd_co_data is not None:
+            # if the data has Error in the beginning of the string, use this to spawn message box's
+            if str(bhd_co_data) != "Completed!":
+                manipulate_ss_upload_window(bhd_co_data)
+
+            # if queue is "Completed!" exit the loop
+            elif str(bhd_co_data) == "Completed!":
+                return
+
+        # keep polling loop going
+        root.after(1, beyond_hd_co_queue_loop)
+
+    # define upload in another thread
+    bhdco_thread = threading.Thread(
+        target=upload_to_beyond_hd_co, args=(upload_to_bhdco_queue,), daemon=True
+    )
+
+    # start thread polling loop
+    root.after(500, beyond_hd_co_queue_loop)
+
+    # start thread
+    bhdco_thread.start()
 
 
 # upload button
