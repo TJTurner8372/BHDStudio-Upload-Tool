@@ -3604,12 +3604,18 @@ def automatic_screenshot_generator():
     # image viewer frame
     img_viewer_frame = Frame(image_viewer, bg="#434547", bd=0)
     img_viewer_frame.grid(
-        column=4, columnspan=1, row=1, rowspan=1, pady=3, padx=4, sticky=W + E + N + S
+        column=4,
+        columnspan=1,
+        row=1,
+        rowspan=1,
+        pady=(3, 2),
+        padx=4,
+        sticky=W + E + N + S,
     )
     img_viewer_frame.grid_columnconfigure(0, weight=1)
     img_viewer_frame.grid_rowconfigure(0, weight=200)
     img_viewer_frame.grid_rowconfigure(1, weight=200)
-    img_viewer_frame.grid_rowconfigure(1, weight=1)
+    img_viewer_frame.grid_rowconfigure(2, weight=100)
 
     # create image name label
     image_name_label2 = Label(
@@ -3657,6 +3663,65 @@ def automatic_screenshot_generator():
         row=0, column=2, rowspan=2, sticky=N + W + S, pady=(8, 0)
     )
 
+    # create mini preview frame
+    mini_preview_frame = LabelFrame(
+        img_viewer_frame,
+        bg="#434547",
+        text=" Preview ",
+        labelanchor="nw",
+        fg="#3498db",
+        bd=3,
+        font=(set_font, 10, "bold"),
+    )
+    mini_preview_frame.grid(column=0, columnspan=3, row=2, sticky=N + S + E + W)
+    mini_preview_frame.grid_columnconfigure(0, weight=1)
+    mini_preview_frame.grid_rowconfigure(0, weight=1)
+
+    def update_thumbnail(event):
+        """update small thumbnail in image viewer window when something in the list box is selected"""
+
+        img_selection = event.widget.curselection()  # get current selection
+        # if there is a selection
+        if img_selection:
+            # define index of selection
+            cur_selection_index = img_selection[0]
+            img_data = event.widget.get(cur_selection_index)
+
+            # create image instance and resize the photo
+            thumbnail_img = Image.open(
+                pathlib.Path(pathlib.Path(screenshot_selected_var.get()) / img_data)
+            )
+            thumbnail_img.thumbnail((348, 158), Image.Resampling.LANCZOS)
+            resized_image1 = ImageTk.PhotoImage(thumbnail_img)
+
+            # update the label with the selected image
+            mini_image_preview_label.config(image=resized_image1)
+            mini_image_preview_label.image = resized_image1
+            mini_image_preview_label.bind(
+                "<Button-1>",
+                lambda b_event: Image.open(
+                    pathlib.Path(pathlib.Path(screenshot_selected_var.get()) / img_data)
+                ).show(),
+            )
+
+    # bind listbox select event to the thumbnail update function
+    img_viewer_listbox.bind("<<ListboxSelect>>", update_thumbnail)
+
+    # define zero image to fill label
+    zero_img = PhotoImage()
+
+    # put resized image into label
+    mini_image_preview_label = Label(
+        mini_preview_frame,
+        background="#434547",
+        cursor="hand2",
+        image=zero_img,
+        width=348,
+        height=160,
+    )
+    mini_image_preview_label.image = zero_img
+    mini_image_preview_label.grid(column=0, row=0, sticky=N + S + E + W)
+
     # image button frame for selected list box
     img_button2_frame = Frame(image_viewer, bg="#434547")
     img_button2_frame.grid(
@@ -3670,21 +3735,10 @@ def automatic_screenshot_generator():
     # create variable to be updated for index purposes
     selected_index_var = 0
 
-    def sort_list(listbox):
-        """
-        function to sort listbox items case-insensitive
-        """
-        temp_list = list(listbox.get(0, END))
-        temp_list.sort(key=str.lower)
-        # delete contents of present listbox
-        listbox.delete(0, END)
-        # load listbox with sorted data
-        for item in temp_list:
-            listbox.insert(END, item)
-
-    # remove pair from listbox function
     def remove_pair_from_listbox():
+        """remove pair from listbox function"""
         nonlocal comparison_index, comparison_img_list, selected_index_var
+
         # if something is selected in the list box
         if img_viewer_listbox.curselection():
             # get the selected item from list box
@@ -3709,12 +3763,10 @@ def automatic_screenshot_generator():
 
             # delete the list box and update it with what ever is left
             img_viewer_listbox.delete(0, END)
-            for x in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
-                img_viewer_listbox.insert(END, x.name)
 
-            # sort listbox
-            # no longer needed since list comprehension will overwrite
-            sort_list(img_viewer_listbox)
+            # update the listbox
+            for x in sorted(pathlib.Path(screenshot_selected_var.get()).glob("*.png")):
+                img_viewer_listbox.insert(END, x.name)
 
             # clear the comparison image list
             comparison_img_list.clear()
@@ -3731,8 +3783,16 @@ def automatic_screenshot_generator():
 
             # if there is at least 1 item in the list
             if comparison_img_list:
-                # refresh the image viewer with the updated list (attempt to retain position)
-                comparison_index = selected_index_var
+                # find index of current item
+                # refresh the image viewer with the updated list while retaining current position
+                comparison_index = int(
+                    comparison_img_list.index(
+                        pathlib.Path(
+                            pathlib.Path(screenshot_comparison_var.get())
+                            / image_name_label.cget("text")
+                        )
+                    )
+                )
                 im = Image.open(comparison_img_list[comparison_index])
                 im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
@@ -3777,10 +3837,10 @@ def automatic_screenshot_generator():
         activebackground="#23272A",
         width=4,
     )
-    minus_btn.grid(row=0, column=0, padx=5, sticky=E)
+    minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
 
-    # function to add pair to the selected listbox
     def add_pair_to_listbox():
+        """add pair to the selected listbox"""
         nonlocal comparison_index, comparison_img_list, image_preview_label, selected_index_var
 
         # find the frame number of the pair
@@ -3814,14 +3874,13 @@ def automatic_screenshot_generator():
         img_viewer_listbox.delete(0, END)
 
         # update the listbox
-        for x_l in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
+        for x_l in sorted(pathlib.Path(screenshot_selected_var.get()).glob("*.png")):
             img_viewer_listbox.insert(END, x_l.name)
 
-        # sort listbox
-        sort_list(img_viewer_listbox)
-
-        # update image info and preview info
+        # clear the comparison image list
         comparison_img_list.clear()
+
+        # update the comparison image list with everything in the directory
         comparison_img_list = sorted(
             [
                 x_img
@@ -3885,7 +3944,7 @@ def automatic_screenshot_generator():
         activebackground="#23272A",
         width=4,
     )
-    move_right.grid(row=0, column=1, padx=5, sticky=W)
+    move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
 
     # add images to list box function
     def add_images_to_listbox_func():
@@ -3938,7 +3997,7 @@ def automatic_screenshot_generator():
         activebackground="#23272A",
         width=10,
     )
-    add_images_to_listbox.grid(row=0, column=2, padx=5, sticky=E)
+    add_images_to_listbox.grid(row=0, column=2, padx=5, pady=(7, 0), sticky=E)
 
     # change 'X' button on image viewer (use the Apply button function)
     image_viewer.protocol("WM_DELETE_WINDOW", add_images_to_listbox_func)
