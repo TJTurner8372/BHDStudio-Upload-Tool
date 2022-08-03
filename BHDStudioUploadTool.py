@@ -767,21 +767,110 @@ def search_movie_global_function(*args):
     # define stop thread event
     stop_thread = threading.Event()
 
-    def run_api_check():
-        """search tmdb for input"""
+    # define api thread queue
+    api_thread_queue = Queue()
+
+    def update_movie_listbox(movie_dict):
+        """update the list box with supplied dictionary"""
+
+        # loop through the keys (movie titles) and display them in the listbox
+        for key in movie_dict.keys():
+            movie_listbox.insert(END, key)
+
+        # function that is run each time a movie is selected to update all the information in the window
+        def update_movie_info(event):
+            selection = event.widget.curselection()  # get current selection
+            # if there is a selection
+            if selection:
+                movie_listbox_index = selection[0]  # define index of selection
+                movie_data = event.widget.get(movie_listbox_index)
+
+                # delete plot text and update it
+                plot_scrolled_text.delete("1.0", END)
+                plot_scrolled_text.insert(END, movie_dict[movie_data]["plot"])
+
+                # update imdb and tmdb entry box's
+                imdb_id_var.set(movie_dict[movie_data]["imdb_id"])
+                tmdb_id_var.set(movie_dict[movie_data]["tvdb_id"])
+
+                # update release date label
+                release_date_var.set(movie_dict[movie_data]["full_release_date"])
+
+                # update rating label
+                rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
+
+        # bind listbox select event to the updater
+        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
+
+    def api_thread_poll_loop():
+        """loop to poll the queue and update the GUI for the api search function"""
+
+        # if there is data set it to a variable
+        try:
+            api_queue_data = api_thread_queue.get_nowait()
+        except Empty:
+            api_queue_data = None
+
+        # if data is not equal to None
+        if api_queue_data is not None:
+
+            # if False is sent to the queue exit this loop
+            if not api_queue_data:
+                # exit this loop
+                return
+
+            # if the data has Error as the first key, use this to spawn message box's
+            elif list(api_queue_data.keys())[0] == "Error":
+                messagebox.showerror(
+                    parent=movie_info_window,
+                    title=api_queue_data["Error"]["title"],
+                    message=api_queue_data["Error"]["message"],
+                )
+                # exit this loop
+                return
+
+            # if the data has "Listbox" as the first key, control basic listbox functions
+            elif list(api_queue_data.keys())[0] == "Listbox":
+
+                # delete listbox contents
+                if api_queue_data["Listbox"] == "Delete":
+                    movie_listbox.delete(0, END)
+
+                # if it's a simple string that IS NOT Delete, display it in the list box
+                elif api_queue_data["Listbox"] != "Delete":
+                    movie_listbox.insert(END, api_queue_data["Listbox"])
+
+            # if the data has "Listbox Dict", run the function to update the listbox with the queued dictionary
+            elif list(api_queue_data.keys())[0] == "Listbox Dict":
+                update_movie_listbox(api_queue_data["Listbox Dict"])
+
+        # keep polling data every millisecond
+        root.after(1, api_thread_poll_loop)
+
+    def run_api_check(api_queue):
+        """threaded search tmdb for input"""
+
         if movie_search_active.get():
             return
+
+        # set movie_search_active to True, in order to not allow another thread to be started
         movie_search_active.set(True)
 
-        movie_listbox.delete(0, END)
-        movie_listbox.insert(END, "Loading, please wait...")
+        # send api queue to delete listbox and add text to it
+        api_queue.put({"Listbox": "Delete"})
+        api_queue.put({"Listbox": "Loading, please wait..."})
 
+        # regex to collect title name
         collect_title = re.finditer(r"\d{4}", movie_search_var.get().strip())
 
+        # create empty list
         title_span = []
+
+        # loop through the regex to collect title only
         for title_only in collect_title:
             title_span.append(title_only.span())
 
+        # attempt to remove anything extra from title name
         try:
             movie_title = (
                 str(movie_search_var.get()[0 : title_span[-1][0]])
@@ -793,30 +882,51 @@ def search_movie_global_function(*args):
         except IndexError:
             movie_title = str(movie_search_var.get().strip())
 
+        # attempt to get only the movie title year
         collect_year = re.findall(r"\d{4}", movie_search_var.get().strip())
+
+        # if any 4 digits are detected in the string
         if collect_year:
+
+            # get only the last set of digits
             movie_year = collect_year[-1]
+
+        # if no 4 digits are detected set movie year to ""
         else:
             movie_year = ""
 
+        # try to get imdb movie name from tmdb
         try:
             search_movie = requests.get(
                 f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&language"
                 f"=en-US&page=1&include_adult=false&query={movie_title}&year={movie_year}"
             )
         except requests.exceptions.ConnectionError:
+            # if there was an error set imdb_movie_name to "None"
             source_file_information.update({"imdb_movie_name": "None"})
-            messagebox.showerror(
-                parent=movie_info_window,
-                title="Connection Error",
-                message="There was an error connecting to the internet.\n\n"
-                "Title name will be determined from source file only",
-            )
-            movie_info_exit_function()
-            return  # exit this function
 
+            # prompt a message box via the api queue
+            api_queue.put(
+                {
+                    "Error": {
+                        "title": "Connection Error",
+                        "message": "There was an error connecting to "
+                        "the internet.\n\nTitle name will be "
+                        "determined from source file only",
+                    }
+                }
+            )
+
+            # exit the movie info window
+            movie_info_exit_function()
+
+            # exit this function
+            return
+
+        # define an empty dictionary
         movie_dict = {}
 
+        # loop through json results
         for results in search_movie.json()["results"]:
             # find imdb_id data through tmdb
             imdb_id = requests.get(
@@ -851,39 +961,16 @@ def search_movie_global_function(*args):
             return  # exit function
 
         # clear movie list box
-        movie_listbox.delete(0, END)
+        api_queue.put({"Listbox": "Delete"})
 
-        # add all the movies into the listbox
-        for key in movie_dict.keys():
-            movie_listbox.insert(END, key)
+        # add all the movies into a listbox dict
+        api_queue.put({"Listbox Dict": movie_dict})
 
-        # function that is run each time a movie is selected to update all the information in the window
-        def update_movie_info(event):
-            selection = event.widget.curselection()  # get current selection
-            # if there is a selection
-            if selection:
-                movie_listbox_index = selection[0]  # define index of selection
-                movie_data = event.widget.get(movie_listbox_index)
-
-                # delete plot text and update it
-                plot_scrolled_text.delete("1.0", END)
-                plot_scrolled_text.insert(END, movie_dict[movie_data]["plot"])
-
-                # update imdb and tmdb entry box's
-                imdb_id_var.set(movie_dict[movie_data]["imdb_id"])
-                tmdb_id_var.set(movie_dict[movie_data]["tvdb_id"])
-
-                # update release date label
-                release_date_var.set(movie_dict[movie_data]["full_release_date"])
-
-                # update rating label
-                rating_var.set(f"{movie_dict[movie_data]['vote_average']} / 10")
-
-        # bind listbox select event to the updater
-        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
-
-        # once listbox has been updated, set active to False
+        # set active search to false
         movie_search_active.set(False)
+
+        # set api queue to false in order to kill the polling loop
+        api_queue.put(False)
 
     # plot frame
     plot_frame = LabelFrame(movie_info_window, text=" Plot ", labelanchor="nw")
@@ -977,23 +1064,32 @@ def search_movie_global_function(*args):
     # insert movie into entry box/update var
     movie_search_var.set(movie_input_filtered)
 
-    # function to search again
-    def start_search_again(*enter_args):
+    def start_search(*enter_args):
+        """thread the search for the movie title"""
+
         # set stop thread to false
         stop_thread.clear()
 
-        # start thread again to search for movie title
-        threading.Thread(target=run_api_check, daemon=True).start()
+        # define thread to search for movie title
+        api_thread = threading.Thread(
+            target=run_api_check, args=(api_thread_queue,), daemon=True
+        )
+
+        # start loop to poll queue
+        root.after(100, api_thread_poll_loop)
+
+        # start thread
+        api_thread.start()
 
     # bind "Enter" key to run the function
-    search_entry_box2.bind("<Return>", start_search_again)
+    search_entry_box2.bind("<Return>", start_search)
 
     # internal search button
     search_button2 = HoverButton(
         internal_search_frame,
         text="Search",
         activebackground="#23272A",
-        command=start_search_again,
+        command=start_search,
         foreground="white",
         background="#23272A",
         borderwidth="3",
@@ -1004,8 +1100,9 @@ def search_movie_global_function(*args):
         row=1, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N
     )
 
-    # function to enable and disable the internal search button if a current search is active
     def enable_disable_internal_search_btn():
+        """function to enable and disable the internal search button if a current search is active"""
+
         try:
             if movie_search_active.get():  # if search is active disable button
                 search_button2.config(state=DISABLED)
@@ -1013,6 +1110,8 @@ def search_movie_global_function(*args):
                 search_button2.config(state=NORMAL)
         except TclError:
             pass
+
+        # loop to enable/disable buttons
         movie_info_window.after(50, enable_disable_internal_search_btn)
 
     # start loop to check internal button
@@ -1148,7 +1247,7 @@ def search_movie_global_function(*args):
     stop_thread.clear()
 
     # start thread to search for movie title
-    threading.Thread(target=run_api_check, daemon=True).start()
+    start_search()
 
     # wait for window to close
     movie_info_window.wait_window()
