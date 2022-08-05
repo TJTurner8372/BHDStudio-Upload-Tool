@@ -842,7 +842,7 @@ def search_movie_global_function(*args):
 
     # add scrollbars to the listbox
     right_scrollbar.config(command=movie_listbox.yview)
-    right_scrollbar.grid(row=0, column=5, sticky=N + W + S)
+    right_scrollbar.grid(row=0, column=5, rowspan=2, sticky=N + W + S)
     bottom_scrollbar.config(command=movie_listbox.xview)
     bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
 
