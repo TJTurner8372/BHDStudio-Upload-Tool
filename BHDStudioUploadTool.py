@@ -196,10 +196,50 @@ if not config.has_section("last_used_folder"):
 if not config.has_option("last_used_folder", "path"):
     config.set("last_used_folder", "path", "")
 
+# themes
+if not config.has_section("themes"):
+    config.add_section("themes")
+if not config.has_option("themes", "selected_theme"):
+    config.set("themes", "selected_theme", "bhd_theme")
+
 # write options to config if they do not exist
 with open(config_file, "w") as configfile:
     config.write(configfile)
 
+# define bhd_theme colors
+if config["themes"]["selected_theme"] == "bhd_theme":
+    custom_button_colors = {
+        "foreground": "white",
+        "background": "#23272A",
+        "activeforeground": "#3498db",
+        "activebackground": "#23272A",
+    }
+
+    custom_entry_colors = {
+        "foreground": "white",
+        "background": "#565656",
+        "disabledforeground": "white",
+        "disabledbackground": "#565656",
+    }
+
+    custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
+
+    cust_bg_color = "#363636"
+    cust_fg_color = "#3498db"
+    cust_entry_bg = "#565656"
+    cust_general_fg = "white"
+    cust_button_bg = "#23272A"
+    cust_disabled_bg = "#565656"
+    cust_disabled_fg = "white"
+
+# elif config['themes']['selected_theme'] == "light_theme":
+#     cust_bg_color = "#F6F6F6"
+#     cust_fg_color = "black"
+#     cust_entry_bg = "light grey"
+#     cust_general_fg = "black"
+#     cust_button_bg = "white"
+#     cust_disabled_bg = "light grey"
+#     cust_disabled_fg = "grey"
 
 # root
 def root_exit_function():
@@ -250,7 +290,7 @@ def root_exit_function():
 root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
-root.configure(background="#363636")
+root.configure(background=cust_bg_color)
 root_window_height = 760
 root_window_width = 720
 if config["save_window_locations"]["bhdstudiotool"] == "":
@@ -310,13 +350,13 @@ custom_style.theme_create(
     settings={
         # Notebook Theme Settings -------------------
         "TNotebook": {
-            "configure": {"tabmargins": [5, 5, 5, 0], "background": "#363636"}
+            "configure": {"tabmargins": [5, 5, 5, 0], "background": cust_bg_color}
         },
         "TNotebook.Tab": {
             "configure": {
                 "padding": [5, 1],
                 "background": "grey",
-                "foreground": "white",
+                "foreground": cust_general_fg,
                 "focuscolor": "",
             },
             "map": {
@@ -331,7 +371,7 @@ custom_style.theme_create(
                 "selectbackground": "#c0c0c0",
                 "fieldbackground": "#c0c0c0",
                 "lightcolor": "green",
-                "background": "white",
+                "background": cust_general_fg,
                 "foreground": "black",
                 "selectforeground": "black",
             }
@@ -357,11 +397,11 @@ custom_style.layout(
 )
 # set initial text
 custom_style.configure(
-    "text.Horizontal.TProgressbar", text="", anchor="center", background="#3498db"
+    "text.Horizontal.TProgressbar", text="", anchor="center", background=cust_fg_color
 )
 custom_style.master.option_add("*TCombobox*Listbox.background", "grey")
 custom_style.master.option_add("*TCombobox*Listbox.selectBackground", "grey")
-custom_style.master.option_add("*TCombobox*Listbox.selectForeground", "#3498db")
+custom_style.master.option_add("*TCombobox*Listbox.selectForeground", cust_fg_color)
 
 
 # ------------------------------------------ Custom Tkinter Theme
@@ -415,11 +455,11 @@ class Logger(
                     "Tool/issues/new?assignees=jlw4049&labels=bug"
                     "&template=bug_report.md&title="
                 ),
-                foreground="white",
-                background="#23272A",
                 borderwidth="3",
-                activeforeground="#3498db",
-                activebackground="#23272A",
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
             )
             report_error.grid(
                 row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N
@@ -429,11 +469,11 @@ class Logger(
                 error_window,
                 text="Force Close Program",
                 command=root.destroy,
-                foreground="white",
-                background="#23272A",
                 borderwidth="3",
-                activeforeground="#3498db",
-                activebackground="#23272A",
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
             )
             force_close_root.grid(
                 row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N
@@ -704,7 +744,7 @@ def search_movie_global_function(*args):
 
     # movie info window
     movie_info_window = Toplevel()
-    movie_info_window.configure(background="#363636")  # Set's the background color
+    movie_info_window.configure(background=cust_bg_color)  # Set's the background color
     movie_info_window.title("Movie Selection")  # Toplevel Title
     movie_window_height = 600
     movie_window_width = 1000
@@ -749,7 +789,7 @@ def search_movie_global_function(*args):
         yscrollcommand=right_scrollbar.set,
         bd=2,
         bg="black",
-        fg="#3498db",
+        fg=cust_fg_color,
         height=10,
         selectbackground="black",
         selectforeground="lime green",
@@ -973,9 +1013,17 @@ def search_movie_global_function(*args):
         api_queue.put(False)
 
     # plot frame
-    plot_frame = LabelFrame(movie_info_window, text=" Plot ", labelanchor="nw")
+    plot_frame = LabelFrame(
+        movie_info_window,
+        text=" Plot ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     plot_frame.grid(column=0, row=1, columnspan=6, padx=5, pady=(5, 3), sticky=E + W)
-    plot_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, "bold"))
+
     plot_frame.grid_rowconfigure(0, weight=1)
     plot_frame.grid_columnconfigure(0, weight=1)
 
@@ -990,21 +1038,25 @@ def search_movie_global_function(*args):
 
     # internal search frame
     internal_search_frame = LabelFrame(
-        movie_info_window, text=" Search ", labelanchor="nw"
+        movie_info_window,
+        text=" Search ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     internal_search_frame.grid(
         column=0, row=2, columnspan=6, padx=5, pady=(5, 3), sticky=E + W
     )
-    internal_search_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, "bold")
-    )
+
     internal_search_frame.grid_rowconfigure(0, weight=1)
     internal_search_frame.grid_rowconfigure(1, weight=1)
     internal_search_frame.grid_columnconfigure(0, weight=1)
 
     # movie selection label frame
     movie_selection_lbl_frame = LabelFrame(
-        internal_search_frame, bg="#363636", border=0
+        internal_search_frame, bg=custom_label_frame_colors["background"], border=0
     )
     movie_selection_lbl_frame.grid(column=0, row=0, columnspan=6, sticky=E + W)
     movie_selection_lbl_frame.grid_rowconfigure(0, weight=1)
@@ -1014,8 +1066,8 @@ def search_movie_global_function(*args):
     source_input_lbl_ms = Label(
         movie_selection_lbl_frame,
         text=f"Source Name:",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size - 1, "bold"),
     )
     source_input_lbl_ms.grid(
@@ -1030,8 +1082,8 @@ def search_movie_global_function(*args):
                 pathlib.Path(source_file_information["source_path"]).name
             ).with_suffix("")
         ),
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
         font=(set_fixed_font, set_font_size - 1),
     )
     source_input_lbl_ms2.grid(
@@ -1042,11 +1094,11 @@ def search_movie_global_function(*args):
     search_entry_box2 = Entry(
         internal_search_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=movie_search_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     search_entry_box2.grid(
         row=1, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W
@@ -1088,13 +1140,13 @@ def search_movie_global_function(*args):
     search_button2 = HoverButton(
         internal_search_frame,
         text="Search",
-        activebackground="#23272A",
         command=start_search,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=12,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     search_button2.grid(
         row=1, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N
@@ -1118,7 +1170,7 @@ def search_movie_global_function(*args):
     enable_disable_internal_search_btn()
 
     # information frame
-    information_frame = Frame(movie_info_window, bd=0, bg="#363636")
+    information_frame = Frame(movie_info_window, bd=0, bg=cust_bg_color)
     information_frame.grid(
         column=0, row=3, columnspan=7, padx=5, pady=(5, 3), sticky=E + W
     )
@@ -1138,8 +1190,8 @@ def search_movie_global_function(*args):
         image=imdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg="#363636",
-        activebackground="#363636",
+        bg=cust_bg_color,
+        activebackground=cust_bg_color,
         command=open_imdb_link,
     )
     imdb_button2.grid(
@@ -1151,11 +1203,11 @@ def search_movie_global_function(*args):
     imdb_entry_box2 = Entry(
         information_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=imdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
 
@@ -1165,8 +1217,8 @@ def search_movie_global_function(*args):
         image=tmdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg="#363636",
-        activebackground="#363636",
+        bg=cust_bg_color,
+        activebackground=cust_bg_color,
         command=open_tmdb_link,
     )
     tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=W)
@@ -1176,11 +1228,11 @@ def search_movie_global_function(*args):
     tmdb_entry_box2 = Entry(
         information_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=tmdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=W)
 
@@ -1188,8 +1240,8 @@ def search_movie_global_function(*args):
     release_date_label = Label(
         information_frame,
         text="Release Date:",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1, "bold"),
     )
     release_date_label.grid(row=0, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
@@ -1198,8 +1250,8 @@ def search_movie_global_function(*args):
         information_frame,
         textvariable=release_date_var,
         width=10,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size),
     )
     release_date_label2.grid(row=0, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
@@ -1208,8 +1260,8 @@ def search_movie_global_function(*args):
     rating_label = Label(
         information_frame,
         text="           Rating:",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1, "bold"),
     )
     rating_label.grid(row=1, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
@@ -1218,8 +1270,8 @@ def search_movie_global_function(*args):
         information_frame,
         textvariable=rating_var,
         width=10,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size),
     )
     rating_label2.grid(row=1, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
@@ -1229,12 +1281,12 @@ def search_movie_global_function(*args):
         information_frame,
         text="Confirm",
         command=get_imdb_update_filename,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
         width=10,
-        activeforeground="#3498db",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
 
@@ -1438,7 +1490,7 @@ def source_input_function(*args):
     if int(media_info.general_tracks[0].count_of_audio_streams) >= 2:
         audio_track_win = Toplevel()  # Toplevel window
         audio_track_win.configure(
-            background="#363636"
+            background=cust_bg_color
         )  # Set color of audio_track_win background
         audio_track_win.title("Audio Track Selection")
         # Open on top left of root window
@@ -1455,10 +1507,10 @@ def source_input_function(*args):
 
         track_frame = Frame(
             audio_track_win,
-            highlightbackground="white",
+            highlightbackground=cust_general_fg,
             highlightthickness=2,
-            bg="#363636",
-            highlightcolor="white",
+            bg=cust_bg_color,
+            highlightcolor=cust_general_fg,
         )
         track_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for e_n_f in range(3):
@@ -1469,8 +1521,8 @@ def source_input_function(*args):
         track_selection_label = Label(
             track_frame,
             text="Select audio source that down-mix was encoded from:",
-            background="#363636",
-            fg="#3498db",
+            background=cust_bg_color,
+            fg=cust_fg_color,
             font=(set_font, set_font_size, "bold"),
         )
         track_selection_label.grid(
@@ -1491,22 +1543,22 @@ def source_input_function(*args):
             track_frame, audio_pop_up_var, *audio_stream_track_counter.keys()
         )
         audio_pop_up_menu.config(
-            background="#23272A",
-            foreground="white",
+            background=cust_button_bg,
+            foreground=cust_general_fg,
             highlightthickness=1,
             width=48,
             anchor="w",
-            activebackground="#23272A",
-            activeforeground="#3498db",
+            activebackground=cust_button_bg,
+            activeforeground=cust_fg_color,
         )
         audio_pop_up_menu.grid(
             row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
         )
         audio_pop_up_menu["menu"].configure(
-            background="#23272A",
-            foreground="white",
-            activebackground="#23272A",
-            activeforeground="#3498db",
+            background=cust_button_bg,
+            foreground=cust_general_fg,
+            activebackground=cust_button_bg,
+            activeforeground=cust_fg_color,
         )
 
         # create 'OK' button
@@ -1519,12 +1571,12 @@ def source_input_function(*args):
             track_frame,
             text="OK",
             command=audio_ok_button_function,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
             width=8,
-            activeforeground="#3498db",
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         audio_track_okay_btn.grid(
             row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -2122,7 +2174,7 @@ def encode_input_function(*args):
         # rename encode window
         rename_encode_window = Toplevel()
         rename_encode_window.title("Confirm Filename")
-        rename_encode_window.configure(background="#363636")
+        rename_encode_window.configure(background=cust_bg_color)
         rename_encode_window.geometry(
             f'{600}x{300}+{str(int(root.geometry().split("+")[1]) + 60)}+'
             f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -2142,10 +2194,10 @@ def encode_input_function(*args):
         # rename encode frame
         rename_enc_frame = Frame(
             rename_encode_window,
-            highlightbackground="white",
+            highlightbackground=cust_general_fg,
             highlightthickness=2,
-            bg="#363636",
-            highlightcolor="white",
+            bg=cust_bg_color,
+            highlightcolor=cust_general_fg,
         )
         rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for col_e_f in range(3):
@@ -2157,8 +2209,8 @@ def encode_input_function(*args):
         rename_info_lbl = Label(
             rename_enc_frame,
             text=f"Source Name:",
-            background="#363636",
-            fg="#3498db",
+            background=cust_bg_color,
+            fg=cust_fg_color,
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl.grid(
@@ -2170,8 +2222,8 @@ def encode_input_function(*args):
             rename_enc_frame,
             wraplength=598,
             text=str(pathlib.Path(source_file_information["source_path"]).name),
-            background="#363636",
-            fg="white",
+            background=cust_bg_color,
+            fg=cust_general_fg,
             font=(set_fixed_font, set_font_size),
         )
         rename_info_lbl1.grid(
@@ -2182,8 +2234,8 @@ def encode_input_function(*args):
         rename_info_lbl2 = Label(
             rename_enc_frame,
             text="Encode Name:",
-            background="#363636",
-            fg="#3498db",
+            background=cust_bg_color,
+            fg=cust_fg_color,
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl2.grid(
@@ -2195,8 +2247,8 @@ def encode_input_function(*args):
             rename_enc_frame,
             wraplength=598,
             text=str(pathlib.Path(*args).name),
-            background="#363636",
-            fg="white",
+            background=cust_bg_color,
+            fg=cust_general_fg,
             font=(set_fixed_font, set_font_size),
         )
         rename_info_lbl2.grid(
@@ -2207,15 +2259,18 @@ def encode_input_function(*args):
         rename_info_lbl3 = Label(
             rename_enc_frame,
             text="Suggested Name:",
-            background="#363636",
-            fg="#3498db",
+            background=cust_bg_color,
+            fg=cust_fg_color,
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl3.grid(row=4, column=0, sticky=W + S, padx=5, pady=(2, 0))
 
         # create entry box
         custom_entry_box = Entry(
-            rename_enc_frame, borderwidth=4, bg="#565656", fg="white"
+            rename_enc_frame,
+            borderwidth=4,
+            fg=custom_entry_colors["foreground"],
+            bg=custom_entry_colors["background"],
         )
         custom_entry_box.grid(
             row=5, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
@@ -2258,12 +2313,12 @@ def encode_input_function(*args):
             rename_enc_frame,
             text="Rename",
             command=rename_file_func,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
-            activeforeground="#3498db",
             width=8,
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         rename_okay_btn.grid(
             row=6, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -2273,16 +2328,16 @@ def encode_input_function(*args):
         rename_cancel_btn = HoverButton(
             rename_enc_frame,
             text="Cancel",
-            activeforeground="#3498db",
             width=8,
             command=lambda: [
                 rename_encode_window.destroy(),
                 root.wm_attributes("-alpha", 1.0),
             ],
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         rename_cancel_btn.grid(
             row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
@@ -2311,10 +2366,16 @@ def drop_function(event):
 
 # source --------------------------------------------------------------------------------------------------------------
 source_frame = LabelFrame(
-    root, text=" Source (*.avs / *.vpy / StaxRip Temp Directory) ", labelanchor="nw"
+    root,
+    text=" Source (*.avs / *.vpy / StaxRip Temp Directory) ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 10, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
 )
 source_frame.grid(column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-source_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold"))
+
 source_frame.grid_rowconfigure(0, weight=1)
 source_frame.grid_rowconfigure(1, weight=1)
 source_frame.grid_columnconfigure(0, weight=10)
@@ -2324,8 +2385,8 @@ source_frame.grid_columnconfigure(2, weight=0)
 CustomTooltipLabel(
     anchor_widget=source_frame,
     hover_delay=400,
-    background="#363636",
-    foreground="#3498db",
+    background=cust_bg_color,
+    foreground=cust_fg_color,
     font=(set_fixed_font, 9, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
@@ -2363,10 +2424,10 @@ def source_input_popup_menu(*args):  # Menu for input button
         root,
         tearoff=False,
         font=(set_font, set_font_size + 1),
-        background="#23272A",
-        foreground="white",
-        activebackground="#23272A",
-        activeforeground="#3498db",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
+        activebackground=cust_button_bg,
+        activeforeground=cust_fg_color,
     )  # menu
     source_input_menu.add_command(label="Open Script", command=manual_source_input)
     source_input_menu.add_separator()
@@ -2383,11 +2444,11 @@ source_button = HoverButton(
     source_frame,
     text="Open",
     command=source_input_popup_menu,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 source_button.grid(
     row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + S + E + W
@@ -2397,11 +2458,11 @@ source_button.grid(
 source_entry_box = Entry(
     source_frame,
     borderwidth=4,
-    bg="#565656",
-    fg="white",
     state=DISABLED,
-    disabledforeground="white",
-    disabledbackground="#565656",
+    fg=custom_entry_colors["foreground"],
+    bg=custom_entry_colors["background"],
+    disabledforeground=custom_entry_colors["disabledforeground"],
+    disabledbackground=custom_entry_colors["disabledbackground"],
 )
 source_entry_box.grid(
     row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N
@@ -2412,9 +2473,9 @@ source_info_frame = LabelFrame(
     source_frame,
     text="Info:",
     bd=0,
-    bg="#363636",
-    fg="#3498db",
     font=(set_font, set_font_size),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
 )
 source_info_frame.grid(
     row=1, column=0, columnspan=4, padx=5, pady=0, sticky=N + S + E + W
@@ -2430,8 +2491,8 @@ source_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background="#363636",
-    foreground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
 )
 source_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W)
 source_hdr_label = Label(
@@ -2439,8 +2500,8 @@ source_hdr_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background="#363636",
-    foreground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
 )
 source_hdr_label.grid(column=0, row=1, columnspan=4, pady=3, padx=3, sticky=W)
 
@@ -2461,21 +2522,29 @@ reset_source_input = HoverButton(
     source_frame,
     text="X",
     command=delete_source_entry,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=3,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 reset_source_input.grid(
     row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W
 )
 
 # encode --------------------------------------------------------------------------------------------------------------
-encode_frame = LabelFrame(root, text=" Encode (*.mp4) ", labelanchor="nw")
+encode_frame = LabelFrame(
+    root,
+    text=" Encode (*.mp4) ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 10, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
+)
 encode_frame.grid(column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-encode_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold"))
+
 encode_frame.grid_rowconfigure(0, weight=1)
 encode_frame.grid_rowconfigure(1, weight=1)
 encode_frame.grid_columnconfigure(0, weight=10)
@@ -2514,22 +2583,22 @@ encode_button = HoverButton(
     encode_frame,
     text="Open",
     command=manual_encode_input,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W)
 
 encode_entry_box = Entry(
     encode_frame,
     borderwidth=4,
-    bg="#565656",
-    fg="white",
     state=DISABLED,
-    disabledforeground="white",
-    disabledbackground="#565656",
+    fg=custom_entry_colors["foreground"],
+    bg=custom_entry_colors["background"],
+    disabledforeground=custom_entry_colors["disabledforeground"],
+    disabledbackground=custom_entry_colors["disabledbackground"],
 )
 encode_entry_box.grid(
     row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N
@@ -2539,9 +2608,9 @@ encode_info_frame = LabelFrame(
     encode_frame,
     text="Info:",
     bd=0,
-    bg="#363636",
-    fg="#3498db",
     font=(set_font, set_font_size),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
 )
 encode_info_frame.grid(
     row=1, column=0, columnspan=4, padx=5, pady=0, sticky=N + S + E + W
@@ -2556,8 +2625,8 @@ encode_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background="#363636",
-    foreground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
 )
 encode_label.grid(column=0, row=0, columnspan=1, pady=3, padx=3, sticky=W)
 encode_hdr_label = Label(
@@ -2565,8 +2634,8 @@ encode_hdr_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background="#363636",
-    foreground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
 )
 encode_hdr_label.grid(column=0, row=1, columnspan=1, pady=3, padx=3, sticky=W)
 
@@ -2595,12 +2664,12 @@ reset_encode_input = HoverButton(
     encode_frame,
     text="X",
     command=delete_encode_entry,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=3,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 reset_encode_input.grid(
     row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W
@@ -2726,7 +2795,7 @@ def staxrip_working_directory(stax_dir_path):
         if len(dict_of_stax_logs) >= 2:
             stax_log_win = Toplevel()  # Toplevel window
             stax_log_win.configure(
-                background="#363636"
+                background=cust_bg_color
             )  # Set color of stax_log_win background
             stax_log_win.title("Log Files")
             # Open on top left of root window
@@ -2745,10 +2814,10 @@ def staxrip_working_directory(stax_dir_path):
 
             stax_frame = Frame(
                 stax_log_win,
-                highlightbackground="white",
+                highlightbackground=cust_general_fg,
                 highlightthickness=2,
-                bg="#363636",
-                highlightcolor="white",
+                bg=cust_bg_color,
+                highlightcolor=cust_general_fg,
             )
             stax_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
             for e_n_f in range(3):
@@ -2759,8 +2828,8 @@ def staxrip_working_directory(stax_dir_path):
             stax_info_label = Label(
                 stax_frame,
                 text="Select logfile to parse information from:",
-                background="#363636",
-                fg="#3498db",
+                background=cust_bg_color,
+                fg=cust_fg_color,
                 font=(set_font, set_font_size, "bold"),
             )
             stax_info_label.grid(
@@ -2774,22 +2843,22 @@ def staxrip_working_directory(stax_dir_path):
                 stax_frame, log_pop_up_var, *reversed(dict_of_stax_logs.keys())
             )
             log_pop_up_menu.config(
-                background="#23272A",
-                foreground="white",
+                background=cust_button_bg,
+                foreground=cust_general_fg,
                 highlightthickness=1,
                 width=48,
                 anchor="w",
-                activebackground="#23272A",
-                activeforeground="#3498db",
+                activebackground=cust_button_bg,
+                activeforeground=cust_fg_color,
             )
             log_pop_up_menu.grid(
                 row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
             )
             log_pop_up_menu["menu"].configure(
-                background="#23272A",
-                foreground="white",
-                activebackground="#23272A",
-                activeforeground="#3498db",
+                background=cust_button_bg,
+                foreground=cust_general_fg,
+                activebackground=cust_button_bg,
+                activeforeground=cust_fg_color,
             )
 
             # create 'OK' button
@@ -2803,12 +2872,12 @@ def staxrip_working_directory(stax_dir_path):
                 stax_frame,
                 text="OK",
                 command=stax_ok_function,
-                foreground="white",
-                background="#23272A",
                 borderwidth="3",
                 width=8,
-                activeforeground="#3498db",
-                activebackground="#23272A",
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
             )
             stax_okay_btn.grid(
                 row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -2827,12 +2896,12 @@ def staxrip_working_directory(stax_dir_path):
                 stax_frame,
                 text="Cancel",
                 command=stax_cancel_function,
-                foreground="white",
-                background="#23272A",
                 borderwidth="3",
                 width=8,
-                activeforeground="#3498db",
-                activebackground="#23272A",
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
             )
             stax_cancel_btn.grid(
                 row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
@@ -2859,12 +2928,17 @@ def staxrip_manual_open():
 
 
 # release notes -------------------------------------------------------------------------------------------------------
-release_notes_frame = LabelFrame(root, text=" Release Notes ", labelanchor="nw")
+release_notes_frame = LabelFrame(
+    root,
+    text=" Release Notes ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 10, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
+)
 release_notes_frame.grid(
     column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
-)
-release_notes_frame.configure(
-    fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
 )
 
 for rl_row in range(3):
@@ -2899,10 +2973,10 @@ forced_subtitles_burned = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_forced_var,
-    background="#363636",
-    foreground="white",
-    activebackground="#363636",
-    activeforeground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
+    activebackground=cust_bg_color,
+    activeforeground=cust_general_fg,
     selectcolor="#434547",
     font=(set_font, set_font_size + 1),
     state=DISABLED,
@@ -2937,10 +3011,10 @@ balance_borders = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_balanced_borders,
-    background="#363636",
-    foreground="white",
-    activebackground="#363636",
-    activeforeground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
+    activebackground=cust_bg_color,
+    activeforeground=cust_general_fg,
     selectcolor="#434547",
     font=(set_font, set_font_size + 1),
     state=DISABLED,
@@ -2975,10 +3049,10 @@ fill_borders = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_fill_borders,
-    background="#363636",
-    foreground="white",
-    activebackground="#363636",
-    activeforeground="white",
+    background=cust_bg_color,
+    foreground=cust_general_fg,
+    activebackground=cust_bg_color,
+    activeforeground=cust_general_fg,
     selectcolor="#434547",
     font=(set_font, set_font_size + 1),
     state=DISABLED,
@@ -2989,7 +3063,7 @@ fill_borders.grid(
 fill_borders_var.set("off")
 
 release_notes_scrolled = scrolledtextwidget.ScrolledText(
-    release_notes_frame, height=5, bg="#565656", bd=4, fg="white"
+    release_notes_frame, height=5, bg=cust_entry_bg, bd=4, fg=cust_general_fg
 )
 release_notes_scrolled.grid(
     row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W
@@ -2999,8 +3073,8 @@ release_notes_scrolled.config(state=DISABLED)
 CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
     hover_delay=400,
-    background="#363636",
-    foreground="#3498db",
+    background=cust_bg_color,
+    foreground=cust_fg_color,
     font=(set_fixed_font, 9, "bold"),
     text="Right click for more options",
 )
@@ -3016,10 +3090,10 @@ enable_edits_menu = Menu(
     release_notes_scrolled,
     tearoff=False,
     font=(set_font, set_font_size + 1),
-    background="#23272A",
-    foreground="white",
-    activebackground="#23272A",
-    activeforeground="#3498db",
+    background=cust_button_bg,
+    foreground=cust_general_fg,
+    activebackground=cust_button_bg,
+    activeforeground=cust_fg_color,
 )  # Right click menu
 enable_edits_menu.add_command(
     label="Enable Manual Edits",
@@ -3061,11 +3135,17 @@ def enable_clear_all_checkbuttons():
 
 
 # screenshots ---------------------------------------------------------------------------------------------------------
-screenshot_frame = LabelFrame(root, text=" Sreenshots ", labelanchor="nw")
-screenshot_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-screenshot_frame.configure(
-    fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
+screenshot_frame = LabelFrame(
+    root,
+    text=" Sreenshots ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 10, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
 )
+screenshot_frame.grid(column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
+
 screenshot_frame.grid_rowconfigure(0, weight=1)
 screenshot_frame.grid_columnconfigure(0, weight=1)
 
@@ -3083,7 +3163,7 @@ image_tab.grid_columnconfigure(0, weight=100)
 image_tab.grid_columnconfigure(3, weight=1)
 
 # image frame
-image_frame = Frame(image_tab, bg="#363636", bd=0)
+image_frame = Frame(image_tab, bg=cust_bg_color, bd=0)
 image_frame.grid(column=0, columnspan=3, row=0, pady=4, padx=4, sticky=W + E + N + S)
 image_frame.grid_columnconfigure(0, weight=1)
 image_frame.grid_rowconfigure(0, weight=1)
@@ -3093,11 +3173,11 @@ image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
 image_bottom_scrollbar = Scrollbar(image_frame, orient=HORIZONTAL)  # scrollbar
 image_listbox = Listbox(
     image_frame,
-    selectbackground="#565656",
-    background="#565656",
-    disabledforeground="white",
-    selectforeground="#3498db",
-    foreground="white",
+    selectbackground=cust_entry_bg,
+    background=cust_entry_bg,
+    disabledforeground=cust_disabled_fg,
+    selectforeground=cust_fg_color,
+    foreground=cust_general_fg,
     height=12,
     state=DISABLED,
     highlightthickness=0,
@@ -3259,10 +3339,10 @@ def input_popup_menu(*args):  # Menu for input button
         image_btn_frame,
         tearoff=False,
         font=(set_font, set_font_size + 1),
-        background="#23272A",
-        foreground="white",
-        activebackground="#23272A",
-        activeforeground="#3498db",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
+        activebackground=cust_button_bg,
+        activeforeground=cust_fg_color,
     )  # Menu
     input_menu.add_command(label="Open Files", command=open_ss_files)
     input_menu.add_separator()
@@ -3274,12 +3354,12 @@ input_button = HoverButton(
     image_btn_frame,
     text="Open...",
     command=input_popup_menu,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=12,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 input_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + W)
 input_button.bind("<Button-3>", input_popup_menu)  # Right click to pop up menu in frame
@@ -3317,12 +3397,12 @@ clear_ss_win_btn = HoverButton(
     image_btn_frame,
     text="Clear",
     command=clear_image_list,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=12,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 clear_ss_win_btn.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
 
@@ -3361,12 +3441,12 @@ def automatic_screenshot_generator():
     # image info frame
     image_info_frame = LabelFrame(
         image_viewer,
-        bg="#434547",
         text=" Image Info ",
         labelanchor="nw",
-        fg="#3498db",
         bd=3,
         font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     image_info_frame.grid(
         column=0, row=0, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
@@ -3380,7 +3460,7 @@ def automatic_screenshot_generator():
     image_name_label = Label(
         image_info_frame,
         background="#434547",
-        fg="white",
+        fg=cust_general_fg,
         font=(set_font, set_font_size - 1),
     )
     image_name_label.grid(row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0))
@@ -3389,7 +3469,7 @@ def automatic_screenshot_generator():
     image_resolution_label = Label(
         image_info_frame,
         background="#434547",
-        fg="white",
+        fg=cust_general_fg,
         font=(set_font, set_font_size - 1),
     )
     image_resolution_label.grid(
@@ -3400,7 +3480,7 @@ def automatic_screenshot_generator():
     image_number_label = Label(
         image_info_frame,
         background="#434547",
-        fg="white",
+        fg=cust_general_fg,
         font=(set_font, set_font_size - 1),
     )
     image_number_label.grid(
@@ -3410,12 +3490,12 @@ def automatic_screenshot_generator():
     # create image preview frame
     image_preview_frame = LabelFrame(
         image_viewer,
-        bg="#434547",
         text=" Image Preview ",
         labelanchor="nw",
-        fg="#3498db",
         bd=3,
         font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     image_preview_frame.grid(
         column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
@@ -3518,12 +3598,12 @@ def automatic_screenshot_generator():
         img_button_frame,
         text=">>",
         command=load_next_image,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=4,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     next_img.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -3571,12 +3651,12 @@ def automatic_screenshot_generator():
         img_button_frame,
         text="<<",
         command=load_last_image,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=4,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     back_img.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
 
@@ -3586,12 +3666,12 @@ def automatic_screenshot_generator():
     # info frame for the image viewer
     set_info_frame = LabelFrame(
         image_viewer,
-        bg="#434547",
         text=" Info ",
         labelanchor="nw",
-        fg="#3498db",
         bd=3,
         font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     set_info_frame.grid(
         column=4, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
@@ -3622,7 +3702,7 @@ def automatic_screenshot_generator():
         set_info_frame,
         text="0 sets (0 images)",
         background="#434547",
-        fg="white",
+        fg=cust_general_fg,
         font=(set_font, set_font_size - 1),
     )
     image_name_label2.grid(row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0))
@@ -3632,7 +3712,7 @@ def automatic_screenshot_generator():
         set_info_frame,
         text="6 sets (12 images) required",
         background="#434547",
-        fg="white",
+        fg=cust_general_fg,
         font=(set_font, set_font_size - 1, "italic"),
     )
     image_name1_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0))
@@ -3643,11 +3723,11 @@ def automatic_screenshot_generator():
     # create selected list box
     img_viewer_listbox = Listbox(
         img_viewer_frame,
-        selectbackground="#565656",
-        background="#565656",
-        disabledforeground="white",
-        selectforeground="#3498db",
-        foreground="white",
+        selectbackground=cust_entry_bg,
+        background=cust_entry_bg,
+        disabledforeground=cust_disabled_fg,
+        selectforeground=cust_fg_color,
+        foreground=cust_general_fg,
         highlightthickness=0,
         width=40,
         yscrollcommand=image_v_right_scrollbar.set,
@@ -3666,12 +3746,12 @@ def automatic_screenshot_generator():
     # create mini preview frame
     mini_preview_frame = LabelFrame(
         img_viewer_frame,
-        bg="#434547",
         text=" Preview ",
         labelanchor="nw",
-        fg="#3498db",
         bd=3,
         font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     mini_preview_frame.grid(column=0, columnspan=3, row=2, sticky=N + S + E + W)
     mini_preview_frame.grid_columnconfigure(0, weight=1)
@@ -3830,12 +3910,12 @@ def automatic_screenshot_generator():
         img_button2_frame,
         text="<<<",
         command=remove_pair_from_listbox,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=4,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
 
@@ -3937,12 +4017,12 @@ def automatic_screenshot_generator():
         img_button2_frame,
         text=">>>",
         command=add_pair_to_listbox,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=4,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -3990,12 +4070,12 @@ def automatic_screenshot_generator():
         text="Apply",
         command=add_images_to_listbox_func,
         state=DISABLED,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=10,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     add_images_to_listbox.grid(row=0, column=2, padx=5, pady=(7, 0), sticky=E)
 
@@ -4049,7 +4129,7 @@ def choose_indexer_func():
     # index selection window
     index_selection_win = Toplevel()
     index_selection_win.title("Index")
-    index_selection_win.configure(background="#363636")
+    index_selection_win.configure(background=cust_bg_color)
     index_selection_win.geometry(
         f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -4064,10 +4144,10 @@ def choose_indexer_func():
     # index select frame
     index_sel_frame = Frame(
         index_selection_win,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     index_sel_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
 
@@ -4081,8 +4161,8 @@ def choose_indexer_func():
     index_label = Label(
         index_sel_frame,
         text="Select index method",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     index_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
@@ -4101,11 +4181,11 @@ def choose_indexer_func():
         index_sel_frame,
         text="FFMS",
         command=update_var_ffms,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ffms_btn.grid(row=1, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S)
 
@@ -4115,8 +4195,8 @@ def choose_indexer_func():
         font=(set_fixed_font, set_font_size - 1),
         text="FFMS supports virtually all formats, however it's not 100% frame accurate. You may "
         "notice a miss-match frame between the source and encode in some occasions.",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
         wraplength=320,
         justify=CENTER,
     )
@@ -4135,11 +4215,11 @@ def choose_indexer_func():
         index_sel_frame,
         text="LWLibavSource",
         command=update_var_lwlibav,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     lwlibavsource_btn.grid(
         row=3, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S
@@ -4153,8 +4233,8 @@ def choose_indexer_func():
         "support for some video codecs and containers. If you notice black/grey "
         "images being generated with a specific source use FFMS. "
         "If your source is MKV/AVC this is the best option.",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
         wraplength=320,
         justify=CENTER,
     )
@@ -4166,13 +4246,13 @@ def choose_indexer_func():
     index_cancel_btn = HoverButton(
         index_sel_frame,
         text="Cancel",
-        activeforeground="#3498db",
         width=8,
         command=lambda: [index_selection_win.destroy(), advanced_root_deiconify()],
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     index_cancel_btn.grid(row=5, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -4201,7 +4281,7 @@ def check_crop_values():
     # index selection window
     check_crop_win = Toplevel()
     check_crop_win.title("Check Crop")
-    check_crop_win.configure(background="#363636")
+    check_crop_win.configure(background=cust_bg_color)
     check_crop_win.geometry(
         f'{350}x{180}+{str(int(root.geometry().split("+")[1]) + 180)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -4218,9 +4298,9 @@ def check_crop_values():
         check_crop_win,
         text=" Crop: ",
         bd=0,
-        bg="#363636",
-        fg="#3498db",
-        font=(set_font, set_font_size + 1, "bold"),
+        font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     check_crop_frame.grid(column=0, row=0, columnspan=4, sticky=N + S + E + W)
 
@@ -4309,8 +4389,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Left:",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
     )
     left_label.grid(row=0, column=0, sticky=W + S, padx=5, pady=(7, 10))
 
@@ -4318,11 +4398,11 @@ def check_crop_values():
     left_entry_box = Entry(
         check_crop_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
         width=8,
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     left_entry_box.grid(row=0, column=1, padx=5, pady=(7, 10), sticky=W + S)
 
@@ -4331,8 +4411,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Right:",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
     )
     right_label.grid(row=0, column=2, sticky=E + S, padx=5, pady=(7, 10))
 
@@ -4340,11 +4420,11 @@ def check_crop_values():
     right_entry_box = Entry(
         check_crop_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
         width=8,
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     right_entry_box.grid(row=0, column=3, padx=5, pady=(7, 10), sticky=E + S)
 
@@ -4353,8 +4433,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Top:",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
     )
     top_label.grid(row=1, column=0, sticky=W + N, padx=5, pady=(16, 0))
 
@@ -4362,11 +4442,11 @@ def check_crop_values():
     top_entry_box = Entry(
         check_crop_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
         width=8,
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     top_entry_box.grid(row=1, column=1, padx=5, pady=(7, 0), sticky=W + N)
 
@@ -4375,8 +4455,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Bottom:",
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
     )
     bottom_label.grid(row=1, column=2, sticky=E + N, padx=5, pady=(16, 0))
 
@@ -4384,16 +4464,16 @@ def check_crop_values():
     bottom_entry_box = Entry(
         check_crop_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
         width=8,
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     bottom_entry_box.grid(row=1, column=3, padx=5, pady=(7, 0), sticky=E + N)
 
     # create button frame
-    crop_btn_frame = Frame(check_crop_frame, bg="#363636")
+    crop_btn_frame = Frame(check_crop_frame, bg=cust_bg_color)
     crop_btn_frame.grid(column=0, row=2, columnspan=4, sticky=N + S + E + W)
     for c_b_f in range(3):
         crop_btn_frame.grid_columnconfigure(c_b_f, weight=1)
@@ -4403,13 +4483,13 @@ def check_crop_values():
     crop_cancel_btn = HoverButton(
         crop_btn_frame,
         text="Cancel",
-        activeforeground="#3498db",
         width=8,
         command=lambda: [check_crop_win.destroy(), advanced_root_deiconify()],
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     crop_cancel_btn.grid(row=0, column=0, padx=7, pady=5, sticky=S + W)
 
@@ -4417,13 +4497,13 @@ def check_crop_values():
     view_script = HoverButton(
         crop_btn_frame,
         text="View Script",
-        activeforeground="#3498db",
         width=8,
         command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     view_script.grid(row=0, column=1, padx=7, pady=5, sticky=W + E + S)
 
@@ -4431,13 +4511,13 @@ def check_crop_values():
     accept_btn = HoverButton(
         crop_btn_frame,
         text="Accept",
-        activeforeground="#3498db",
         width=8,
         command=update_crop_var,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     accept_btn.grid(row=0, column=2, padx=7, pady=5, sticky=S + E)
 
@@ -4504,7 +4584,7 @@ def auto_screen_shot_status_window():
 
     # screenshot status window
     screenshot_status_window = Toplevel()
-    screenshot_status_window.configure(background="#363636")
+    screenshot_status_window.configure(background=cust_bg_color)
     screenshot_status_window.title("Screenshot Status")
     screenshot_status_window.geometry(
         f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
@@ -4518,10 +4598,10 @@ def auto_screen_shot_status_window():
     # screenshot output frame
     ss_output_frame = Frame(
         screenshot_status_window,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     ss_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -4530,7 +4610,12 @@ def auto_screen_shot_status_window():
 
     # create scrolled text widget
     ss_status_info = scrolledtextwidget.ScrolledText(
-        ss_output_frame, height=18, bg="#565656", fg="white", bd=4, wrap=WORD
+        ss_output_frame,
+        height=18,
+        bg=cust_entry_bg,
+        fg=cust_general_fg,
+        bd=4,
+        wrap=WORD,
     )
     ss_status_info.grid(
         row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
@@ -4552,12 +4637,12 @@ def auto_screen_shot_status_window():
         ss_output_frame,
         text="Close",
         command=screenshot_close_button,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ss_close_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
     screenshot_status_window.protocol("WM_DELETE_WINDOW", screenshot_close_button)
@@ -4908,13 +4993,13 @@ auto_screens_multi_btn = HoverButton(
     image_btn_frame,
     text="Generate IMGs",
     command=auto_screen_shot_status_window,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
     state=DISABLED,
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=12,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 auto_screens_multi_btn.grid(
     row=1, column=0, rowspan=2, padx=5, pady=(7, 7), sticky=S + W
@@ -5193,7 +5278,7 @@ def upload_to_beyond_hd_co_window():
 
     # upload status window
     upload_ss_status = Toplevel()
-    upload_ss_status.configure(background="#363636")
+    upload_ss_status.configure(background=cust_bg_color)
     upload_ss_status.title("Upload Status")
     upload_ss_status.geometry(
         f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 138)}+'
@@ -5209,10 +5294,10 @@ def upload_to_beyond_hd_co_window():
     # encoder name frame
     upload_ss_frame = Frame(
         upload_ss_status,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     upload_ss_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -5223,9 +5308,9 @@ def upload_to_beyond_hd_co_window():
     upload_ss_info = scrolledtextwidget.ScrolledText(
         upload_ss_frame,
         height=9,
-        bg="#565656",
+        bg=cust_entry_bg,
         state=DISABLED,
-        fg="white",
+        fg=cust_general_fg,
         bd=4,
         wrap=WORD,
     )
@@ -5238,12 +5323,12 @@ def upload_to_beyond_hd_co_window():
         upload_ss_frame,
         text="OK",
         command=upload_ss_exit_func,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
 
@@ -5363,12 +5448,12 @@ upload_ss_button = HoverButton(
     text="Upload IMGs",
     state=DISABLED,
     command=upload_to_beyond_hd_co_window,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=12,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
 
@@ -5383,7 +5468,7 @@ url_tab.grid_columnconfigure(3, weight=1)
 
 # screenshot textbox
 screenshot_scrolledtext = scrolledtextwidget.ScrolledText(
-    url_tab, height=6, bg="#565656", fg="white", bd=4
+    url_tab, height=6, bg=cust_entry_bg, fg=cust_general_fg, bd=4
 )
 screenshot_scrolledtext.grid(
     row=0, column=0, columnspan=3, pady=(6, 6), padx=4, sticky=E + W
@@ -5393,13 +5478,13 @@ screenshot_scrolledtext.grid(
 reset_screenshot_box = HoverButton(
     url_tab,
     text="X",
-    activebackground="#23272A",
     command=lambda: screenshot_scrolledtext.delete("1.0", END),
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
     width=4,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 reset_screenshot_box.grid(
     row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W
@@ -5417,8 +5502,8 @@ screen_shot_right_click_menu = Menu(
     release_notes_scrolled,
     tearoff=False,
     font=(set_font, set_font_size + 1),
-    background="#23272A",
-    foreground="white",
+    background=cust_button_bg,
+    foreground=cust_general_fg,
     activebackground="grey",
 )  # Right click menu
 
@@ -5496,9 +5581,17 @@ def parse_screen_shots():
 
 
 # manual workflow frame
-manual_workflow = LabelFrame(root, text=" Manual Workflow ", labelanchor="nw")
+manual_workflow = LabelFrame(
+    root,
+    text=" Manual Workflow ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 10, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
+)
 manual_workflow.grid(column=0, row=4, columnspan=2, padx=5, pady=(5, 3), sticky=W)
-manual_workflow.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold"))
+
 manual_workflow.grid_rowconfigure(0, weight=1)
 manual_workflow.grid_columnconfigure(0, weight=1)
 manual_workflow.grid_columnconfigure(1, weight=1)
@@ -5759,7 +5852,7 @@ def open_nfo_viewer():
     nfo_pad.title("BHDStudioUploadTool - NFO Pad")
     nfo_pad_window_height = 600
     nfo_pad_window_width = 1000
-    nfo_pad.config(bg="#363636")
+    nfo_pad.config(bg=cust_bg_color)
     if nfo_pad_parser["save_window_locations"]["nfo_pad"] == "":
         nfo_screen_width = nfo_pad.winfo_screenwidth()
         nfo_screen_height = nfo_pad.winfo_screenheight()
@@ -5982,7 +6075,7 @@ def open_nfo_viewer():
 
         font_chooser_win = Toplevel()
         font_chooser_win.title("BHDStudio Upload Tool - Font")
-        font_chooser_win.configure(background="#363636")
+        font_chooser_win.configure(background=cust_bg_color)
         font_chooser_win.geometry(
             f'{700}x{320}+{str(int(nfo_pad.geometry().split("+")[1]) + 108)}+'
             f'{str(int(nfo_pad.geometry().split("+")[2]) + 80)}'
@@ -6028,10 +6121,10 @@ def open_nfo_viewer():
             font_chooser_win,
             text=" Fonts ",
             labelanchor="nw",
-            fg="#3498db",
-            bg="#363636",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
+            font=(set_font, 10, "bold"),
+            fg=custom_label_frame_colors["foreground"],
+            bg=custom_label_frame_colors["background"],
         )
         fonts_frame.grid(
             column=0, row=0, rowspan=3, pady=5, padx=5, sticky=W + E + N + S
@@ -6046,7 +6139,7 @@ def open_nfo_viewer():
             fonts_frame,
             selectbackground="#c0c0c0",
             background="#c0c0c0",
-            selectforeground="#3498db",
+            selectforeground=cust_fg_color,
             exportselection=False,
             yscrollcommand=fonts_right_scrollbar.set,
             selectmode=SINGLE,
@@ -6071,10 +6164,10 @@ def open_nfo_viewer():
             font_chooser_win,
             text=" Style ",
             labelanchor="nw",
-            fg="#3498db",
-            bg="#363636",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
+            font=(set_font, 10, "bold"),
+            fg=custom_label_frame_colors["foreground"],
+            bg=custom_label_frame_colors["background"],
         )
         style_frame.grid(column=1, row=0, pady=5, padx=5, sticky=E + W + N)
         style_frame.grid_columnconfigure(0, weight=1)
@@ -6104,10 +6197,10 @@ def open_nfo_viewer():
             font_chooser_win,
             text=" Size ",
             labelanchor="nw",
-            fg="#3498db",
-            bg="#363636",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
+            font=(set_font, 10, "bold"),
+            fg=custom_label_frame_colors["foreground"],
+            bg=custom_label_frame_colors["background"],
         )
         size_frame.grid(column=1, row=1, pady=5, padx=5, sticky=E + W + N)
         size_frame.grid_columnconfigure(0, weight=1)
@@ -6125,7 +6218,10 @@ def open_nfo_viewer():
 
         # sample label
         sample_label = Label(
-            font_chooser_win, text="Aa", background="#363636", foreground="white"
+            font_chooser_win,
+            text="Aa",
+            background=cust_bg_color,
+            foreground=cust_general_fg,
         )
         sample_label.grid(column=1, row=2, pady=5, padx=5, sticky=E + W + N + S)
 
@@ -6144,7 +6240,7 @@ def open_nfo_viewer():
         sample_label_loop()
 
         # font chooser button frame
-        font_button_frame = LabelFrame(font_chooser_win, bg="#363636", bd=0)
+        font_button_frame = Frame(font_chooser_win, bg=cust_bg_color, bd=0)
         font_button_frame.grid(
             column=0, row=3, columnspan=2, padx=5, pady=(5, 3), sticky=E + W
         )
@@ -6185,12 +6281,12 @@ def open_nfo_viewer():
             font_button_frame,
             text="Reset",
             command=reset_font_to_default,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
             width=8,
-            activeforeground="#3498db",
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         font_reset_button.grid(row=0, column=0, columnspan=1, padx=3, pady=5, sticky=W)
 
@@ -6199,12 +6295,12 @@ def open_nfo_viewer():
             font_button_frame,
             text="Close",
             command=font_chooser_win.destroy,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
             width=8,
-            activeforeground="#3498db",
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         font_cancel_button.grid(row=0, column=1, columnspan=1, padx=3, pady=5, sticky=E)
 
@@ -6243,12 +6339,12 @@ def open_nfo_viewer():
             font_button_frame,
             text="Apply",
             command=apply_command,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
             width=8,
-            activeforeground="#3498db",
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         font_apply_button.grid(row=0, column=2, columnspan=1, padx=3, pady=5, sticky=E)
 
@@ -6367,7 +6463,12 @@ def open_nfo_viewer():
 
     # Add Status Bar To Bottom Of App
     status_bar = Label(
-        nfo_pad, text="Ready", anchor=E, bg="#565656", fg="white", relief=SUNKEN
+        nfo_pad,
+        text="Ready",
+        anchor=E,
+        bg=cust_entry_bg,
+        fg=cust_general_fg,
+        relief=SUNKEN,
     )
     status_bar.grid(column=0, columnspan=2, row=2, pady=1, padx=1, sticky=E + W)
 
@@ -6395,7 +6496,7 @@ def open_nfo_viewer():
 
     # if program is in automatic workflow mode
     if automatic_workflow_boolean.get():
-        workflow_frame = Frame(nfo_pad, bg="#363636")
+        workflow_frame = Frame(nfo_pad, bg=cust_bg_color)
         workflow_frame.grid(
             row=1, column=0, columnspan=2, padx=0, pady=0, sticky=N + S + E + W
         )
@@ -6406,16 +6507,16 @@ def open_nfo_viewer():
         continue_button = HoverButton(
             workflow_frame,
             text="Continue",
-            activebackground="#23272A",
             command=lambda: [
                 automatic_workflow_boolean.set(True),
                 nfo_pad_exit_function(),
             ],
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
-            activeforeground="#3498db",
             width=10,
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         continue_button.grid(
             row=0, column=1, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + E
@@ -6425,15 +6526,15 @@ def open_nfo_viewer():
             workflow_frame,
             text="Cancel",
             width=10,
-            foreground="white",
             command=lambda: [
                 automatic_workflow_boolean.set(False),
                 nfo_pad_exit_function(),
             ],
-            activebackground="#23272A",
             borderwidth="3",
-            activeforeground="#3498db",
-            background="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         cancel_workflow_button.grid(
             row=0, column=0, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + W
@@ -6449,12 +6550,12 @@ generate_nfo_button = HoverButton(
     manual_workflow,
     text="Generate NFO",
     command=open_nfo_viewer,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
-    activebackground="#23272A",
     width=15,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=5, pady=1, sticky=E + W)
 
@@ -6513,7 +6614,7 @@ def torrent_function_window():
     # create new toplevel window
     torrent_window = Toplevel()
     torrent_window.configure(
-        background="#363636"
+        background=cust_bg_color
     )  # Set color of torrent_window background
     torrent_window.title("BHDStudio Torrent Creator")
     tor_window_height = 330  # win height
@@ -6541,13 +6642,19 @@ def torrent_function_window():
         torrent_window.grid_rowconfigure(t_w, weight=1)
 
     # torrent path frame
-    torrent_path_frame = LabelFrame(torrent_window, text=" Path ", labelanchor="nw")
+    torrent_path_frame = LabelFrame(
+        torrent_window,
+        text=" Path ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     torrent_path_frame.grid(
         column=0, row=0, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S
     )
-    torrent_path_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     torrent_path_frame.grid_rowconfigure(0, weight=1)
     for t_f in range(10):
         torrent_path_frame.grid_columnconfigure(t_f, weight=1)
@@ -6580,11 +6687,11 @@ def torrent_function_window():
         torrent_path_frame,
         text="Set",
         command=torrent_save_output,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     torrent_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(7, 5), sticky=N + S + E + W
@@ -6594,10 +6701,10 @@ def torrent_function_window():
     torrent_entry_box = Entry(
         torrent_path_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     torrent_entry_box.grid(
         row=0, column=1, columnspan=9, padx=5, pady=(5, 5), sticky=N + S + E + W
@@ -6607,14 +6714,18 @@ def torrent_function_window():
 
     # torrent piece frame
     torrent_piece_frame = LabelFrame(
-        torrent_window, text=" Settings ", labelanchor="nw"
+        torrent_window,
+        text=" Settings ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     torrent_piece_frame.grid(
         column=0, row=1, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S
     )
-    torrent_piece_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     torrent_piece_frame.grid_columnconfigure(0, weight=1)
     torrent_piece_frame.grid_columnconfigure(1, weight=200)
     torrent_piece_frame.grid_columnconfigure(2, weight=2000)
@@ -6647,8 +6758,8 @@ def torrent_function_window():
         text="Piece Size:",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     piece_size_info_label.grid(
@@ -6680,8 +6791,8 @@ def torrent_function_window():
         command=set_piece_size,
     )
     torrent_piece_menu.config(
-        background="#23272A",
-        foreground="white",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
         highlightthickness=1,
         width=7,
         activebackground="grey",
@@ -6690,7 +6801,7 @@ def torrent_function_window():
         row=0, column=1, columnspan=1, pady=(7, 5), padx=(10, 5), sticky=W
     )
     torrent_piece_menu["menu"].configure(
-        activebackground="grey", background="#23272A", foreground="white"
+        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
     )
 
     # piece size label
@@ -6699,8 +6810,8 @@ def torrent_function_window():
         text="Total Pieces:",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     piece_size_label.grid(
@@ -6713,8 +6824,8 @@ def torrent_function_window():
         text="",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="white",
+        background=cust_bg_color,
+        fg=cust_general_fg,
         font=(set_font, set_font_size),
     )
     piece_size_label2.grid(
@@ -6725,13 +6836,19 @@ def torrent_function_window():
     set_piece_size()
 
     # torrent entry frame
-    torrent_entry_frame = LabelFrame(torrent_window, text=" Fields ", labelanchor="nw")
+    torrent_entry_frame = LabelFrame(
+        torrent_window,
+        text=" Fields ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     torrent_entry_frame.grid(
         column=0, row=2, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S
     )
-    torrent_entry_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     torrent_entry_frame.grid_columnconfigure(0, weight=1)
     torrent_entry_frame.grid_columnconfigure(1, weight=200)
     torrent_entry_frame.grid_columnconfigure(2, weight=2000)
@@ -6745,8 +6862,8 @@ def torrent_function_window():
         text="Tracker URL:",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size),
     )
     torrent_tracker_label.grid(
@@ -6757,11 +6874,11 @@ def torrent_function_window():
     torrent_tracker_url_entry_box = Entry(
         torrent_entry_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         show="*",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     torrent_tracker_url_entry_box.grid(
         row=0, column=1, columnspan=7, padx=(2, 5), pady=(5, 0), sticky=N + S + E + W
@@ -6785,8 +6902,8 @@ def torrent_function_window():
         text="Source:",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size),
     )
     torrent_source_label.grid(
@@ -6797,10 +6914,10 @@ def torrent_function_window():
     torrent_source_entry_box = Entry(
         torrent_entry_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     torrent_source_entry_box.grid(
         row=1, column=1, columnspan=5, padx=(2, 5), pady=5, sticky=N + S + E + W
@@ -6963,13 +7080,13 @@ def torrent_function_window():
     create_torrent_button = HoverButton(
         torrent_window,
         text="Create",
-        activebackground="#23272A",
         command=create_torrent_btn_func,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=12,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     create_torrent_button.grid(
         row=4, column=9, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -6979,16 +7096,16 @@ def torrent_function_window():
     cancel_torrent_button = HoverButton(
         torrent_window,
         text="Cancel",
-        activebackground="#23272A",
         command=lambda: [
             automatic_workflow_boolean.set(False),
             torrent_window_exit_function(),
         ],
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=12,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     cancel_torrent_button.grid(
         row=4, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N
@@ -7004,13 +7121,13 @@ open_torrent_window_button = HoverButton(
     manual_workflow,
     text="Create Torrent",
     command=torrent_function_window,
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
     width=15,
-    activeforeground="#3498db",
-    activebackground="#23272A",
     state=DISABLED,
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 open_torrent_window_button.grid(
     row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W
@@ -7022,23 +7139,29 @@ view_loaded_script = HoverButton(
     text="View Script",
     state=DISABLED,
     command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
     width=10,
-    activebackground="#23272A",
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 view_loaded_script.grid(
     row=4, column=2, columnspan=1, padx=(20, 5), pady=(23, 3), sticky=E + W
 )
 
 # automatic workflow frame
-automatic_workflow = LabelFrame(root, text=" Automatic Workflow ", labelanchor="nw")
-automatic_workflow.grid(column=3, row=4, columnspan=1, padx=5, pady=(5, 3), sticky=E)
-automatic_workflow.configure(
-    fg="#3498db", bg="#363636", bd=3, font=(set_font, set_font_size + 1, "bold")
+automatic_workflow = LabelFrame(
+    root,
+    text=" Automatic Workflow ",
+    labelanchor="nw",
+    bd=3,
+    font=(set_font, 9, "bold"),
+    fg=custom_label_frame_colors["foreground"],
+    bg=custom_label_frame_colors["background"],
 )
+automatic_workflow.grid(column=3, row=4, columnspan=1, padx=5, pady=(5, 3), sticky=E)
+
 automatic_workflow.grid_rowconfigure(0, weight=1)
 automatic_workflow.grid_columnconfigure(0, weight=1)
 
@@ -7135,7 +7258,7 @@ def open_uploader_window(job_mode):
     upload_window = Toplevel()
     upload_window.title("BHDStudio - Uploader")
     upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
-    upload_window.configure(background="#363636")
+    upload_window.configure(background=cust_bg_color)
     upload_window_height = 660
     upload_window_width = 720
     if uploader_window_config_parser["save_window_locations"]["uploader"] == "":
@@ -7165,14 +7288,18 @@ def open_uploader_window(job_mode):
 
     # upload torrent options frame
     torrent_options_frame = LabelFrame(
-        upload_window, text=" Torrent Input ", labelanchor="nw"
+        upload_window,
+        text=" Torrent Input ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     torrent_options_frame.grid(
         column=0, row=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
     )
-    torrent_options_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     torrent_options_frame.grid_rowconfigure(0, weight=1)
     torrent_options_frame.grid_columnconfigure(0, weight=1)
     torrent_options_frame.grid_columnconfigure(1, weight=20)
@@ -7222,11 +7349,11 @@ def open_uploader_window(job_mode):
         torrent_options_frame,
         text="Open",
         command=open_torrent_file,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     torrent_input_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W
@@ -7235,34 +7362,40 @@ def open_uploader_window(job_mode):
     torrent_input_entry_box = Entry(
         torrent_options_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
         state=DISABLED,
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=torrent_file_path,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     torrent_input_entry_box.grid(
         row=0, column=1, columnspan=3, padx=5, pady=(5, 0), sticky=E + W
     )
 
-    title_options_frame = LabelFrame(upload_window, text=" Title ", labelanchor="nw")
+    title_options_frame = LabelFrame(
+        upload_window,
+        text=" Title ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     title_options_frame.grid(
         column=0, row=3, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
     )
-    title_options_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     title_options_frame.grid_rowconfigure(0, weight=1)
     title_options_frame.grid_columnconfigure(0, weight=1)
 
     title_input_entry_box = Entry(
         title_options_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     title_input_entry_box.grid(
         row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
@@ -7281,13 +7414,19 @@ def open_uploader_window(job_mode):
             .strip(),
         )
 
-    upload_options_frame = LabelFrame(upload_window, text=" Options ", labelanchor="nw")
+    upload_options_frame = LabelFrame(
+        upload_window,
+        text=" Options ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     upload_options_frame.grid(
         column=0, row=1, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
     )
-    upload_options_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
-    )
+
     upload_options_frame.grid_rowconfigure(0, weight=1)
     upload_options_frame.grid_rowconfigure(1, weight=1)
     for u_o_f in range(6):
@@ -7298,8 +7437,8 @@ def open_uploader_window(job_mode):
         text="Type",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
@@ -7311,8 +7450,8 @@ def open_uploader_window(job_mode):
         upload_options_frame, type_var, *type_choices.keys(), command=None
     )
     type_var_menu.config(
-        background="#23272A",
-        foreground="white",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
         activebackground="grey",
@@ -7321,7 +7460,7 @@ def open_uploader_window(job_mode):
         row=0, column=1, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=W
     )
     type_var_menu["menu"].configure(
-        activebackground="grey", background="#23272A", foreground="white"
+        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
     )
     if (
         encode_file_path.get().strip() != ""
@@ -7335,8 +7474,8 @@ def open_uploader_window(job_mode):
         text="Source",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     upload_source_label.grid(
@@ -7349,8 +7488,8 @@ def open_uploader_window(job_mode):
         upload_options_frame, source_var, *source_choices.keys(), command=None
     )
     source_var_menu.config(
-        background="#23272A",
-        foreground="white",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
         activebackground="grey",
@@ -7359,7 +7498,7 @@ def open_uploader_window(job_mode):
         row=0, column=3, columnspan=1, pady=(7, 5), padx=(2, 5), sticky=W
     )
     source_var_menu["menu"].configure(
-        activebackground="grey", background="#23272A", foreground="white"
+        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
     )
     source_var.set("Blu-Ray")  # set var to Blu-Ray
 
@@ -7369,8 +7508,8 @@ def open_uploader_window(job_mode):
         text="Edition\n(Optional)",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -7392,8 +7531,8 @@ def open_uploader_window(job_mode):
         upload_options_frame, edition_var, *edition_choices.keys(), command=None
     )
     edition_var_menu.config(
-        background="#23272A",
-        foreground="white",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
         activebackground="grey",
@@ -7402,7 +7541,7 @@ def open_uploader_window(job_mode):
         row=0, column=5, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=E
     )
     edition_var_menu["menu"].configure(
-        activebackground="grey", background="#23272A", foreground="white"
+        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
     )
 
     # function to automatically grab edition based off of file name
@@ -7441,8 +7580,8 @@ def open_uploader_window(job_mode):
         text="Edition\n(Custom)",
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -7450,10 +7589,10 @@ def open_uploader_window(job_mode):
     edition_entry_box = Entry(
         upload_options_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     edition_entry_box.grid(
         row=1, column=1, columnspan=5, padx=5, pady=(5, 0), sticky=E + W
@@ -7472,12 +7611,20 @@ def open_uploader_window(job_mode):
     reset_disable_set_edition()  # launch loop to check edition
 
     # IMDB and TMDB frame
-    imdb_tmdb_frame = LabelFrame(upload_window, text=" IMDB / TMDB ", labelanchor="nw")
+    imdb_tmdb_frame = LabelFrame(
+        upload_window,
+        text=" IMDB / TMDB ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     imdb_tmdb_frame.grid(
         column=0, row=2, columnspan=8, padx=5, pady=(5, 3), sticky=E + W
     )
     imdb_tmdb_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold")
+        fg=cust_fg_color, bg=cust_bg_color, bd=3, font=(set_font, 10, "bold")
     )
     imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
@@ -7487,14 +7634,18 @@ def open_uploader_window(job_mode):
 
     # search frame inside the IMDB and TMDB frame
     imdb_tmdb_search_frame = LabelFrame(
-        imdb_tmdb_frame, text=" Search ", labelanchor="n"
+        imdb_tmdb_frame,
+        text=" Search ",
+        labelanchor="n",
+        bd=3,
+        font=(set_font, 9, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     imdb_tmdb_search_frame.grid(
         column=0, row=0, columnspan=8, padx=5, pady=(5, 3), sticky=E + W
     )
-    imdb_tmdb_search_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, 9, "bold")
-    )
+
     imdb_tmdb_search_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_search_frame.grid_columnconfigure(0, weight=1)
 
@@ -7502,11 +7653,11 @@ def open_uploader_window(job_mode):
     search_entry_box = Entry(
         imdb_tmdb_search_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=movie_search_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     search_entry_box.grid(
         row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W
@@ -7537,13 +7688,13 @@ def open_uploader_window(job_mode):
     search_button = HoverButton(
         imdb_tmdb_search_frame,
         text="Search",
-        activebackground="#23272A",
         command=call_search_command,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=12,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     search_button.grid(
         row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -7553,8 +7704,8 @@ def open_uploader_window(job_mode):
     imdb_label = Label(
         imdb_tmdb_frame,
         text="IMDB ID\n(Required)",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     imdb_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=W)
@@ -7563,11 +7714,11 @@ def open_uploader_window(job_mode):
     imdb_entry_box = Entry(
         imdb_tmdb_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=imdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     imdb_entry_box.grid(
         row=1, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W
@@ -7585,8 +7736,8 @@ def open_uploader_window(job_mode):
         image=imdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg="#363636",
-        activebackground="#363636",
+        bg=cust_bg_color,
+        activebackground=cust_bg_color,
         command=open_imdb_link,
     )
     imdb_button.grid(row=1, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
@@ -7596,8 +7747,8 @@ def open_uploader_window(job_mode):
     tmdb_label = Label(
         imdb_tmdb_frame,
         text="TMDB ID\n(Required)",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size + 1),
     )
     tmdb_label.grid(column=0, row=2, columnspan=1, pady=(5, 0), padx=5, sticky=W)
@@ -7606,11 +7757,11 @@ def open_uploader_window(job_mode):
     tmdb_entry_box = Entry(
         imdb_tmdb_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         textvariable=tmdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     tmdb_entry_box.grid(
         row=2, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W
@@ -7628,17 +7779,25 @@ def open_uploader_window(job_mode):
         image=tmdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg="#363636",
-        activebackground="#363636",
+        bg=cust_bg_color,
+        activebackground=cust_bg_color,
         command=open_tmdb_link,
     )
     tmdb_button.grid(row=2, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
     tmdb_button.photo = tmdb_img
 
     # info frame
-    info_frame = LabelFrame(upload_window, text=" Info ", labelanchor="nw")
+    info_frame = LabelFrame(
+        upload_window,
+        text=" Info ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+    )
     info_frame.grid(column=0, row=4, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
-    info_frame.configure(fg="#3498db", bg="#363636", bd=3, font=(set_font, 10, "bold"))
+
     info_frame.grid_rowconfigure(0, weight=1)
     info_frame.grid_columnconfigure(0, weight=1)
     info_frame.grid_columnconfigure(1, weight=100)
@@ -7724,12 +7883,12 @@ def open_uploader_window(job_mode):
         info_frame,
         text="MediaInfo",
         command=open_media_info_text,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=15,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     media_info_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N
@@ -7739,11 +7898,11 @@ def open_uploader_window(job_mode):
     media_info_entry = Entry(
         info_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         state=DISABLED,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     media_info_entry.grid(
         row=0, column=1, columnspan=1, padx=5, pady=(5, 0), sticky=E + W
@@ -7784,12 +7943,12 @@ def open_uploader_window(job_mode):
         info_frame,
         text="NFO / Description",
         command=open_nfo_info_text_nfo,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=15,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     nfo_desc_button.grid(
         row=0, column=2, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -7799,11 +7958,11 @@ def open_uploader_window(job_mode):
     nfo_desc_entry = Entry(
         info_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledforeground="white",
-        disabledbackground="#565656",
         state=DISABLED,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     nfo_desc_entry.grid(
         row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + W
@@ -7816,14 +7975,18 @@ def open_uploader_window(job_mode):
 
     # misc options frame
     misc_options_frame = LabelFrame(
-        upload_window, text=" Upload Options ", labelanchor="nw"
+        upload_window,
+        text=" Upload Options ",
+        labelanchor="nw",
+        bd=3,
+        font=(set_font, 10, "bold"),
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
     )
     misc_options_frame.grid(
         column=0, row=5, columnspan=3, padx=5, pady=(5, 3), sticky=E + W
     )
-    misc_options_frame.configure(
-        fg="#3498db", bg="#363636", bd=3, font=(set_font, set_font_size + 1, "bold")
-    )
+
     misc_options_frame.grid_rowconfigure(0, weight=1)
     for m_o_f in range(3):
         misc_options_frame.grid_columnconfigure(m_o_f, weight=1)
@@ -7851,11 +8014,11 @@ def open_uploader_window(job_mode):
     )
     live_checkbox.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=E + W)
     live_checkbox.configure(
-        background="#363636",
-        foreground="white",
-        activebackground="#363636",
-        activeforeground="white",
-        selectcolor="#363636",
+        background=cust_bg_color,
+        foreground=cust_general_fg,
+        activebackground=cust_bg_color,
+        activeforeground=cust_general_fg,
+        selectcolor=cust_bg_color,
         font=(set_font, set_font_size + 1),
     )
     live_boolean.set(0)
@@ -7880,11 +8043,11 @@ def open_uploader_window(job_mode):
     )
     anonymous_checkbox.grid(row=0, column=1, padx=5, pady=(5, 3), sticky=W)
     anonymous_checkbox.configure(
-        background="#363636",
-        foreground="white",
-        activebackground="#363636",
-        activeforeground="white",
-        selectcolor="#363636",
+        background=cust_bg_color,
+        foreground=cust_general_fg,
+        activebackground=cust_bg_color,
+        activeforeground=cust_general_fg,
+        selectcolor=cust_bg_color,
         font=(set_font, set_font_size + 1),
     )
     anonymous_boolean.set(0)
@@ -7897,7 +8060,7 @@ def open_uploader_window(job_mode):
 
         # upload status window
         upload_status_window = Toplevel()
-        upload_status_window.configure(background="#363636")
+        upload_status_window.configure(background=cust_bg_color)
         upload_status_window.geometry(
             f'{460}x{200}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
             f'{str(int(upload_window.geometry().split("+")[2]) + 230)}'
@@ -7914,10 +8077,10 @@ def open_uploader_window(job_mode):
         # encoder name frame
         upload_output_frame = Frame(
             upload_status_window,
-            highlightbackground="white",
+            highlightbackground=cust_general_fg,
             highlightthickness=2,
-            bg="#363636",
-            highlightcolor="white",
+            bg=cust_bg_color,
+            highlightcolor=cust_general_fg,
         )
         upload_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for e_n_f in range(3):
@@ -7926,7 +8089,12 @@ def open_uploader_window(job_mode):
 
         # create window
         upload_status_info = scrolledtextwidget.ScrolledText(
-            upload_output_frame, height=7, bg="#565656", fg="white", bd=4, wrap=WORD
+            upload_output_frame,
+            height=7,
+            bg=cust_entry_bg,
+            fg=cust_general_fg,
+            bd=4,
+            wrap=WORD,
         )
         upload_status_info.grid(
             row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
@@ -7944,12 +8112,12 @@ def open_uploader_window(job_mode):
             upload_output_frame,
             text="OK",
             command=encoder_okay_func,
-            foreground="white",
-            background="#23272A",
             borderwidth="3",
-            activeforeground="#3498db",
             width=8,
-            activebackground="#23272A",
+            foreground=custom_button_colors["foreground"],
+            background=custom_button_colors["background"],
+            activeforeground=custom_button_colors["activeforeground"],
+            activebackground=custom_button_colors["activebackground"],
         )
         uploader_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
 
@@ -8080,10 +8248,10 @@ def open_uploader_window(job_mode):
         upload_window,
         text="Upload",
         image=upload_img_disabled,
-        background="#363636",
         borderwidth=0,
-        activebackground="#363636",
         cursor="question_arrow",
+        background=custom_button_colors["background"],
+        activebackground=custom_button_colors["activebackground"],
     )
     upload_button.grid(row=5, column=3, padx=(5, 10), pady=(5, 10), sticky=E + S)
     upload_button.image = upload_img_disabled
@@ -8152,12 +8320,12 @@ open_uploader_button = HoverButton(
         automatic_workflow_boolean.set(False),
         open_uploader_window("manual"),
     ],
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
     width=15,
-    activeforeground="#3498db",
-    activebackground="#23272A",
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 open_uploader_button.grid(
     row=0, column=2, columnspan=1, padx=(5, 10), pady=1, sticky=E + W
@@ -8199,12 +8367,12 @@ parse_and_upload = HoverButton(
     text="Parse & Upload",
     state=DISABLED,
     command=lambda: [automatic_workflow_boolean.set(True), auto_workflow()],
-    foreground="white",
-    background="#23272A",
     borderwidth="3",
-    activeforeground="#3498db",
     width=1,
-    activebackground="#23272A",
+    foreground=custom_button_colors["foreground"],
+    background=custom_button_colors["background"],
+    activeforeground=custom_button_colors["activeforeground"],
+    activebackground=custom_button_colors["activebackground"],
 )
 parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
 
@@ -8315,7 +8483,7 @@ def custom_input_prompt(
     # encoder name window
     custom_input_window = Toplevel()
     custom_input_window.title("")
-    custom_input_window.configure(background="#363636")
+    custom_input_window.configure(background=cust_bg_color)
     custom_input_window.geometry(
         f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
         f'{str(int(parent_window.geometry().split("+")[2]) + 230)}'
@@ -8332,10 +8500,10 @@ def custom_input_prompt(
     # encoder name frame
     custom_input_frame = Frame(
         custom_input_window,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     custom_input_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -8346,8 +8514,8 @@ def custom_input_prompt(
     image_name_label3 = Label(
         custom_input_frame,
         text=label_input,
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     image_name_label3.grid(
@@ -8356,7 +8524,10 @@ def custom_input_prompt(
 
     # create entry box
     custom_entry_box = Entry(
-        custom_input_frame, borderwidth=4, bg="#565656", fg="white"
+        custom_input_frame,
+        borderwidth=4,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
     )
     custom_entry_box.grid(
         row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W
@@ -8389,12 +8560,12 @@ def custom_input_prompt(
         custom_input_frame,
         text="OK",
         command=custom_okay_func,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     custom_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -8402,16 +8573,16 @@ def custom_input_prompt(
     custom_cancel_btn = HoverButton(
         custom_input_frame,
         text="Cancel",
-        activeforeground="#3498db",
         width=8,
         command=lambda: [
             custom_input_window.destroy(),
             root.wm_attributes("-alpha", 1.0),
         ],
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     custom_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -8435,7 +8606,7 @@ def torrent_path_window_function(*t_args):
     # torrent path window
     torrent_path_window = Toplevel()
     torrent_path_window.title("")
-    torrent_path_window.configure(background="#363636")
+    torrent_path_window.configure(background=cust_bg_color)
     torrent_path_window.geometry(
         f'{460}x{160}+{str(int(root.geometry().split("+")[1]) + 156)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -8450,10 +8621,10 @@ def torrent_path_window_function(*t_args):
     # encoder name frame
     torrent_path_frame = Frame(
         torrent_path_window,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     torrent_path_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
 
@@ -8468,8 +8639,8 @@ def torrent_path_window_function(*t_args):
     torrent_label = Label(
         torrent_path_frame,
         text="Torrent Output Path",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     torrent_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 8))
@@ -8517,12 +8688,12 @@ def torrent_path_window_function(*t_args):
         torrent_path_frame,
         text="Path",
         command=save_default_torrent_path,
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
-        foreground="white",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     torrent_path_btn.grid(row=1, column=0, columnspan=1, padx=(5, 2), pady=5, sticky=W)
 
@@ -8530,10 +8701,10 @@ def torrent_path_window_function(*t_args):
     torrent_path_entry_box = Entry(
         torrent_path_frame,
         borderwidth=4,
-        bg="#565656",
-        fg="white",
-        disabledbackground="#565656",
-        disabledforeground="light grey",
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
     )
     torrent_path_entry_box.grid(
         row=1, column=1, columnspan=2, padx=0, pady=5, sticky=E + W
@@ -8575,12 +8746,12 @@ def torrent_path_window_function(*t_args):
         torrent_path_frame,
         text="X",
         command=reset_torrent_path_function,
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=3,
-        activebackground="#23272A",
-        foreground="white",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     torrent_path_reset_btn.grid(
         row=1, column=3, columnspan=1, padx=(2, 5), pady=5, sticky=E
@@ -8591,12 +8762,12 @@ def torrent_path_window_function(*t_args):
         torrent_path_frame,
         text="OK",
         command=torrent_path_okay_func,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     torrent_path_okay_btn.grid(
         row=2, column=2, columnspan=2, padx=7, pady=(5, 3), sticky=E + S
@@ -8638,7 +8809,7 @@ def bhd_co_login_window():
     # encoder name window
     bhd_login_win = Toplevel()
     bhd_login_win.title("")
-    bhd_login_win.configure(background="#363636")
+    bhd_login_win.configure(background=cust_bg_color)
     bhd_login_win.geometry(
         f'{300}x{210}+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -8653,10 +8824,10 @@ def bhd_co_login_window():
     # encoder name frame
     bhd_login_frame = Frame(
         bhd_login_win,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     bhd_login_frame.grid(column=0, row=0, columnspan=5, sticky=N + S + E + W)
     for e_n_f in range(5):
@@ -8667,14 +8838,19 @@ def bhd_co_login_window():
     user_label = Label(
         bhd_login_frame,
         text="Username",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     user_label.grid(row=0, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
 
     # create username entry box
-    user_entry_box = Entry(bhd_login_frame, borderwidth=4, bg="#565656", fg="white")
+    user_entry_box = Entry(
+        bhd_login_frame,
+        borderwidth=4,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+    )
     user_entry_box.grid(
         row=1, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
     )
@@ -8683,15 +8859,19 @@ def bhd_co_login_window():
     pass_label = Label(
         bhd_login_frame,
         text="Password",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     pass_label.grid(row=2, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
 
     # create password entry box
     pass_entry_box = Entry(
-        bhd_login_frame, borderwidth=4, bg="#565656", fg="white", show="*"
+        bhd_login_frame,
+        borderwidth=4,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        show="*",
     )
     pass_entry_box.grid(
         row=3, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -8781,12 +8961,12 @@ def bhd_co_login_window():
         bhd_login_frame,
         text="Check Login",
         command=check_bhd_login,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=10,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     login_okay_btn.grid(row=4, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -8794,13 +8974,13 @@ def bhd_co_login_window():
     custom_cancel_btn = HoverButton(
         bhd_login_frame,
         text="Save",
-        activeforeground="#3498db",
         width=10,
         command=save_exit_function,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     custom_cancel_btn.grid(row=4, column=4, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -8851,7 +9031,7 @@ def screen_shot_count_spinbox(*e_hotkey):
     # encoder name window
     ss_count_win = Toplevel()
     ss_count_win.title("SS Count")
-    ss_count_win.configure(background="#363636")
+    ss_count_win.configure(background=cust_bg_color)
     ss_count_win.geometry(
         f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -8869,10 +9049,10 @@ def screen_shot_count_spinbox(*e_hotkey):
     # screenshot count frame
     ss_count_frame = Frame(
         ss_count_win,
-        highlightbackground="white",
+        highlightbackground=cust_general_fg,
         highlightthickness=2,
-        bg="#363636",
-        highlightcolor="white",
+        bg=cust_bg_color,
+        highlightcolor=cust_general_fg,
     )
     ss_count_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -8892,10 +9072,10 @@ def screen_shot_count_spinbox(*e_hotkey):
             ss_spinbox,
             tearoff=False,
             font=(set_font, set_font_size + 1),
-            background="#23272A",
-            foreground="white",
-            activebackground="#23272A",
-            activeforeground="#3498db",
+            background=cust_button_bg,
+            foreground=cust_general_fg,
+            activebackground=cust_button_bg,
+            activeforeground=cust_fg_color,
         )
         spinbox_sel_menu.add_command(label="20", command=lambda: ss_count.set("20"))
         spinbox_sel_menu.add_command(label="30", command=lambda: ss_count.set("30"))
@@ -8913,8 +9093,8 @@ def screen_shot_count_spinbox(*e_hotkey):
         CustomTooltipLabel(
             anchor_widget=ss_spinbox,
             hover_delay=200,
-            background="#363636",
-            foreground="#3498db",
+            background=cust_bg_color,
+            foreground=cust_fg_color,
             font=(set_fixed_font, 9, "bold"),
             text="Right click to quickly select amount",
         )
@@ -8923,8 +9103,8 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_count_lbl = Label(
         ss_count_frame,
         text="Select desired amount of comparisons",
-        background="#363636",
-        fg="#3498db",
+        background=cust_bg_color,
+        fg=cust_fg_color,
         font=(set_font, set_font_size, "bold"),
     )
     ss_count_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
@@ -8940,11 +9120,11 @@ def screen_shot_count_spinbox(*e_hotkey):
         wrap=True,
         textvariable=ss_count,
         state="readonly",
-        background="#23272A",
-        foreground="white",
+        background=cust_button_bg,
+        foreground=cust_general_fg,
         highlightthickness=1,
         buttonbackground="black",
-        readonlybackground="#23272A",
+        readonlybackground=cust_button_bg,
     )
     ss_spinbox.grid(
         row=1, column=0, columnspan=3, padx=10, pady=3, sticky=N + S + E + W
@@ -8984,12 +9164,12 @@ def screen_shot_count_spinbox(*e_hotkey):
         ss_count_frame,
         text="OK",
         command=custom_okay_func,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
         width=8,
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -8997,13 +9177,13 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_cancel_btn = HoverButton(
         ss_count_frame,
         text="Cancel",
-        activeforeground="#3498db",
         width=8,
         command=lambda: [ss_count_win.destroy(), root.wm_attributes("-alpha", 1.0)],
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activebackground="#23272A",
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ss_cancel_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -9248,7 +9428,7 @@ def check_for_latest_program_updates():
     # updater window
     update_window = Toplevel()
     update_window.title("Update")
-    update_window.configure(background="#363636")
+    update_window.configure(background=cust_bg_color)
     update_window.geometry(
         f'{800}x{540}+{root.geometry().split("+")[1]}+{root.geometry().split("+")[2]}'
     )
@@ -9266,30 +9446,30 @@ def check_for_latest_program_updates():
         text=parsed_version,
         bd=0,
         relief=SUNKEN,
-        background="#363636",
-        foreground="#3498db",
+        background=cust_bg_color,
+        foreground=cust_fg_color,
         font=(set_font, set_font_size + 4, "bold"),
     )
     update_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W + E)
 
     # scrolled update window
     update_scrolled = scrolledtextwidget.ScrolledText(
-        update_window, bg="#565656", fg="white", bd=4, wrap=WORD
+        update_window, bg=cust_entry_bg, fg=cust_general_fg, bd=4, wrap=WORD
     )
     update_scrolled.grid(
         row=1, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S
     )
     update_scrolled.tag_configure(
         "bold_color",
-        background="#565656",
-        foreground="#3498db",
+        background=cust_entry_bg,
+        foreground=cust_fg_color,
         font=12,
         justify=CENTER,
     )
     update_scrolled.tag_configure(
         "version_color",
-        background="#565656",
-        foreground="white",
+        background=cust_entry_bg,
+        foreground=cust_general_fg,
         font=(set_fixed_font, set_font_size),
         justify=LEFT,
     )
@@ -9302,7 +9482,7 @@ def check_for_latest_program_updates():
     update_scrolled.tag_configure(
         "highlight_color",
         background="#40444b",
-        foreground="white",
+        foreground=cust_general_fg,
         font=(set_fixed_font, set_font_size),
     )
     html_to_string = BeautifulSoup(get_release_notes.group(), features="lxml")
@@ -9310,7 +9490,7 @@ def check_for_latest_program_updates():
     update_scrolled.config(state=DISABLED)
 
     # update button frame
-    update_frame = Frame(update_window, bg="#363636", bd=0)
+    update_frame = Frame(update_window, bg=cust_bg_color, bd=0)
     update_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     update_frame.grid_rowconfigure(0, weight=1)
     update_frame.grid_columnconfigure(0, weight=1)
@@ -9323,12 +9503,12 @@ def check_for_latest_program_updates():
         update_frame,
         text="Close",
         command=update_window.destroy,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=14,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     close_updater_btn.grid(
         row=0, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W
@@ -9351,12 +9531,12 @@ def check_for_latest_program_updates():
         update_frame,
         text="Ignore Updates",
         command=ignore_update_function,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=14,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     ignore_updates.grid(
         row=0, column=1, columnspan=1, padx=10, pady=(5, 4), sticky=S + W
@@ -9384,12 +9564,12 @@ def check_for_latest_program_updates():
         update_frame,
         text="Skip Version",
         command=skip_version_function,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=14,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     skip_version.grid(row=0, column=2, columnspan=1, padx=10, pady=(5, 4), sticky=S + E)
 
@@ -9487,12 +9667,12 @@ def check_for_latest_program_updates():
         update_frame,
         text="Update",
         command=update_program,
-        foreground="white",
-        background="#23272A",
         borderwidth="3",
-        activeforeground="#3498db",
-        activebackground="#23272A",
         width=14,
+        foreground=custom_button_colors["foreground"],
+        background=custom_button_colors["background"],
+        activeforeground=custom_button_colors["activeforeground"],
+        activebackground=custom_button_colors["activebackground"],
     )
     update_button.grid(
         row=0, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E
@@ -9521,6 +9701,11 @@ def clean_update_files():
 
 if app_type == "bundled":
     root.after(5000, clean_update_files)
+
+# list_of_all_buttons = [source_button, encode_button]
+#
+# for x in list_of_all_buttons:
+#     x.configure(background="SystemButtonFace")
 
 # tkinter mainloop
 root.mainloop()
