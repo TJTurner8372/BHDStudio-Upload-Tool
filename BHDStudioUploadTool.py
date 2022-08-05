@@ -376,13 +376,16 @@ custom_style.theme_create(
     settings={
         # Notebook Theme Settings -------------------
         "TNotebook": {
-            "configure": {"tabmargins": [5, 5, 5, 0], "background": cust_bg_color}
+            "configure": {
+                "tabmargins": [5, 5, 5, 0],
+                "background": custom_frame_bg_colors["background"],
+            }
         },
         "TNotebook.Tab": {
             "configure": {
                 "padding": [5, 1],
-                "background": "grey",
-                "foreground": cust_general_fg,
+                "background": custom_listbox_color["selectbackground"],
+                "foreground": custom_button_colors["foreground"],
                 "focuscolor": "",
             },
             "map": {
@@ -394,12 +397,10 @@ custom_style.theme_create(
         # ComboBox Theme Settings -------------------
         "TCombobox": {
             "configure": {
-                "selectbackground": "#c0c0c0",
-                "fieldbackground": "#c0c0c0",
-                "lightcolor": "green",
-                "background": cust_general_fg,
-                "foreground": "black",
-                "selectforeground": "black",
+                "selectbackground": custom_listbox_color["selectbackground"],
+                "fieldbackground": custom_listbox_color["selectbackground"],
+                "foreground": custom_listbox_color["foreground"],
+                "selectforeground": custom_listbox_color["selectforeground"],
             }
         },
     },
@@ -425,9 +426,18 @@ custom_style.layout(
 custom_style.configure(
     "text.Horizontal.TProgressbar", text="", anchor="center", background=cust_fg_color
 )
-custom_style.master.option_add("*TCombobox*Listbox.background", "grey")
-custom_style.master.option_add("*TCombobox*Listbox.selectBackground", "grey")
-custom_style.master.option_add("*TCombobox*Listbox.selectForeground", cust_fg_color)
+custom_style.master.option_add(
+    "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
+)
+custom_style.master.option_add(
+    "*TCombobox*Listbox.background", custom_listbox_color["background"]
+)
+custom_style.master.option_add(
+    "*TCombobox*Listbox.selectBackground", custom_listbox_color["background"]
+)
+custom_style.master.option_add(
+    "*TCombobox*Listbox.selectForeground", custom_listbox_color["selectforeground"]
+)
 
 
 # ------------------------------------------ Custom Tkinter Theme
