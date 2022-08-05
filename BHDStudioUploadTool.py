@@ -226,6 +226,17 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 
     custom_label_colors = {"foreground": "white", "background": "#363636"}
 
+    custom_window_bg_color = "#363636"
+
+    custom_scrolled_text_widget_color = {"foreground": "white", "background": "#565656"}
+
+    custom_listbox_color = {
+        "foreground": "white",
+        "background": "#565656",
+        "selectbackground": "#565656",
+        "selectforeground": "#3498db",
+    }
+
     cust_bg_color = "#363636"
     cust_fg_color = "#3498db"
     cust_entry_bg = "#565656"
@@ -292,7 +303,7 @@ def root_exit_function():
 root = TkinterDnD.Tk()
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
-root.configure(background=cust_bg_color)
+root.configure(background=custom_window_bg_color)
 root_window_height = 760
 root_window_width = 720
 if config["save_window_locations"]["bhdstudiotool"] == "":
@@ -430,7 +441,7 @@ class Logger(
         except (NameError, TclError):
             error_window = Toplevel()
             error_window.title("Traceback Error(s)")
-            error_window.configure(background="#434547")
+            error_window.configure(background=custom_window_bg_color)
             window_height = 400
             window_width = 600
             error_window.geometry(
@@ -440,11 +451,17 @@ class Logger(
             for e_w in range(4):
                 error_window.grid_columnconfigure(e_w, weight=1)
             error_window.grid_rowconfigure(0, weight=1)
-            info_scrolled = scrolledtextwidget.ScrolledText(error_window, wrap=WORD)
+            info_scrolled = scrolledtextwidget.ScrolledText(
+                error_window,
+                wrap=WORD,
+                bd=8,
+                bg=custom_scrolled_text_widget_color["background"],
+                fg=custom_scrolled_text_widget_color["foreground"],
+            )
             info_scrolled.grid(
                 row=0, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S
             )
-            info_scrolled.configure(bg="black", fg="#CFD2D1", bd=8)
+
             info_scrolled.insert(END, message)
             info_scrolled.see(END)
             info_scrolled.config(state=DISABLED)
@@ -746,7 +763,9 @@ def search_movie_global_function(*args):
 
     # movie info window
     movie_info_window = Toplevel()
-    movie_info_window.configure(background=cust_bg_color)  # Set's the background color
+    movie_info_window.configure(
+        background=custom_window_bg_color
+    )  # Set's the background color
     movie_info_window.title("Movie Selection")  # Toplevel Title
     movie_window_height = 600
     movie_window_width = 1000
@@ -790,13 +809,13 @@ def search_movie_global_function(*args):
         activestyle="none",
         yscrollcommand=right_scrollbar.set,
         bd=2,
-        bg="black",
-        fg=cust_fg_color,
         height=10,
-        selectbackground="black",
-        selectforeground="lime green",
         selectmode=SINGLE,
         font=(set_font, set_font_size + 2),
+        bg=custom_listbox_color["background"],
+        fg=custom_listbox_color["foreground"],
+        selectbackground=custom_listbox_color["selectbackground"],
+        selectforeground=custom_listbox_color["selectforeground"],
     )
     movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
 
@@ -1031,12 +1050,16 @@ def search_movie_global_function(*args):
 
     # plot text window
     plot_scrolled_text = scrolledtextwidget.ScrolledText(
-        plot_frame, height=6, wrap=WORD
+        plot_frame,
+        height=6,
+        wrap=WORD,
+        bd=2,
+        bg=custom_scrolled_text_widget_color["background"],
+        fg=custom_scrolled_text_widget_color["foreground"],
     )
     plot_scrolled_text.grid(
         row=0, column=0, columnspan=6, pady=(0, 5), padx=5, sticky=E + W
     )
-    plot_scrolled_text.config(bg="black", fg="#CFD2D1", bd=2)
 
     # internal search frame
     internal_search_frame = LabelFrame(
@@ -1491,9 +1514,7 @@ def source_input_function(*args):
     # if source file only has 2 or more tracks
     if int(media_info.general_tracks[0].count_of_audio_streams) >= 2:
         audio_track_win = Toplevel()  # Toplevel window
-        audio_track_win.configure(
-            background=cust_bg_color
-        )  # Set color of audio_track_win background
+        audio_track_win.configure(background=custom_window_bg_color)
         audio_track_win.title("Audio Track Selection")
         # Open on top left of root window
         audio_track_win.geometry(
@@ -2176,7 +2197,7 @@ def encode_input_function(*args):
         # rename encode window
         rename_encode_window = Toplevel()
         rename_encode_window.title("Confirm Filename")
-        rename_encode_window.configure(background=cust_bg_color)
+        rename_encode_window.configure(background=custom_window_bg_color)
         rename_encode_window.geometry(
             f'{600}x{300}+{str(int(root.geometry().split("+")[1]) + 60)}+'
             f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -2795,10 +2816,8 @@ def staxrip_working_directory(stax_dir_path):
     elif dict_of_stax_logs:
         # if there is more than 1 log file
         if len(dict_of_stax_logs) >= 2:
-            stax_log_win = Toplevel()  # Toplevel window
-            stax_log_win.configure(
-                background=cust_bg_color
-            )  # Set color of stax_log_win background
+            stax_log_win = Toplevel()
+            stax_log_win.configure(background=custom_window_bg_color)
             stax_log_win.title("Log Files")
             # Open on top left of root window
             stax_log_win.geometry(
@@ -3065,12 +3084,17 @@ fill_borders.grid(
 fill_borders_var.set("off")
 
 release_notes_scrolled = scrolledtextwidget.ScrolledText(
-    release_notes_frame, height=5, bg=cust_entry_bg, bd=4, fg=cust_general_fg
+    release_notes_frame,
+    height=5,
+    bd=4,
+    bg=custom_scrolled_text_widget_color["background"],
+    fg=custom_scrolled_text_widget_color["foreground"],
+    state=DISABLED,
 )
 release_notes_scrolled.grid(
     row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W
 )
-release_notes_scrolled.config(state=DISABLED)
+
 # Hover tip tool-tip
 CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
@@ -3175,11 +3199,11 @@ image_right_scrollbar = Scrollbar(image_frame, orient=VERTICAL)  # scrollbar
 image_bottom_scrollbar = Scrollbar(image_frame, orient=HORIZONTAL)  # scrollbar
 image_listbox = Listbox(
     image_frame,
-    selectbackground=cust_entry_bg,
-    background=cust_entry_bg,
-    disabledforeground=cust_disabled_fg,
-    selectforeground=cust_fg_color,
-    foreground=cust_general_fg,
+    bg=custom_listbox_color["background"],
+    fg=custom_listbox_color["foreground"],
+    selectbackground=custom_listbox_color["selectbackground"],
+    selectforeground=custom_listbox_color["selectforeground"],
+    disabledforeground=custom_listbox_color["foreground"],
     height=12,
     state=DISABLED,
     highlightthickness=0,
@@ -3418,7 +3442,7 @@ def automatic_screenshot_generator():
     # create image viewer
     image_viewer = Toplevel()
     image_viewer.title("Image Viewer")
-    image_viewer.configure(background="#434547")
+    image_viewer.configure(background=custom_window_bg_color)
     iv_window_height = 720
     iv_window_width = 1400
     if auto_screenshot_parser["save_window_locations"]["image_viewer"] == "":
@@ -3728,10 +3752,10 @@ def automatic_screenshot_generator():
     # create selected list box
     img_viewer_listbox = Listbox(
         img_viewer_frame,
-        selectbackground=cust_entry_bg,
-        background=cust_entry_bg,
-        disabledforeground=cust_disabled_fg,
-        selectforeground=cust_fg_color,
+        bg=custom_listbox_color["background"],
+        fg=custom_listbox_color["foreground"],
+        selectbackground=custom_listbox_color["selectbackground"],
+        selectforeground=custom_listbox_color["selectforeground"],
         foreground=cust_general_fg,
         highlightthickness=0,
         width=40,
@@ -4134,7 +4158,7 @@ def choose_indexer_func():
     # index selection window
     index_selection_win = Toplevel()
     index_selection_win.title("Index")
-    index_selection_win.configure(background=cust_bg_color)
+    index_selection_win.configure(background=custom_window_bg_color)
     index_selection_win.geometry(
         f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -4286,7 +4310,7 @@ def check_crop_values():
     # index selection window
     check_crop_win = Toplevel()
     check_crop_win.title("Check Crop")
-    check_crop_win.configure(background=cust_bg_color)
+    check_crop_win.configure(background=custom_window_bg_color)
     check_crop_win.geometry(
         f'{350}x{180}+{str(int(root.geometry().split("+")[1]) + 180)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -4589,7 +4613,7 @@ def auto_screen_shot_status_window():
 
     # screenshot status window
     screenshot_status_window = Toplevel()
-    screenshot_status_window.configure(background=cust_bg_color)
+    screenshot_status_window.configure(background=custom_window_bg_color)
     screenshot_status_window.title("Screenshot Status")
     screenshot_status_window.geometry(
         f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
@@ -4617,15 +4641,15 @@ def auto_screen_shot_status_window():
     ss_status_info = scrolledtextwidget.ScrolledText(
         ss_output_frame,
         height=18,
-        bg=cust_entry_bg,
-        fg=cust_general_fg,
+        bg=custom_scrolled_text_widget_color["background"],
+        fg=custom_scrolled_text_widget_color["foreground"],
         bd=4,
         wrap=WORD,
+        state=DISABLED,
     )
     ss_status_info.grid(
         row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
     )
-    ss_status_info.config(state=DISABLED)
 
     def screenshot_close_button():
         """exit the status window"""
@@ -5283,7 +5307,7 @@ def upload_to_beyond_hd_co_window():
 
     # upload status window
     upload_ss_status = Toplevel()
-    upload_ss_status.configure(background=cust_bg_color)
+    upload_ss_status.configure(background=custom_window_bg_color)
     upload_ss_status.title("Upload Status")
     upload_ss_status.geometry(
         f'{460}x{240}+{str(int(root.geometry().split("+")[1]) + 138)}+'
@@ -5313,11 +5337,11 @@ def upload_to_beyond_hd_co_window():
     upload_ss_info = scrolledtextwidget.ScrolledText(
         upload_ss_frame,
         height=9,
-        bg=cust_entry_bg,
         state=DISABLED,
-        fg=cust_general_fg,
         bd=4,
         wrap=WORD,
+        bg=custom_scrolled_text_widget_color["background"],
+        fg=custom_scrolled_text_widget_color["foreground"],
     )
     upload_ss_info.grid(
         row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
@@ -5473,7 +5497,11 @@ url_tab.grid_columnconfigure(3, weight=1)
 
 # screenshot textbox
 screenshot_scrolledtext = scrolledtextwidget.ScrolledText(
-    url_tab, height=6, bg=cust_entry_bg, fg=cust_general_fg, bd=4
+    url_tab,
+    height=6,
+    bg=custom_scrolled_text_widget_color["background"],
+    fg=custom_scrolled_text_widget_color["foreground"],
+    bd=4,
 )
 screenshot_scrolledtext.grid(
     row=0, column=0, columnspan=3, pady=(6, 6), padx=4, sticky=E + W
@@ -5857,7 +5885,7 @@ def open_nfo_viewer():
     nfo_pad.title("BHDStudioUploadTool - NFO Pad")
     nfo_pad_window_height = 600
     nfo_pad_window_width = 1000
-    nfo_pad.config(bg=cust_bg_color)
+    nfo_pad.config(bg=custom_window_bg_color)
     if nfo_pad_parser["save_window_locations"]["nfo_pad"] == "":
         nfo_screen_width = nfo_pad.winfo_screenwidth()
         nfo_screen_height = nfo_pad.winfo_screenheight()
@@ -6080,7 +6108,7 @@ def open_nfo_viewer():
 
         font_chooser_win = Toplevel()
         font_chooser_win.title("BHDStudio Upload Tool - Font")
-        font_chooser_win.configure(background=cust_bg_color)
+        font_chooser_win.configure(background=custom_window_bg_color)
         font_chooser_win.geometry(
             f'{700}x{320}+{str(int(nfo_pad.geometry().split("+")[1]) + 108)}+'
             f'{str(int(nfo_pad.geometry().split("+")[2]) + 80)}'
@@ -6142,9 +6170,6 @@ def open_nfo_viewer():
         fonts_right_scrollbar = Scrollbar(fonts_frame, orient=VERTICAL)  # scrollbar
         fonts_listbox = Listbox(
             fonts_frame,
-            selectbackground="#c0c0c0",
-            background="#c0c0c0",
-            selectforeground=cust_fg_color,
             exportselection=False,
             yscrollcommand=fonts_right_scrollbar.set,
             selectmode=SINGLE,
@@ -6152,6 +6177,10 @@ def open_nfo_viewer():
             activestyle="none",
             width=20,
             height=12,
+            bg=custom_listbox_color["background"],
+            fg=custom_listbox_color["foreground"],
+            selectbackground=custom_listbox_color["selectbackground"],
+            selectforeground=custom_listbox_color["selectforeground"],
         )
         fonts_listbox.grid(row=0, column=0, rowspan=3, sticky=N + E + S + W)
         fonts_right_scrollbar.config(command=fonts_listbox.yview)
@@ -6618,9 +6647,7 @@ def torrent_function_window():
 
     # create new toplevel window
     torrent_window = Toplevel()
-    torrent_window.configure(
-        background=cust_bg_color
-    )  # Set color of torrent_window background
+    torrent_window.configure(background=custom_window_bg_color)
     torrent_window.title("BHDStudio Torrent Creator")
     tor_window_height = 330  # win height
     tor_window_width = 520  # win width
@@ -7263,7 +7290,7 @@ def open_uploader_window(job_mode):
     upload_window = Toplevel()
     upload_window.title("BHDStudio - Uploader")
     upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
-    upload_window.configure(background=cust_bg_color)
+    upload_window.configure(background=custom_window_bg_color)
     upload_window_height = 660
     upload_window_width = 720
     if uploader_window_config_parser["save_window_locations"]["uploader"] == "":
@@ -8065,7 +8092,7 @@ def open_uploader_window(job_mode):
 
         # upload status window
         upload_status_window = Toplevel()
-        upload_status_window.configure(background=cust_bg_color)
+        upload_status_window.configure(background=custom_window_bg_color)
         upload_status_window.geometry(
             f'{460}x{200}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
             f'{str(int(upload_window.geometry().split("+")[2]) + 230)}'
@@ -8096,8 +8123,8 @@ def open_uploader_window(job_mode):
         upload_status_info = scrolledtextwidget.ScrolledText(
             upload_output_frame,
             height=7,
-            bg=cust_entry_bg,
-            fg=cust_general_fg,
+            bg=custom_scrolled_text_widget_color["background"],
+            fg=custom_scrolled_text_widget_color["foreground"],
             bd=4,
             wrap=WORD,
         )
@@ -8488,7 +8515,7 @@ def custom_input_prompt(
     # encoder name window
     custom_input_window = Toplevel()
     custom_input_window.title("")
-    custom_input_window.configure(background=cust_bg_color)
+    custom_input_window.configure(background=custom_window_bg_color)
     custom_input_window.geometry(
         f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
         f'{str(int(parent_window.geometry().split("+")[2]) + 230)}'
@@ -8611,7 +8638,7 @@ def torrent_path_window_function(*t_args):
     # torrent path window
     torrent_path_window = Toplevel()
     torrent_path_window.title("")
-    torrent_path_window.configure(background=cust_bg_color)
+    torrent_path_window.configure(background=custom_window_bg_color)
     torrent_path_window.geometry(
         f'{460}x{160}+{str(int(root.geometry().split("+")[1]) + 156)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -8814,7 +8841,7 @@ def bhd_co_login_window():
     # encoder name window
     bhd_login_win = Toplevel()
     bhd_login_win.title("")
-    bhd_login_win.configure(background=cust_bg_color)
+    bhd_login_win.configure(background=custom_window_bg_color)
     bhd_login_win.geometry(
         f'{300}x{210}+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -9036,7 +9063,7 @@ def screen_shot_count_spinbox(*e_hotkey):
     # encoder name window
     ss_count_win = Toplevel()
     ss_count_win.title("SS Count")
-    ss_count_win.configure(background=cust_bg_color)
+    ss_count_win.configure(background=custom_window_bg_color)
     ss_count_win.geometry(
         f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
@@ -9433,7 +9460,7 @@ def check_for_latest_program_updates():
     # updater window
     update_window = Toplevel()
     update_window.title("Update")
-    update_window.configure(background=cust_bg_color)
+    update_window.configure(background=custom_window_bg_color)
     update_window.geometry(
         f'{800}x{540}+{root.geometry().split("+")[1]}+{root.geometry().split("+")[2]}'
     )
@@ -9459,7 +9486,11 @@ def check_for_latest_program_updates():
 
     # scrolled update window
     update_scrolled = scrolledtextwidget.ScrolledText(
-        update_window, bg=cust_entry_bg, fg=cust_general_fg, bd=4, wrap=WORD
+        update_window,
+        bg=custom_scrolled_text_widget_color["background"],
+        fg=custom_scrolled_text_widget_color["foreground"],
+        bd=4,
+        wrap=WORD,
     )
     update_scrolled.grid(
         row=1, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S
