@@ -207,7 +207,10 @@ with open(config_file, "w") as configfile:
     config.write(configfile)
 
 # define bhd_theme colors
-if config["themes"]["selected_theme"] == "bhd_theme":
+if (
+    config["themes"]["selected_theme"] == "bhd_theme"
+    or config["themes"]["selected_theme"] == ""
+):
     custom_button_colors = {
         "foreground": "white",
         "background": "#23272A",
@@ -250,6 +253,7 @@ if config["themes"]["selected_theme"] == "bhd_theme":
         "readonlybackground": "#23272A",
     }
 
+    custom_text_color = {"background": "#434547", "foreground": "white"}
 # elif config['themes']['selected_theme'] == "light_theme":
 #     cust_bg_color = "#F6F6F6"
 #     cust_fg_color = "black"
@@ -259,8 +263,9 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 #     cust_disabled_bg = "light grey"
 #     cust_disabled_fg = "grey"
 
-# root
+
 def root_exit_function():
+    """root exit function"""
     def save_config_information_root():
         # root exit parser
         root_exit_parser = ConfigParser()
@@ -305,7 +310,79 @@ def root_exit_function():
         root.destroy()  # root destroy
 
 
+# def get_default_theme():
+
+
 root = TkinterDnD.Tk()
+
+# define temp widgets to get default system colors
+if config["themes"]["selected_theme"] == "system_theme":
+    custom_window_bg_color = root.cget("bg")
+
+    temp_btn = Button()
+    custom_button_colors = {
+        "foreground": temp_btn.cget("fg"),
+        "background": temp_btn.cget("bg"),
+        "activeforeground": temp_btn.cget("activeforeground"),
+        "activebackground": temp_btn.cget("activebackground"),
+    }
+
+    temp_entry = Entry()
+    custom_entry_colors = {
+        "foreground": temp_entry.cget("fg"),
+        "background": temp_entry.cget("bg"),
+        "disabledforeground": temp_entry.cget("disabledforeground"),
+        "disabledbackground": temp_entry.cget("disabledbackground"),
+    }
+
+    temp_lbl_frame = LabelFrame()
+    custom_label_frame_colors = {
+        "foreground": temp_lbl_frame.cget("fg"),
+        "background": temp_lbl_frame.cget("bg"),
+    }
+
+    temp_frame = Frame()
+    custom_frame_bg_colors = {
+        "background": temp_frame.cget("bg"),
+        "highlightcolor": temp_frame.cget("highlightcolor"),
+        "specialbg": temp_frame.cget("bg"),
+    }
+
+    temp_label = Label()
+    custom_label_colors = {
+        "foreground": temp_label.cget("fg"),
+        "background": temp_label.cget("bg"),
+    }
+
+    temp_scrolled_text = scrolledtextwidget.ScrolledText()
+    custom_scrolled_text_widget_color = {
+        "foreground": temp_scrolled_text.cget("fg"),
+        "background": temp_scrolled_text.cget("bg"),
+    }
+
+    temp_listbox = Listbox()
+    custom_listbox_color = {
+        "foreground": temp_listbox.cget("fg"),
+        "background": temp_listbox.cget("bg"),
+        "selectbackground": temp_listbox.cget("selectbackground"),
+        "selectforeground": temp_listbox.cget("selectforeground"),
+    }
+
+    temp_spinbox = Spinbox()
+    custom_spinbox_color = {
+        "foreground": temp_spinbox.cget("fg"),
+        "background": temp_spinbox.cget("bg"),
+        "buttonbackground": temp_spinbox.cget("buttonbackground"),
+        "readonlybackground": temp_spinbox.cget("readonlybackground"),
+    }
+
+    temp_text = Text()
+    custom_text_color = {
+        "background": temp_text.cget("bg"),
+        "foreground": temp_text.cget("fg"),
+    }
+
+# root window configuration
 root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background=custom_window_bg_color)
@@ -358,84 +435,86 @@ set_font = detect_font.actual().get("family")
 set_font_size = detect_font.actual().get("size")
 detect_fixed_font = font.nametofont("TkFixedFont")
 set_fixed_font = detect_fixed_font.actual().get("family")
-color1 = "#434547"
 
-# Custom Tkinter Theme-----------------------------------------
-custom_style = ttk.Style()
-custom_style.theme_create(
-    "jlw_style",
-    parent="alt",
-    settings={
-        # Notebook Theme Settings -------------------
-        "TNotebook": {
-            "configure": {
-                "tabmargins": [5, 5, 5, 0],
-                "background": custom_frame_bg_colors["background"],
-            }
-        },
-        "TNotebook.Tab": {
-            "configure": {
-                "padding": [5, 1],
-                "background": custom_listbox_color["selectbackground"],
-                "foreground": custom_button_colors["foreground"],
-                "focuscolor": "",
+if config["themes"]["selected_theme"] != "system_theme":
+    # Custom Tkinter Theme-----------------------------------------
+    custom_style = ttk.Style()
+    custom_style.theme_create(
+        "jlw_style",
+        parent="alt",
+        settings={
+            # Notebook Theme Settings -------------------
+            "TNotebook": {
+                "configure": {
+                    "tabmargins": [5, 5, 5, 0],
+                    "background": custom_frame_bg_colors["background"],
+                }
             },
-            "map": {
-                "background": [("selected", "#434547")],
-                "expand": [("selected", [1, 1, 1, 0])],
+            "TNotebook.Tab": {
+                "configure": {
+                    "padding": [5, 1],
+                    "background": custom_listbox_color["selectbackground"],
+                    "foreground": custom_button_colors["foreground"],
+                    "focuscolor": "",
+                },
+                "map": {
+                    "background": [("selected", "#434547")],
+                    "expand": [("selected", [1, 1, 1, 0])],
+                },
+            },
+            # Notebook Theme Settings -------------------
+            # ComboBox Theme Settings -------------------
+            "TCombobox": {
+                "configure": {
+                    "selectbackground": custom_listbox_color["selectbackground"],
+                    "fieldbackground": custom_listbox_color["selectbackground"],
+                    "foreground": custom_listbox_color["foreground"],
+                    "selectforeground": custom_listbox_color["selectforeground"],
+                }
             },
         },
-        # Notebook Theme Settings -------------------
         # ComboBox Theme Settings -------------------
-        "TCombobox": {
-            "configure": {
-                "selectbackground": custom_listbox_color["selectbackground"],
-                "fieldbackground": custom_listbox_color["selectbackground"],
-                "foreground": custom_listbox_color["foreground"],
-                "selectforeground": custom_listbox_color["selectforeground"],
-            }
-        },
-    },
-    # ComboBox Theme Settings -------------------
-)
-custom_style.theme_use("jlw_style")  # Enable the use of the custom theme
-custom_style.layout(
-    "text.Horizontal.TProgressbar",
-    [
-        (
-            "Horizontal.Progressbar.trough",
-            {
-                "children": [
-                    ("Horizontal.Progressbar.pbar", {"side": "left", "sticky": "ns"})
-                ],
-                "sticky": "nswe",
-            },
-        ),
-        ("Horizontal.Progressbar.label", {"sticky": "nswe"}),
-    ],
-)
-# set initial text
-custom_style.configure(
-    "text.Horizontal.TProgressbar",
-    text="",
-    anchor="center",
-    background=custom_button_colors["foreground"],
-)
-custom_style.master.option_add(
-    "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
-)
-custom_style.master.option_add(
-    "*TCombobox*Listbox.background", custom_listbox_color["background"]
-)
-custom_style.master.option_add(
-    "*TCombobox*Listbox.selectBackground", custom_listbox_color["background"]
-)
-custom_style.master.option_add(
-    "*TCombobox*Listbox.selectForeground", custom_listbox_color["selectforeground"]
-)
+    )
+    custom_style.theme_use("jlw_style")  # Enable the use of the custom theme
+    custom_style.layout(
+        "text.Horizontal.TProgressbar",
+        [
+            (
+                "Horizontal.Progressbar.trough",
+                {
+                    "children": [
+                        (
+                            "Horizontal.Progressbar.pbar",
+                            {"side": "left", "sticky": "ns"},
+                        )
+                    ],
+                    "sticky": "nswe",
+                },
+            ),
+            ("Horizontal.Progressbar.label", {"sticky": "nswe"}),
+        ],
+    )
+    # set initial text
+    custom_style.configure(
+        "text.Horizontal.TProgressbar",
+        text="",
+        anchor="center",
+        background=custom_button_colors["foreground"],
+    )
+    custom_style.master.option_add(
+        "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
+    )
+    custom_style.master.option_add(
+        "*TCombobox*Listbox.background", custom_listbox_color["background"]
+    )
+    custom_style.master.option_add(
+        "*TCombobox*Listbox.selectBackground", custom_listbox_color["background"]
+    )
+    custom_style.master.option_add(
+        "*TCombobox*Listbox.selectForeground", custom_listbox_color["selectforeground"]
+    )
 
-
-# ------------------------------------------ Custom Tkinter Theme
+    # ------------------------------------------ Custom Tkinter Theme
 
 
 # Logger class, handles all traceback/stdout errors for program, writes to file and to window -------------------------
@@ -9394,7 +9473,15 @@ help_menu.add_command(
 )
 help_menu.add_separator()
 help_menu.add_command(
-    label="Info", command=lambda: openaboutwindow(main_root_title)
+    label="Info",
+    command=lambda: openaboutwindow(
+        main_root_title,
+        custom_window_bg_color,
+        custom_label_frame_colors["background"],
+        custom_label_frame_colors["foreground"],
+        custom_text_color["foreground"],
+        custom_text_color["background"],
+    ),
 )  # Opens about window
 
 
