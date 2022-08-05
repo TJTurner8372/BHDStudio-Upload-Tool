@@ -224,7 +224,11 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 
     custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
 
-    custom_frame_bg_colors = {"background": "#363636", "highlightcolor": "white"}
+    custom_frame_bg_colors = {
+        "background": "#363636",
+        "highlightcolor": "white",
+        "specialbg": "#434547",
+    }
 
     custom_label_colors = {"foreground": "white", "background": "#363636"}
 
@@ -3196,7 +3200,7 @@ tabs.grid_columnconfigure(0, weight=1)
 tabs.grid_rowconfigure(0, weight=1)
 
 # image input tab
-image_tab = Frame(tabs, bg=custom_frame_bg_colors["background"])
+image_tab = Frame(tabs, bg=custom_frame_bg_colors["specialbg"])
 tabs.add(image_tab, text=" Images ")
 image_tab.grid_rowconfigure(0, weight=1)
 image_tab.grid_columnconfigure(0, weight=100)
@@ -3234,7 +3238,7 @@ image_bottom_scrollbar.config(command=image_listbox.xview)
 image_bottom_scrollbar.grid(row=1, column=0, sticky=E + W + N)
 
 # image button frame
-image_btn_frame = Frame(image_tab, bg=custom_frame_bg_colors["background"], bd=0)
+image_btn_frame = Frame(image_tab, bg=custom_frame_bg_colors["specialbg"], bd=0)
 image_btn_frame.grid(column=3, row=0, padx=5, pady=(5, 3), sticky=E + W + N + S)
 image_btn_frame.grid_rowconfigure(0, weight=1)
 image_btn_frame.grid_rowconfigure(1, weight=1)
@@ -5503,7 +5507,7 @@ upload_ss_button = HoverButton(
 upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
 
 # screen shot url tab
-url_tab = Frame(tabs, bg=custom_frame_bg_colors["background"])
+url_tab = Frame(tabs, bg=custom_frame_bg_colors["specialbg"])
 tabs.add(url_tab, text=" URLs ")
 url_tab.grid_rowconfigure(0, weight=1)
 url_tab.grid_columnconfigure(0, weight=20)
@@ -5536,7 +5540,7 @@ reset_screenshot_box = HoverButton(
     activebackground=custom_button_colors["activebackground"],
 )
 reset_screenshot_box.grid(
-    row=0, column=3, columnspan=1, padx=5, pady=5, sticky=N + E + W
+    row=0, column=3, columnspan=1, padx=5, pady=18, sticky=N + E + W
 )
 
 
