@@ -250,14 +250,6 @@ if config["themes"]["selected_theme"] == "bhd_theme":
         "readonlybackground": "#23272A",
     }
 
-    cust_bg_color = "#363636"
-    cust_fg_color = "#3498db"
-    cust_entry_bg = "#565656"
-    cust_general_fg = "white"
-    cust_button_bg = "#23272A"
-    cust_disabled_bg = "#565656"
-    cust_disabled_fg = "white"
-
 # elif config['themes']['selected_theme'] == "light_theme":
 #     cust_bg_color = "#F6F6F6"
 #     cust_fg_color = "black"
@@ -424,7 +416,10 @@ custom_style.layout(
 )
 # set initial text
 custom_style.configure(
-    "text.Horizontal.TProgressbar", text="", anchor="center", background=custom_button_colors["foreground"]
+    "text.Horizontal.TProgressbar",
+    text="",
+    anchor="center",
+    background=custom_button_colors["foreground"],
 )
 custom_style.master.option_add(
     "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
@@ -1243,8 +1238,8 @@ def search_movie_global_function(*args):
         image=imdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg=cust_bg_color,
-        activebackground=cust_bg_color,
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
         command=open_imdb_link,
     )
     imdb_button2.grid(
@@ -1270,8 +1265,8 @@ def search_movie_global_function(*args):
         image=tmdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg=cust_bg_color,
-        activebackground=cust_bg_color,
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
         command=open_tmdb_link,
     )
     tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=W)
@@ -2436,8 +2431,8 @@ source_frame.grid_columnconfigure(2, weight=0)
 CustomTooltipLabel(
     anchor_widget=source_frame,
     hover_delay=400,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_window_bg_color,
+    foreground=custom_button_colors["foreground"],
     font=(set_fixed_font, 9, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
@@ -3022,11 +3017,11 @@ forced_subtitles_burned = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_forced_var,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
-    activebackground=cust_bg_color,
-    activeforeground=cust_general_fg,
-    selectcolor="#434547",
+    background=custom_window_bg_color,
+    foreground=custom_button_colors["foreground"],
+    activebackground=custom_window_bg_color,
+    activeforeground=custom_button_colors["foreground"],
+    selectcolor=custom_frame_bg_colors["specialbg"],
     font=(set_font, set_font_size + 1),
     state=DISABLED,
 )
@@ -3060,11 +3055,11 @@ balance_borders = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_balanced_borders,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
-    activebackground=cust_bg_color,
-    activeforeground=cust_general_fg,
-    selectcolor="#434547",
+    background=custom_window_bg_color,
+    foreground=custom_button_colors["foreground"],
+    activebackground=custom_window_bg_color,
+    activeforeground=custom_button_colors["foreground"],
+    selectcolor=custom_frame_bg_colors["specialbg"],
     font=(set_font, set_font_size + 1),
     state=DISABLED,
 )
@@ -3098,11 +3093,11 @@ fill_borders = Checkbutton(
     onvalue="on",
     offvalue="off",
     command=update_fill_borders,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
-    activebackground=cust_bg_color,
-    activeforeground=cust_general_fg,
-    selectcolor="#434547",
+    background=custom_window_bg_color,
+    foreground=custom_button_colors["foreground"],
+    activebackground=custom_window_bg_color,
+    activeforeground=custom_button_colors["foreground"],
+    selectcolor=custom_frame_bg_colors["specialbg"],
     font=(set_font, set_font_size + 1),
     state=DISABLED,
 )
@@ -3127,8 +3122,8 @@ release_notes_scrolled.grid(
 CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
     hover_delay=400,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_window_bg_color,
+    foreground=custom_button_colors["foreground"],
     font=(set_fixed_font, 9, "bold"),
     text="Right click for more options",
 )
@@ -3786,7 +3781,6 @@ def automatic_screenshot_generator():
         fg=custom_listbox_color["foreground"],
         selectbackground=custom_listbox_color["selectbackground"],
         selectforeground=custom_listbox_color["selectforeground"],
-        foreground=cust_general_fg,
         highlightthickness=0,
         width=40,
         yscrollcommand=image_v_right_scrollbar.set,
@@ -6533,8 +6527,8 @@ def open_nfo_viewer():
         nfo_pad,
         text="Ready",
         anchor=E,
-        bg=cust_entry_bg,
-        fg=cust_general_fg,
+        bg=custom_entry_colors["disabledbackground"],
+        fg=custom_entry_colors["foreground"],
         relief=SUNKEN,
     )
     status_bar.grid(column=0, columnspan=2, row=2, pady=1, padx=1, sticky=E + W)
@@ -7705,7 +7699,10 @@ def open_uploader_window(job_mode):
         column=0, row=2, columnspan=8, padx=5, pady=(5, 3), sticky=E + W
     )
     imdb_tmdb_frame.configure(
-        fg=cust_fg_color, bg=cust_bg_color, bd=3, font=(set_font, 10, "bold")
+        fg=custom_label_frame_colors["foreground"],
+        bg=custom_label_frame_colors["background"],
+        bd=3,
+        font=(set_font, 10, "bold"),
     )
     imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
@@ -7817,8 +7814,8 @@ def open_uploader_window(job_mode):
         image=imdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg=cust_bg_color,
-        activebackground=cust_bg_color,
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
         command=open_imdb_link,
     )
     imdb_button.grid(row=1, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
@@ -7860,8 +7857,8 @@ def open_uploader_window(job_mode):
         image=tmdb_img,
         borderwidth=0,
         cursor="hand2",
-        bg=cust_bg_color,
-        activebackground=cust_bg_color,
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
         command=open_tmdb_link,
     )
     tmdb_button.grid(row=2, column=7, columnspan=1, padx=5, pady=(5, 0), sticky=W)
@@ -8095,11 +8092,11 @@ def open_uploader_window(job_mode):
     )
     live_checkbox.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=E + W)
     live_checkbox.configure(
-        background=cust_bg_color,
-        foreground=cust_general_fg,
-        activebackground=cust_bg_color,
-        activeforeground=cust_general_fg,
-        selectcolor=cust_bg_color,
+        background=custom_window_bg_color,
+        foreground=custom_button_colors["foreground"],
+        activebackground=custom_window_bg_color,
+        activeforeground=custom_button_colors["foreground"],
+        selectcolor=custom_window_bg_color,
         font=(set_font, set_font_size + 1),
     )
     live_boolean.set(0)
@@ -8124,11 +8121,11 @@ def open_uploader_window(job_mode):
     )
     anonymous_checkbox.grid(row=0, column=1, padx=5, pady=(5, 3), sticky=W)
     anonymous_checkbox.configure(
-        background=cust_bg_color,
-        foreground=cust_general_fg,
-        activebackground=cust_bg_color,
-        activeforeground=cust_general_fg,
-        selectcolor=cust_bg_color,
+        background=custom_window_bg_color,
+        foreground=custom_button_colors["foreground"],
+        activebackground=custom_window_bg_color,
+        activeforeground=custom_button_colors["foreground"],
+        selectcolor=custom_window_bg_color,
         font=(set_font, set_font_size + 1),
     )
     anonymous_boolean.set(0)
@@ -9174,8 +9171,8 @@ def screen_shot_count_spinbox(*e_hotkey):
         CustomTooltipLabel(
             anchor_widget=ss_spinbox,
             hover_delay=200,
-            background=cust_bg_color,
-            foreground=cust_fg_color,
+            background=custom_window_bg_color,
+            foreground=custom_button_colors["foreground"],
             font=(set_fixed_font, 9, "bold"),
             text="Right click to quickly select amount",
         )
@@ -9546,15 +9543,15 @@ def check_for_latest_program_updates():
     )
     update_scrolled.tag_configure(
         "bold_color",
-        background=cust_entry_bg,
-        foreground=cust_fg_color,
+        background=custom_entry_colors["disabledbackground"],
+        foreground=custom_label_frame_colors["foreground"],
         font=12,
         justify=CENTER,
     )
     update_scrolled.tag_configure(
         "version_color",
-        background=cust_entry_bg,
-        foreground=cust_general_fg,
+        background=custom_entry_colors["disabledbackground"],
+        foreground=custom_entry_colors["foreground"],
         font=(set_fixed_font, set_font_size),
         justify=LEFT,
     )
@@ -9566,8 +9563,8 @@ def check_for_latest_program_updates():
     update_scrolled.insert(END, "Patch Notes\n", "bold_color")
     update_scrolled.tag_configure(
         "highlight_color",
-        background="#40444b",
-        foreground=cust_general_fg,
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
         font=(set_fixed_font, set_font_size),
     )
     html_to_string = BeautifulSoup(get_release_notes.group(), features="lxml")
