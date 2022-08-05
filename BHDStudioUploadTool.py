@@ -1594,22 +1594,22 @@ def source_input_function(*args):
             track_frame, audio_pop_up_var, *audio_stream_track_counter.keys()
         )
         audio_pop_up_menu.config(
-            background=cust_button_bg,
-            foreground=cust_general_fg,
             highlightthickness=1,
             width=48,
             anchor="w",
-            activebackground=cust_button_bg,
-            activeforeground=cust_fg_color,
+            activebackground=custom_button_colors["activebackground"],
+            activeforeground=custom_button_colors["activeforeground"],
+            background=custom_button_colors["background"],
+            foreground=custom_button_colors["foreground"],
         )
         audio_pop_up_menu.grid(
             row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
         )
         audio_pop_up_menu["menu"].configure(
-            background=cust_button_bg,
-            foreground=cust_general_fg,
-            activebackground=cust_button_bg,
-            activeforeground=cust_fg_color,
+            activebackground=custom_button_colors["activebackground"],
+            activeforeground=custom_button_colors["activeforeground"],
+            background=custom_button_colors["background"],
+            foreground=custom_button_colors["foreground"],
         )
 
         # create 'OK' button
@@ -2892,22 +2892,22 @@ def staxrip_working_directory(stax_dir_path):
                 stax_frame, log_pop_up_var, *reversed(dict_of_stax_logs.keys())
             )
             log_pop_up_menu.config(
-                background=cust_button_bg,
-                foreground=cust_general_fg,
                 highlightthickness=1,
                 width=48,
                 anchor="w",
-                activebackground=cust_button_bg,
-                activeforeground=cust_fg_color,
+                activebackground=custom_button_colors["activebackground"],
+                activeforeground=custom_button_colors["activeforeground"],
+                background=custom_button_colors["background"],
+                foreground=custom_button_colors["foreground"],
             )
             log_pop_up_menu.grid(
                 row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
             )
             log_pop_up_menu["menu"].configure(
-                background=cust_button_bg,
-                foreground=cust_general_fg,
-                activebackground=cust_button_bg,
-                activeforeground=cust_fg_color,
+                activebackground=custom_button_colors["activebackground"],
+                activeforeground=custom_button_colors["activeforeground"],
+                background=custom_button_colors["background"],
+                foreground=custom_button_colors["foreground"],
             )
 
             # create 'OK' button
@@ -6856,17 +6856,21 @@ def torrent_function_window():
         command=set_piece_size,
     )
     torrent_piece_menu.config(
-        background=cust_button_bg,
-        foreground=cust_general_fg,
         highlightthickness=1,
         width=7,
-        activebackground="grey",
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     torrent_piece_menu.grid(
         row=0, column=1, columnspan=1, pady=(7, 5), padx=(10, 5), sticky=W
     )
     torrent_piece_menu["menu"].configure(
-        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
 
     # piece size label
@@ -7515,17 +7519,21 @@ def open_uploader_window(job_mode):
         upload_options_frame, type_var, *type_choices.keys(), command=None
     )
     type_var_menu.config(
-        background=cust_button_bg,
-        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
-        activebackground="grey",
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     type_var_menu.grid(
         row=0, column=1, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=W
     )
     type_var_menu["menu"].configure(
-        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     if (
         encode_file_path.get().strip() != ""
@@ -7553,17 +7561,21 @@ def open_uploader_window(job_mode):
         upload_options_frame, source_var, *source_choices.keys(), command=None
     )
     source_var_menu.config(
-        background=cust_button_bg,
-        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
-        activebackground="grey",
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     source_var_menu.grid(
         row=0, column=3, columnspan=1, pady=(7, 5), padx=(2, 5), sticky=W
     )
     source_var_menu["menu"].configure(
-        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     source_var.set("Blu-Ray")  # set var to Blu-Ray
 
@@ -7596,17 +7608,21 @@ def open_uploader_window(job_mode):
         upload_options_frame, edition_var, *edition_choices.keys(), command=None
     )
     edition_var_menu.config(
-        background=cust_button_bg,
-        foreground=cust_general_fg,
         highlightthickness=1,
         width=12,
-        activebackground="grey",
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
     edition_var_menu.grid(
         row=0, column=5, columnspan=1, pady=(7, 5), padx=(0, 5), sticky=E
     )
     edition_var_menu["menu"].configure(
-        activebackground="grey", background=cust_button_bg, foreground=cust_general_fg
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
     )
 
     # function to automatically grab edition based off of file name
