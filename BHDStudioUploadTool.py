@@ -224,7 +224,7 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 
     custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
 
-    custom_frame_bg_colors = {"background": "#434547", "highlightcolor": "white"}
+    custom_frame_bg_colors = {"background": "#363636", "highlightcolor": "white"}
 
     custom_label_colors = {"foreground": "white", "background": "#363636"}
 
