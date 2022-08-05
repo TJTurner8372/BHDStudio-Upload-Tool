@@ -224,6 +224,8 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 
     custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
 
+    custom_label_colors = {"foreground": "white", "background": "#363636"}
+
     cust_bg_color = "#363636"
     cust_fg_color = "#3498db"
     cust_entry_bg = "#565656"
@@ -1066,8 +1068,8 @@ def search_movie_global_function(*args):
     source_input_lbl_ms = Label(
         movie_selection_lbl_frame,
         text=f"Source Name:",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1, "bold"),
     )
     source_input_lbl_ms.grid(
@@ -1082,8 +1084,8 @@ def search_movie_global_function(*args):
                 pathlib.Path(source_file_information["source_path"]).name
             ).with_suffix("")
         ),
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size - 1),
     )
     source_input_lbl_ms2.grid(
@@ -1240,8 +1242,8 @@ def search_movie_global_function(*args):
     release_date_label = Label(
         information_frame,
         text="Release Date:",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1, "bold"),
     )
     release_date_label.grid(row=0, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
@@ -1250,8 +1252,8 @@ def search_movie_global_function(*args):
         information_frame,
         textvariable=release_date_var,
         width=10,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size),
     )
     release_date_label2.grid(row=0, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
@@ -1260,8 +1262,8 @@ def search_movie_global_function(*args):
     rating_label = Label(
         information_frame,
         text="           Rating:",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1, "bold"),
     )
     rating_label.grid(row=1, column=4, sticky=W, padx=(5, 0), pady=(5, 2))
@@ -1270,8 +1272,8 @@ def search_movie_global_function(*args):
         information_frame,
         textvariable=rating_var,
         width=10,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size),
     )
     rating_label2.grid(row=1, column=5, sticky=W, padx=(1, 5), pady=(5, 2))
@@ -1521,8 +1523,8 @@ def source_input_function(*args):
         track_selection_label = Label(
             track_frame,
             text="Select audio source that down-mix was encoded from:",
-            background=cust_bg_color,
-            fg=cust_fg_color,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_font, set_font_size, "bold"),
         )
         track_selection_label.grid(
@@ -2209,8 +2211,8 @@ def encode_input_function(*args):
         rename_info_lbl = Label(
             rename_enc_frame,
             text=f"Source Name:",
-            background=cust_bg_color,
-            fg=cust_fg_color,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl.grid(
@@ -2222,8 +2224,8 @@ def encode_input_function(*args):
             rename_enc_frame,
             wraplength=598,
             text=str(pathlib.Path(source_file_information["source_path"]).name),
-            background=cust_bg_color,
-            fg=cust_general_fg,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_fixed_font, set_font_size),
         )
         rename_info_lbl1.grid(
@@ -2234,8 +2236,8 @@ def encode_input_function(*args):
         rename_info_lbl2 = Label(
             rename_enc_frame,
             text="Encode Name:",
-            background=cust_bg_color,
-            fg=cust_fg_color,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl2.grid(
@@ -2247,8 +2249,8 @@ def encode_input_function(*args):
             rename_enc_frame,
             wraplength=598,
             text=str(pathlib.Path(*args).name),
-            background=cust_bg_color,
-            fg=cust_general_fg,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_fixed_font, set_font_size),
         )
         rename_info_lbl2.grid(
@@ -2259,8 +2261,8 @@ def encode_input_function(*args):
         rename_info_lbl3 = Label(
             rename_enc_frame,
             text="Suggested Name:",
-            background=cust_bg_color,
-            fg=cust_fg_color,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
             font=(set_font, set_font_size, "bold"),
         )
         rename_info_lbl3.grid(row=4, column=0, sticky=W + S, padx=5, pady=(2, 0))
@@ -2386,7 +2388,7 @@ CustomTooltipLabel(
     anchor_widget=source_frame,
     hover_delay=400,
     background=cust_bg_color,
-    foreground=cust_fg_color,
+    foreground=cust_general_fg,
     font=(set_fixed_font, 9, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
@@ -2491,8 +2493,8 @@ source_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_label_colors["background"],
+    fg=custom_label_colors["foreground"],
 )
 source_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W)
 source_hdr_label = Label(
@@ -2500,8 +2502,8 @@ source_hdr_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_label_colors["background"],
+    fg=custom_label_colors["foreground"],
 )
 source_hdr_label.grid(column=0, row=1, columnspan=4, pady=3, padx=3, sticky=W)
 
@@ -2625,8 +2627,8 @@ encode_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_label_colors["background"],
+    fg=custom_label_colors["foreground"],
 )
 encode_label.grid(column=0, row=0, columnspan=1, pady=3, padx=3, sticky=W)
 encode_hdr_label = Label(
@@ -2634,8 +2636,8 @@ encode_hdr_label = Label(
     text=" " * 100,
     bd=0,
     relief=SUNKEN,
-    background=cust_bg_color,
-    foreground=cust_general_fg,
+    background=custom_label_colors["background"],
+    fg=custom_label_colors["foreground"],
 )
 encode_hdr_label.grid(column=0, row=1, columnspan=1, pady=3, padx=3, sticky=W)
 
@@ -2828,8 +2830,8 @@ def staxrip_working_directory(stax_dir_path):
             stax_info_label = Label(
                 stax_frame,
                 text="Select logfile to parse information from:",
-                background=cust_bg_color,
-                fg=cust_fg_color,
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
                 font=(set_font, set_font_size, "bold"),
             )
             stax_info_label.grid(
@@ -3074,7 +3076,7 @@ CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
     hover_delay=400,
     background=cust_bg_color,
-    foreground=cust_fg_color,
+    foreground=cust_general_fg,
     font=(set_fixed_font, 9, "bold"),
     text="Right click for more options",
 )
@@ -3459,8 +3461,8 @@ def automatic_screenshot_generator():
     # create name label
     image_name_label = Label(
         image_info_frame,
-        background="#434547",
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1),
     )
     image_name_label.grid(row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0))
@@ -3468,8 +3470,8 @@ def automatic_screenshot_generator():
     # create image resolution label
     image_resolution_label = Label(
         image_info_frame,
-        background="#434547",
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1),
     )
     image_resolution_label.grid(
@@ -3479,8 +3481,8 @@ def automatic_screenshot_generator():
     # create image number label
     image_number_label = Label(
         image_info_frame,
-        background="#434547",
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1),
     )
     image_number_label.grid(
@@ -3537,7 +3539,10 @@ def automatic_screenshot_generator():
 
     # put resized image into label
     image_preview_label = Label(
-        image_preview_frame, image=resized_image, background="#434547", cursor="hand2"
+        image_preview_frame,
+        image=resized_image,
+        background=custom_label_colors["background"],
+        cursor="hand2",
     )
     image_preview_label.image = resized_image
     image_preview_label.grid(column=0, row=0, columnspan=1)
@@ -3701,8 +3706,8 @@ def automatic_screenshot_generator():
     image_name_label2 = Label(
         set_info_frame,
         text="0 sets (0 images)",
-        background="#434547",
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1),
     )
     image_name_label2.grid(row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0))
@@ -3711,8 +3716,8 @@ def automatic_screenshot_generator():
     image_name1_label = Label(
         set_info_frame,
         text="6 sets (12 images) required",
-        background="#434547",
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size - 1, "italic"),
     )
     image_name1_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0))
@@ -3793,7 +3798,7 @@ def automatic_screenshot_generator():
     # put resized image into label
     mini_image_preview_label = Label(
         mini_preview_frame,
-        background="#434547",
+        background=custom_label_colors["background"],
         cursor="hand2",
         image=zero_img,
         width=348,
@@ -4161,8 +4166,8 @@ def choose_indexer_func():
     index_label = Label(
         index_sel_frame,
         text="Select index method",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     index_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
@@ -4195,8 +4200,8 @@ def choose_indexer_func():
         font=(set_fixed_font, set_font_size - 1),
         text="FFMS supports virtually all formats, however it's not 100% frame accurate. You may "
         "notice a miss-match frame between the source and encode in some occasions.",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         wraplength=320,
         justify=CENTER,
     )
@@ -4233,8 +4238,8 @@ def choose_indexer_func():
         "support for some video codecs and containers. If you notice black/grey "
         "images being generated with a specific source use FFMS. "
         "If your source is MKV/AVC this is the best option.",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         wraplength=320,
         justify=CENTER,
     )
@@ -4389,8 +4394,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Left:",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
     )
     left_label.grid(row=0, column=0, sticky=W + S, padx=5, pady=(7, 10))
 
@@ -4411,8 +4416,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Right:",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
     )
     right_label.grid(row=0, column=2, sticky=E + S, padx=5, pady=(7, 10))
 
@@ -4433,8 +4438,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Top:",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
     )
     top_label.grid(row=1, column=0, sticky=W + N, padx=5, pady=(16, 0))
 
@@ -4455,8 +4460,8 @@ def check_crop_values():
         check_crop_frame,
         font=(set_fixed_font, set_font_size - 1),
         text="Bottom:",
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
     )
     bottom_label.grid(row=1, column=2, sticky=E + N, padx=5, pady=(16, 0))
 
@@ -6220,8 +6225,8 @@ def open_nfo_viewer():
         sample_label = Label(
             font_chooser_win,
             text="Aa",
-            background=cust_bg_color,
-            foreground=cust_general_fg,
+            background=custom_label_colors["background"],
+            fg=custom_label_colors["foreground"],
         )
         sample_label.grid(column=1, row=2, pady=5, padx=5, sticky=E + W + N + S)
 
@@ -6758,8 +6763,8 @@ def torrent_function_window():
         text="Piece Size:",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     piece_size_info_label.grid(
@@ -6810,8 +6815,8 @@ def torrent_function_window():
         text="Total Pieces:",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     piece_size_label.grid(
@@ -6824,8 +6829,8 @@ def torrent_function_window():
         text="",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_general_fg,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size),
     )
     piece_size_label2.grid(
@@ -6862,8 +6867,8 @@ def torrent_function_window():
         text="Tracker URL:",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size),
     )
     torrent_tracker_label.grid(
@@ -6902,8 +6907,8 @@ def torrent_function_window():
         text="Source:",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size),
     )
     torrent_source_label.grid(
@@ -7437,8 +7442,8 @@ def open_uploader_window(job_mode):
         text="Type",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     type_label.grid(column=0, row=0, columnspan=1, pady=(5, 0), padx=(5, 10), sticky=E)
@@ -7474,8 +7479,8 @@ def open_uploader_window(job_mode):
         text="Source",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     upload_source_label.grid(
@@ -7508,8 +7513,8 @@ def open_uploader_window(job_mode):
         text="Edition\n(Optional)",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     edition_label.grid(column=4, row=0, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -7580,8 +7585,8 @@ def open_uploader_window(job_mode):
         text="Edition\n(Custom)",
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
@@ -7704,8 +7709,8 @@ def open_uploader_window(job_mode):
     imdb_label = Label(
         imdb_tmdb_frame,
         text="IMDB ID\n(Required)",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     imdb_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=W)
@@ -7747,8 +7752,8 @@ def open_uploader_window(job_mode):
     tmdb_label = Label(
         imdb_tmdb_frame,
         text="TMDB ID\n(Required)",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 1),
     )
     tmdb_label.grid(column=0, row=2, columnspan=1, pady=(5, 0), padx=5, sticky=W)
@@ -8514,8 +8519,8 @@ def custom_input_prompt(
     image_name_label3 = Label(
         custom_input_frame,
         text=label_input,
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     image_name_label3.grid(
@@ -8639,8 +8644,8 @@ def torrent_path_window_function(*t_args):
     torrent_label = Label(
         torrent_path_frame,
         text="Torrent Output Path",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     torrent_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 8))
@@ -8838,8 +8843,8 @@ def bhd_co_login_window():
     user_label = Label(
         bhd_login_frame,
         text="Username",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     user_label.grid(row=0, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
@@ -8859,8 +8864,8 @@ def bhd_co_login_window():
     pass_label = Label(
         bhd_login_frame,
         text="Password",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     pass_label.grid(row=2, column=0, columnspan=5, sticky=W + N, padx=5, pady=(2, 0))
@@ -9103,8 +9108,8 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_count_lbl = Label(
         ss_count_frame,
         text="Select desired amount of comparisons",
-        background=cust_bg_color,
-        fg=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
     ss_count_lbl.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0))
@@ -9446,8 +9451,8 @@ def check_for_latest_program_updates():
         text=parsed_version,
         bd=0,
         relief=SUNKEN,
-        background=cust_bg_color,
-        foreground=cust_fg_color,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size + 4, "bold"),
     )
     update_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W + E)
