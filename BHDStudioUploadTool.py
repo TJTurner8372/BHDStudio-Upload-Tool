@@ -224,6 +224,8 @@ if config["themes"]["selected_theme"] == "bhd_theme":
 
     custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
 
+    custom_frame_bg_colors = {"background": "#434547", "highlightcolor": "white"}
+
     custom_label_colors = {"foreground": "white", "background": "#363636"}
 
     custom_window_bg_color = "#363636"
@@ -792,7 +794,10 @@ def search_movie_global_function(*args):
         movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
     # Row/Grid configures
 
-    movie_listbox_frame = Frame(movie_info_window)  # Set dynamic listbox frame
+    # Set dynamic listbox frame
+    movie_listbox_frame = Frame(
+        movie_info_window, bg=custom_frame_bg_colors["background"]
+    )
     movie_listbox_frame.grid(
         column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W
     )
@@ -1195,7 +1200,9 @@ def search_movie_global_function(*args):
     enable_disable_internal_search_btn()
 
     # information frame
-    information_frame = Frame(movie_info_window, bd=0, bg=cust_bg_color)
+    information_frame = Frame(
+        movie_info_window, bd=0, bg=custom_frame_bg_colors["background"]
+    )
     information_frame.grid(
         column=0, row=3, columnspan=7, padx=5, pady=(5, 3), sticky=E + W
     )
@@ -1530,10 +1537,10 @@ def source_input_function(*args):
 
         track_frame = Frame(
             audio_track_win,
-            highlightbackground=cust_general_fg,
+            highlightbackground=custom_frame_bg_colors["highlightcolor"],
             highlightthickness=2,
-            bg=cust_bg_color,
-            highlightcolor=cust_general_fg,
+            bg=custom_frame_bg_colors["background"],
+            highlightcolor=custom_frame_bg_colors["highlightcolor"],
         )
         track_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for e_n_f in range(3):
@@ -2217,10 +2224,10 @@ def encode_input_function(*args):
         # rename encode frame
         rename_enc_frame = Frame(
             rename_encode_window,
-            highlightbackground=cust_general_fg,
+            highlightbackground=custom_frame_bg_colors["highlightcolor"],
             highlightthickness=2,
-            bg=cust_bg_color,
-            highlightcolor=cust_general_fg,
+            bg=custom_frame_bg_colors["background"],
+            highlightcolor=custom_frame_bg_colors["highlightcolor"],
         )
         rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for col_e_f in range(3):
@@ -2835,10 +2842,10 @@ def staxrip_working_directory(stax_dir_path):
 
             stax_frame = Frame(
                 stax_log_win,
-                highlightbackground=cust_general_fg,
+                highlightbackground=custom_frame_bg_colors["highlightcolor"],
                 highlightthickness=2,
-                bg=cust_bg_color,
-                highlightcolor=cust_general_fg,
+                bg=custom_frame_bg_colors["background"],
+                highlightcolor=custom_frame_bg_colors["highlightcolor"],
             )
             stax_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
             for e_n_f in range(3):
@@ -3182,14 +3189,14 @@ tabs.grid_columnconfigure(0, weight=1)
 tabs.grid_rowconfigure(0, weight=1)
 
 # image input tab
-image_tab = Frame(tabs, background="#434547")
+image_tab = Frame(tabs, bg=custom_frame_bg_colors["background"])
 tabs.add(image_tab, text=" Images ")
 image_tab.grid_rowconfigure(0, weight=1)
 image_tab.grid_columnconfigure(0, weight=100)
 image_tab.grid_columnconfigure(3, weight=1)
 
 # image frame
-image_frame = Frame(image_tab, bg=cust_bg_color, bd=0)
+image_frame = Frame(image_tab, bg=custom_frame_bg_colors["background"], bd=0)
 image_frame.grid(column=0, columnspan=3, row=0, pady=4, padx=4, sticky=W + E + N + S)
 image_frame.grid_columnconfigure(0, weight=1)
 image_frame.grid_rowconfigure(0, weight=1)
@@ -3220,7 +3227,7 @@ image_bottom_scrollbar.config(command=image_listbox.xview)
 image_bottom_scrollbar.grid(row=1, column=0, sticky=E + W + N)
 
 # image button frame
-image_btn_frame = Frame(image_tab, bg="#434547", bd=0)
+image_btn_frame = Frame(image_tab, bg=custom_frame_bg_colors["background"], bd=0)
 image_btn_frame.grid(column=3, row=0, padx=5, pady=(5, 3), sticky=E + W + N + S)
 image_btn_frame.grid_rowconfigure(0, weight=1)
 image_btn_frame.grid_rowconfigure(1, weight=1)
@@ -3578,7 +3585,7 @@ def automatic_screenshot_generator():
     )
 
     # create image button frame
-    img_button_frame = Frame(image_viewer, bg="#434547")
+    img_button_frame = Frame(image_viewer, bg=custom_frame_bg_colors["background"])
     img_button_frame.grid(
         column=0, row=2, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
     )
@@ -3711,7 +3718,9 @@ def automatic_screenshot_generator():
     set_info_frame.grid_rowconfigure(0, weight=1)
 
     # image viewer frame
-    img_viewer_frame = Frame(image_viewer, bg="#434547", bd=0)
+    img_viewer_frame = Frame(
+        image_viewer, bg=custom_frame_bg_colors["background"], bd=0
+    )
     img_viewer_frame.grid(
         column=4,
         columnspan=1,
@@ -3832,7 +3841,7 @@ def automatic_screenshot_generator():
     mini_image_preview_label.grid(column=0, row=0, sticky=N + S + E + W)
 
     # image button frame for selected list box
-    img_button2_frame = Frame(image_viewer, bg="#434547")
+    img_button2_frame = Frame(image_viewer, bg=custom_frame_bg_colors["background"])
     img_button2_frame.grid(
         column=4, row=2, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
     )
@@ -4173,10 +4182,10 @@ def choose_indexer_func():
     # index select frame
     index_sel_frame = Frame(
         index_selection_win,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     index_sel_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
 
@@ -4502,7 +4511,7 @@ def check_crop_values():
     bottom_entry_box.grid(row=1, column=3, padx=5, pady=(7, 0), sticky=E + N)
 
     # create button frame
-    crop_btn_frame = Frame(check_crop_frame, bg=cust_bg_color)
+    crop_btn_frame = Frame(check_crop_frame, bg=custom_frame_bg_colors["background"])
     crop_btn_frame.grid(column=0, row=2, columnspan=4, sticky=N + S + E + W)
     for c_b_f in range(3):
         crop_btn_frame.grid_columnconfigure(c_b_f, weight=1)
@@ -4627,10 +4636,10 @@ def auto_screen_shot_status_window():
     # screenshot output frame
     ss_output_frame = Frame(
         screenshot_status_window,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     ss_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -5323,10 +5332,10 @@ def upload_to_beyond_hd_co_window():
     # encoder name frame
     upload_ss_frame = Frame(
         upload_ss_status,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     upload_ss_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -5487,7 +5496,7 @@ upload_ss_button = HoverButton(
 upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
 
 # screen shot url tab
-url_tab = Frame(tabs, background="#434547")
+url_tab = Frame(tabs, bg=custom_frame_bg_colors["background"])
 tabs.add(url_tab, text=" URLs ")
 url_tab.grid_rowconfigure(0, weight=1)
 url_tab.grid_columnconfigure(0, weight=20)
@@ -6274,7 +6283,9 @@ def open_nfo_viewer():
         sample_label_loop()
 
         # font chooser button frame
-        font_button_frame = Frame(font_chooser_win, bg=cust_bg_color, bd=0)
+        font_button_frame = Frame(
+            font_chooser_win, bg=custom_frame_bg_colors["background"], bd=0
+        )
         font_button_frame.grid(
             column=0, row=3, columnspan=2, padx=5, pady=(5, 3), sticky=E + W
         )
@@ -6383,7 +6394,7 @@ def open_nfo_viewer():
         font_apply_button.grid(row=0, column=2, columnspan=1, padx=3, pady=5, sticky=E)
 
     # create main frame
-    nfo_frame = Frame(nfo_pad)
+    nfo_frame = Frame(nfo_pad, bg=custom_frame_bg_colors["background"])
     nfo_frame.grid(
         column=0, columnspan=2, row=0, pady=(5, 0), padx=5, sticky=N + S + E + W
     )
@@ -6530,7 +6541,7 @@ def open_nfo_viewer():
 
     # if program is in automatic workflow mode
     if automatic_workflow_boolean.get():
-        workflow_frame = Frame(nfo_pad, bg=cust_bg_color)
+        workflow_frame = Frame(nfo_pad, bg=custom_frame_bg_colors["background"])
         workflow_frame.grid(
             row=1, column=0, columnspan=2, padx=0, pady=0, sticky=N + S + E + W
         )
@@ -8109,10 +8120,10 @@ def open_uploader_window(job_mode):
         # encoder name frame
         upload_output_frame = Frame(
             upload_status_window,
-            highlightbackground=cust_general_fg,
+            highlightbackground=custom_frame_bg_colors["highlightcolor"],
             highlightthickness=2,
-            bg=cust_bg_color,
-            highlightcolor=cust_general_fg,
+            bg=custom_frame_bg_colors["background"],
+            highlightcolor=custom_frame_bg_colors["highlightcolor"],
         )
         upload_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
         for e_n_f in range(3):
@@ -8532,10 +8543,10 @@ def custom_input_prompt(
     # encoder name frame
     custom_input_frame = Frame(
         custom_input_window,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     custom_input_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -8653,10 +8664,10 @@ def torrent_path_window_function(*t_args):
     # encoder name frame
     torrent_path_frame = Frame(
         torrent_path_window,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     torrent_path_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
 
@@ -8856,10 +8867,10 @@ def bhd_co_login_window():
     # encoder name frame
     bhd_login_frame = Frame(
         bhd_login_win,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     bhd_login_frame.grid(column=0, row=0, columnspan=5, sticky=N + S + E + W)
     for e_n_f in range(5):
@@ -9081,10 +9092,10 @@ def screen_shot_count_spinbox(*e_hotkey):
     # screenshot count frame
     ss_count_frame = Frame(
         ss_count_win,
-        highlightbackground=cust_general_fg,
+        highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
-        bg=cust_bg_color,
-        highlightcolor=cust_general_fg,
+        bg=custom_frame_bg_colors["background"],
+        highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     ss_count_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
     for e_n_f in range(3):
@@ -9526,7 +9537,7 @@ def check_for_latest_program_updates():
     update_scrolled.config(state=DISABLED)
 
     # update button frame
-    update_frame = Frame(update_window, bg=cust_bg_color, bd=0)
+    update_frame = Frame(update_window, bd=0, bg=custom_frame_bg_colors["background"])
     update_frame.grid(column=0, row=2, columnspan=4, padx=5, pady=(5, 3), sticky=E + W)
     update_frame.grid_rowconfigure(0, weight=1)
     update_frame.grid_columnconfigure(0, weight=1)
