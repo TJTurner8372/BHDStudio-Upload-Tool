@@ -239,6 +239,13 @@ if config["themes"]["selected_theme"] == "bhd_theme":
         "selectforeground": "#3498db",
     }
 
+    custom_spinbox_color = {
+        "foreground": "white",
+        "background": "#23272A",
+        "buttonbackground": "black",
+        "readonlybackground": "#23272A",
+    }
+
     cust_bg_color = "#363636"
     cust_fg_color = "#3498db"
     cust_entry_bg = "#565656"
@@ -9164,11 +9171,11 @@ def screen_shot_count_spinbox(*e_hotkey):
         wrap=True,
         textvariable=ss_count,
         state="readonly",
-        background=cust_button_bg,
-        foreground=cust_general_fg,
+        background=custom_spinbox_color["background"],
+        foreground=custom_spinbox_color["foreground"],
         highlightthickness=1,
-        buttonbackground="black",
-        readonlybackground=cust_button_bg,
+        buttonbackground=custom_spinbox_color["buttonbackground"],
+        readonlybackground=custom_spinbox_color["readonlybackground"],
     )
     ss_spinbox.grid(
         row=1, column=0, columnspan=3, padx=10, pady=3, sticky=N + S + E + W
