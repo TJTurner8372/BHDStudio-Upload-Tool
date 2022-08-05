@@ -2454,10 +2454,10 @@ def source_input_popup_menu(*args):  # Menu for input button
         root,
         tearoff=False,
         font=(set_font, set_font_size + 1),
-        background=cust_button_bg,
-        foreground=cust_general_fg,
-        activebackground=cust_button_bg,
-        activeforeground=cust_fg_color,
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
     )  # menu
     source_input_menu.add_command(label="Open Script", command=manual_source_input)
     source_input_menu.add_separator()
@@ -3123,10 +3123,10 @@ enable_edits_menu = Menu(
     release_notes_scrolled,
     tearoff=False,
     font=(set_font, set_font_size + 1),
-    background=cust_button_bg,
-    foreground=cust_general_fg,
-    activebackground=cust_button_bg,
-    activeforeground=cust_fg_color,
+    background=custom_button_colors["background"],
+    foreground=custom_button_colors["foreground"],
+    activebackground=custom_button_colors["activebackground"],
+    activeforeground=custom_button_colors["activeforeground"],
 )  # Right click menu
 enable_edits_menu.add_command(
     label="Enable Manual Edits",
@@ -3372,10 +3372,10 @@ def input_popup_menu(*args):  # Menu for input button
         image_btn_frame,
         tearoff=False,
         font=(set_font, set_font_size + 1),
-        background=cust_button_bg,
-        foreground=cust_general_fg,
-        activebackground=cust_button_bg,
-        activeforeground=cust_fg_color,
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
     )  # Menu
     input_menu.add_command(label="Open Files", command=open_ss_files)
     input_menu.add_separator()
@@ -5544,9 +5544,10 @@ screen_shot_right_click_menu = Menu(
     release_notes_scrolled,
     tearoff=False,
     font=(set_font, set_font_size + 1),
-    background=cust_button_bg,
-    foreground=cust_general_fg,
-    activebackground="grey",
+    background=custom_button_colors["background"],
+    foreground=custom_button_colors["foreground"],
+    activebackground=custom_button_colors["activebackground"],
+    activeforeground=custom_button_colors["activeforeground"],
 )  # Right click menu
 
 
@@ -9115,10 +9116,10 @@ def screen_shot_count_spinbox(*e_hotkey):
             ss_spinbox,
             tearoff=False,
             font=(set_font, set_font_size + 1),
-            background=cust_button_bg,
-            foreground=cust_general_fg,
-            activebackground=cust_button_bg,
-            activeforeground=cust_fg_color,
+            background=custom_button_colors["background"],
+            foreground=custom_button_colors["foreground"],
+            activebackground=custom_button_colors["activebackground"],
+            activeforeground=custom_button_colors["activeforeground"],
         )
         spinbox_sel_menu.add_command(label="20", command=lambda: ss_count.set("20"))
         spinbox_sel_menu.add_command(label="30", command=lambda: ss_count.set("30"))
