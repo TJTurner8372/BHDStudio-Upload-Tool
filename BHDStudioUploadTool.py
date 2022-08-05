@@ -424,7 +424,7 @@ custom_style.layout(
 )
 # set initial text
 custom_style.configure(
-    "text.Horizontal.TProgressbar", text="", anchor="center", background=cust_fg_color
+    "text.Horizontal.TProgressbar", text="", anchor="center", background=custom_button_colors["foreground"]
 )
 custom_style.master.option_add(
     "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
