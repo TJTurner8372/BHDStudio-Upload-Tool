@@ -206,66 +206,53 @@ if not config.has_option("themes", "selected_theme"):
 with open(config_file, "w") as configfile:
     config.write(configfile)
 
-# define bhd_theme colors
+# define theme colors based on user selection
 if (
     config["themes"]["selected_theme"] == "bhd_theme"
     or config["themes"]["selected_theme"] == ""
 ):
-    custom_button_colors = {
-        "foreground": "white",
-        "background": "#23272A",
-        "activeforeground": "#3498db",
-        "activebackground": "#23272A",
-    }
+    from Packages.themes.bhd_theme import *
 
-    custom_entry_colors = {
-        "foreground": "white",
-        "background": "#565656",
-        "disabledforeground": "white",
-        "disabledbackground": "#565656",
-    }
+elif config["themes"]["selected_theme"] == "dark_green_theme":
+    from Packages.themes.dark_green_theme import *
 
-    custom_label_frame_colors = {"foreground": "#3498db", "background": "#363636"}
+elif config["themes"]["selected_theme"] == "dark_red_theme":
+    from Packages.themes.dark_red_theme import *
 
-    custom_frame_bg_colors = {
-        "background": "#363636",
-        "highlightcolor": "white",
-        "specialbg": "#434547",
-    }
+elif config["themes"]["selected_theme"] == "dark_yellow_theme":
+    from Packages.themes.dark_yellow_theme import *
 
-    custom_label_colors = {"foreground": "white", "background": "#363636"}
+elif config["themes"]["selected_theme"] == "dark_orange_theme":
+    from Packages.themes.dark_orange_theme import *
 
-    custom_window_bg_color = "#363636"
+elif config["themes"]["selected_theme"] == "dark_cyan_theme":
+    from Packages.themes.dark_cyan_theme import *
 
-    custom_scrolled_text_widget_color = {"foreground": "white", "background": "#565656"}
+elif config["themes"]["selected_theme"] == "dark_purple_theme":
+    from Packages.themes.dark_purple_theme import *
 
-    custom_listbox_color = {
-        "foreground": "white",
-        "background": "#565656",
-        "selectbackground": "#565656",
-        "selectforeground": "#3498db",
-    }
+elif config["themes"]["selected_theme"] == "mid_dark_green_theme":
+    from Packages.themes.mid_dark_green_theme import *
 
-    custom_spinbox_color = {
-        "foreground": "white",
-        "background": "#23272A",
-        "buttonbackground": "black",
-        "readonlybackground": "#23272A",
-    }
+elif config["themes"]["selected_theme"] == "mid_dark_red_theme":
+    from Packages.themes.mid_dark_red_theme import *
 
-    custom_text_color = {"background": "#434547", "foreground": "white"}
-# elif config['themes']['selected_theme'] == "light_theme":
-#     cust_bg_color = "#F6F6F6"
-#     cust_fg_color = "black"
-#     cust_entry_bg = "light grey"
-#     cust_general_fg = "black"
-#     cust_button_bg = "white"
-#     cust_disabled_bg = "light grey"
-#     cust_disabled_fg = "grey"
+elif config["themes"]["selected_theme"] == "mid_dark_yellow_theme":
+    from Packages.themes.mid_dark_yellow_theme import *
+
+elif config["themes"]["selected_theme"] == "mid_dark_orange_theme":
+    from Packages.themes.mid_dark_orange_theme import *
+
+elif config["themes"]["selected_theme"] == "mid_dark_cyan_theme":
+    from Packages.themes.mid_dark_cyan_theme import *
+
+elif config["themes"]["selected_theme"] == "mid_dark_purple_theme":
+    from Packages.themes.mid_dark_purple_theme import *
 
 
 def root_exit_function():
     """root exit function"""
+
     def save_config_information_root():
         # root exit parser
         root_exit_parser = ConfigParser()
@@ -310,9 +297,7 @@ def root_exit_function():
         root.destroy()  # root destroy
 
 
-# def get_default_theme():
-
-
+# define root
 root = TkinterDnD.Tk()
 
 # define temp widgets to get default system colors
@@ -2511,7 +2496,7 @@ CustomTooltipLabel(
     anchor_widget=source_frame,
     hover_delay=400,
     background=custom_window_bg_color,
-    foreground=custom_button_colors["foreground"],
+    foreground=custom_button_colors["activeforeground"],
     font=(set_fixed_font, 9, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
@@ -3202,7 +3187,7 @@ CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
     hover_delay=400,
     background=custom_window_bg_color,
-    foreground=custom_button_colors["foreground"],
+    foreground=custom_button_colors["activeforeground"],
     font=(set_fixed_font, 9, "bold"),
     text="Right click for more options",
 )
@@ -9251,7 +9236,7 @@ def screen_shot_count_spinbox(*e_hotkey):
             anchor_widget=ss_spinbox,
             hover_delay=200,
             background=custom_window_bg_color,
-            foreground=custom_button_colors["foreground"],
+            foreground=custom_button_colors["activeforeground"],
             font=(set_fixed_font, 9, "bold"),
             text="Right click to quickly select amount",
         )
