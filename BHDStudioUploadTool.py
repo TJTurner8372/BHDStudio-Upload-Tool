@@ -102,7 +102,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.4"
+main_root_title = "BHDStudio Upload Tool v1.41"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
@@ -8784,6 +8784,43 @@ def custom_input_prompt(
         disabledforeground=custom_button_colors["disabledforeground"],
     )
     custom_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
+
+    def right_click_pop_up_menu(e):
+        """
+        Right click menu for screenshot box
+        Function for mouse button 3 (right click) to pop up menu
+        """
+
+        # get the position of 'e'
+        copy_paste_menu.tk_popup(e.x_root, e.y_root)
+
+    # pop up menu to enable/disable manual edits in release notes
+    copy_paste_menu = Menu(
+        custom_input_window,
+        tearoff=False,
+        font=(set_font, set_font_size + 1),
+        background=custom_button_colors["background"],
+        foreground=custom_button_colors["foreground"],
+        activebackground=custom_button_colors["activebackground"],
+        activeforeground=custom_button_colors["activeforeground"],
+    )
+
+    # Right click menu for copy
+    copy_paste_menu.add_command(
+        label="Copy",
+        command=lambda: pyperclip.copy(custom_entry_box.get().strip()),
+    )
+
+    # Right click menu for paste
+    copy_paste_menu.add_command(
+        label="Paste",
+        command=lambda: [
+            custom_entry_box.delete(0, END),
+            custom_entry_box.insert(END, pyperclip.paste()),
+        ],
+    )
+    # Uses mouse button 3 (right click) to open
+    custom_input_window.bind("<Button-3>", right_click_pop_up_menu)
 
     custom_input_window.wait_window()  # wait for window to be closed
     open_all_toplevels()  # re-open all top levels if they exist
