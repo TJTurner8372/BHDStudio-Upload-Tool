@@ -249,6 +249,9 @@ elif config["themes"]["selected_theme"] == "mid_dark_cyan_theme":
 elif config["themes"]["selected_theme"] == "mid_dark_purple_theme":
     from Packages.themes.mid_dark_purple_theme import *
 
+elif config["themes"]["selected_theme"] == "light_theme":
+    from Packages.themes.light_theme import *
+
 
 def root_exit_function():
     """root exit function"""
@@ -310,6 +313,7 @@ if config["themes"]["selected_theme"] == "system_theme":
         "background": temp_btn.cget("bg"),
         "activeforeground": temp_btn.cget("activeforeground"),
         "activebackground": temp_btn.cget("activebackground"),
+        "disabledforeground": temp_btn.cget("disabledforeground"),
     }
 
     temp_entry = Entry()
@@ -443,7 +447,7 @@ if config["themes"]["selected_theme"] != "system_theme":
                     "focuscolor": "",
                 },
                 "map": {
-                    "background": [("selected", "#434547")],
+                    "background": [("selected", custom_frame_bg_colors["specialbg"])],
                     "expand": [("selected", [1, 1, 1, 0])],
                 },
             },
@@ -561,6 +565,7 @@ class Logger(
                 background=custom_button_colors["background"],
                 activeforeground=custom_button_colors["activeforeground"],
                 activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
             )
             report_error.grid(
                 row=1, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E + N
@@ -575,6 +580,7 @@ class Logger(
                 background=custom_button_colors["background"],
                 activeforeground=custom_button_colors["activeforeground"],
                 activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
             )
             force_close_root.grid(
                 row=1, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W + N
@@ -1257,6 +1263,7 @@ def search_movie_global_function(*args):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     search_button2.grid(
         row=1, column=5, columnspan=1, padx=5, pady=(5, 3), sticky=E + S + N
@@ -1399,6 +1406,7 @@ def search_movie_global_function(*args):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
 
@@ -1687,6 +1695,7 @@ def source_input_function(*args):
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         audio_track_okay_btn.grid(
             row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -2429,6 +2438,7 @@ def encode_input_function(*args):
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         rename_okay_btn.grid(
             row=6, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -2448,6 +2458,7 @@ def encode_input_function(*args):
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         rename_cancel_btn.grid(
             row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
@@ -2496,7 +2507,7 @@ CustomTooltipLabel(
     anchor_widget=source_frame,
     hover_delay=400,
     background=custom_window_bg_color,
-    foreground=custom_button_colors["activeforeground"],
+    foreground=custom_label_frame_colors["foreground"],
     font=(set_fixed_font, 9, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
@@ -2559,6 +2570,7 @@ source_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 source_button.grid(
     row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + S + E + W
@@ -2638,6 +2650,7 @@ reset_source_input = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 reset_source_input.grid(
     row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W
@@ -2698,6 +2711,7 @@ encode_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 encode_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W)
 
@@ -2780,6 +2794,7 @@ reset_encode_input = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 reset_encode_input.grid(
     row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=N + E + W
@@ -2986,6 +3001,7 @@ def staxrip_working_directory(stax_dir_path):
                 background=custom_button_colors["background"],
                 activeforeground=custom_button_colors["activeforeground"],
                 activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
             )
             stax_okay_btn.grid(
                 row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
@@ -3010,6 +3026,7 @@ def staxrip_working_directory(stax_dir_path):
                 background=custom_button_colors["background"],
                 activeforeground=custom_button_colors["activeforeground"],
                 activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
             )
             stax_cancel_btn.grid(
                 row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
@@ -3187,7 +3204,7 @@ CustomTooltipLabel(
     anchor_widget=release_notes_scrolled,
     hover_delay=400,
     background=custom_window_bg_color,
-    foreground=custom_button_colors["activeforeground"],
+    foreground=custom_label_frame_colors["foreground"],
     font=(set_fixed_font, 9, "bold"),
     text="Right click for more options",
 )
@@ -3473,6 +3490,7 @@ input_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 input_button.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + W)
 input_button.bind("<Button-3>", input_popup_menu)  # Right click to pop up menu in frame
@@ -3516,6 +3534,7 @@ clear_ss_win_btn = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 clear_ss_win_btn.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
 
@@ -3720,6 +3739,7 @@ def automatic_screenshot_generator():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     next_img.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -3773,6 +3793,7 @@ def automatic_screenshot_generator():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     back_img.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
 
@@ -4033,6 +4054,7 @@ def automatic_screenshot_generator():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
 
@@ -4140,6 +4162,7 @@ def automatic_screenshot_generator():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -4193,6 +4216,7 @@ def automatic_screenshot_generator():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     add_images_to_listbox.grid(row=0, column=2, padx=5, pady=(7, 0), sticky=E)
 
@@ -4303,6 +4327,7 @@ def choose_indexer_func():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ffms_btn.grid(row=1, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S)
 
@@ -4337,6 +4362,7 @@ def choose_indexer_func():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     lwlibavsource_btn.grid(
         row=3, column=0, columnspan=3, padx=25, pady=0, sticky=E + W + S
@@ -4370,6 +4396,7 @@ def choose_indexer_func():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     index_cancel_btn.grid(row=5, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -4607,6 +4634,7 @@ def check_crop_values():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     crop_cancel_btn.grid(row=0, column=0, padx=7, pady=5, sticky=S + W)
 
@@ -4621,6 +4649,7 @@ def check_crop_values():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     view_script.grid(row=0, column=1, padx=7, pady=5, sticky=W + E + S)
 
@@ -4635,6 +4664,7 @@ def check_crop_values():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     accept_btn.grid(row=0, column=2, padx=7, pady=5, sticky=S + E)
 
@@ -4760,6 +4790,7 @@ def auto_screen_shot_status_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ss_close_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
     screenshot_status_window.protocol("WM_DELETE_WINDOW", screenshot_close_button)
@@ -5117,6 +5148,7 @@ auto_screens_multi_btn = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 auto_screens_multi_btn.grid(
     row=1, column=0, rowspan=2, padx=5, pady=(7, 7), sticky=S + W
@@ -5446,6 +5478,7 @@ def upload_to_beyond_hd_co_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
 
@@ -5571,6 +5604,7 @@ upload_ss_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 upload_ss_button.grid(row=1, column=1, rowspan=2, padx=5, pady=(7, 7), sticky=S + E)
 
@@ -5606,6 +5640,7 @@ reset_screenshot_box = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 reset_screenshot_box.grid(
     row=0, column=3, columnspan=1, padx=5, pady=18, sticky=N + E + W
@@ -6412,6 +6447,7 @@ def open_nfo_viewer():
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         font_reset_button.grid(row=0, column=0, columnspan=1, padx=3, pady=5, sticky=W)
 
@@ -6426,6 +6462,7 @@ def open_nfo_viewer():
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         font_cancel_button.grid(row=0, column=1, columnspan=1, padx=3, pady=5, sticky=E)
 
@@ -6470,6 +6507,7 @@ def open_nfo_viewer():
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         font_apply_button.grid(row=0, column=2, columnspan=1, padx=3, pady=5, sticky=E)
 
@@ -6642,6 +6680,7 @@ def open_nfo_viewer():
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         continue_button.grid(
             row=0, column=1, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + E
@@ -6660,6 +6699,7 @@ def open_nfo_viewer():
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         cancel_workflow_button.grid(
             row=0, column=0, columnspan=1, padx=7, pady=(3, 0), sticky=N + S + W
@@ -6681,6 +6721,7 @@ generate_nfo_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 generate_nfo_button.grid(row=0, column=1, columnspan=1, padx=5, pady=1, sticky=E + W)
 
@@ -6815,6 +6856,7 @@ def torrent_function_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(7, 5), sticky=N + S + E + W
@@ -7214,6 +7256,7 @@ def torrent_function_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     create_torrent_button.grid(
         row=4, column=9, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -7233,6 +7276,7 @@ def torrent_function_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     cancel_torrent_button.grid(
         row=4, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N
@@ -7255,6 +7299,7 @@ open_torrent_window_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 open_torrent_window_button.grid(
     row=0, column=0, columnspan=1, padx=(10, 5), pady=1, sticky=E + W
@@ -7272,6 +7317,7 @@ view_loaded_script = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 view_loaded_script.grid(
     row=4, column=2, columnspan=1, padx=(20, 5), pady=(23, 3), sticky=E + W
@@ -7481,6 +7527,7 @@ def open_uploader_window(job_mode):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_input_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=N + S + E + W
@@ -7837,6 +7884,7 @@ def open_uploader_window(job_mode):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     search_button.grid(
         row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -8031,6 +8079,7 @@ def open_uploader_window(job_mode):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     media_info_button.grid(
         row=0, column=0, columnspan=1, padx=5, pady=(5, 0), sticky=W + S + N
@@ -8091,6 +8140,7 @@ def open_uploader_window(job_mode):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     nfo_desc_button.grid(
         row=0, column=2, columnspan=1, padx=5, pady=(5, 0), sticky=E + S + N
@@ -8260,6 +8310,7 @@ def open_uploader_window(job_mode):
             background=custom_button_colors["background"],
             activeforeground=custom_button_colors["activeforeground"],
             activebackground=custom_button_colors["activebackground"],
+            disabledforeground=custom_button_colors["disabledforeground"],
         )
         uploader_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
 
@@ -8394,6 +8445,7 @@ def open_uploader_window(job_mode):
         cursor="question_arrow",
         background=custom_button_colors["background"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     upload_button.grid(row=5, column=3, padx=(5, 10), pady=(5, 10), sticky=E + S)
     upload_button.image = upload_img_disabled
@@ -8468,6 +8520,7 @@ open_uploader_button = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 open_uploader_button.grid(
     row=0, column=2, columnspan=1, padx=(5, 10), pady=1, sticky=E + W
@@ -8515,6 +8568,7 @@ parse_and_upload = HoverButton(
     background=custom_button_colors["background"],
     activeforeground=custom_button_colors["activeforeground"],
     activebackground=custom_button_colors["activebackground"],
+    disabledforeground=custom_button_colors["disabledforeground"],
 )
 parse_and_upload.grid(row=0, column=0, columnspan=1, padx=10, pady=1, sticky=E + W)
 
@@ -8708,6 +8762,7 @@ def custom_input_prompt(
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     custom_okay_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -8725,6 +8780,7 @@ def custom_input_prompt(
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     custom_cancel_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -8836,6 +8892,7 @@ def torrent_path_window_function(*t_args):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_path_btn.grid(row=1, column=0, columnspan=1, padx=(5, 2), pady=5, sticky=W)
 
@@ -8894,6 +8951,7 @@ def torrent_path_window_function(*t_args):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_path_reset_btn.grid(
         row=1, column=3, columnspan=1, padx=(2, 5), pady=5, sticky=E
@@ -8910,6 +8968,7 @@ def torrent_path_window_function(*t_args):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_path_okay_btn.grid(
         row=2, column=2, columnspan=2, padx=7, pady=(5, 3), sticky=E + S
@@ -9109,6 +9168,7 @@ def bhd_co_login_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     login_okay_btn.grid(row=4, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -9123,6 +9183,7 @@ def bhd_co_login_window():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     custom_cancel_btn.grid(row=4, column=4, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -9236,7 +9297,7 @@ def screen_shot_count_spinbox(*e_hotkey):
             anchor_widget=ss_spinbox,
             hover_delay=200,
             background=custom_window_bg_color,
-            foreground=custom_button_colors["activeforeground"],
+            foreground=custom_label_frame_colors["foreground"],
             font=(set_fixed_font, 9, "bold"),
             text="Right click to quickly select amount",
         )
@@ -9312,6 +9373,7 @@ def screen_shot_count_spinbox(*e_hotkey):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E)
 
@@ -9326,6 +9388,7 @@ def screen_shot_count_spinbox(*e_hotkey):
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ss_cancel_btn.grid(row=2, column=0, columnspan=1, padx=7, pady=5, sticky=S + W)
 
@@ -9413,6 +9476,36 @@ options_submenu2.add_radiobutton(
 options_submenu2.add_radiobutton(
     label="Off", variable=auto_update_var, value="False", command=auto_update_func
 )
+#
+#
+# auto update options menu
+theme_var = StringVar()
+# theme_var.set(config["themes"]["selected_theme"])
+# if theme_var.get() == "True":
+#     theme_var.set("True")
+# elif theme_var.get() == "False":
+#     theme_var.set(config["themes"]["selected_theme"])
+
+
+# function to save to config
+# def auto_update_func():
+#     # parser
+#     a_u_parser = ConfigParser()
+#     a_u_parser.read(config_file)
+#     # write
+#     a_u_parser.set("themes", "selected_theme", theme_var.get())
+#     with open(config_file, "w") as au_configfile:
+#         a_u_parser.write(au_configfile)
+#
+#
+# auto_update_func()
+options_theme = Menu(root, tearoff=0, activebackground="dim grey")
+options_menu.add_cascade(label="Themes", menu=options_theme)
+# options_theme.add_radiobutton(
+#     label="Off", variable=theme_var, value="False", command=auto_update_func
+# )
+#
+#
 options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
@@ -9663,6 +9756,7 @@ def check_for_latest_program_updates():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     close_updater_btn.grid(
         row=0, column=0, columnspan=1, padx=10, pady=(5, 4), sticky=S + W
@@ -9691,6 +9785,7 @@ def check_for_latest_program_updates():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     ignore_updates.grid(
         row=0, column=1, columnspan=1, padx=10, pady=(5, 4), sticky=S + W
@@ -9724,6 +9819,7 @@ def check_for_latest_program_updates():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     skip_version.grid(row=0, column=2, columnspan=1, padx=10, pady=(5, 4), sticky=S + E)
 
@@ -9827,6 +9923,7 @@ def check_for_latest_program_updates():
         background=custom_button_colors["background"],
         activeforeground=custom_button_colors["activeforeground"],
         activebackground=custom_button_colors["activebackground"],
+        disabledforeground=custom_button_colors["disabledforeground"],
     )
     update_button.grid(
         row=0, column=3, columnspan=1, padx=10, pady=(5, 4), sticky=S + E

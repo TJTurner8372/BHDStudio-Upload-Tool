@@ -3,6 +3,7 @@ custom_button_colors = {
     "background": "#363636",
     "activeforeground": "lime green",
     "activebackground": "#363636",
+    "disabledforeground": "dark grey"
 }
 
 custom_entry_colors = {
