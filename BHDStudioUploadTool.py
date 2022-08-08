@@ -102,7 +102,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.41"
+main_root_title = "BHDStudio Upload Tool v1.42"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
@@ -7235,16 +7235,16 @@ def torrent_function_window():
                     if not save_new_file:
                         return  # exit this function
 
-            # define a torrent thread
-            torrent_thread = threading.Thread(
-                target=create_torrent, args=(torrent_queue,), daemon=True
-            )
+        # define a torrent thread
+        torrent_thread = threading.Thread(
+            target=create_torrent, args=(torrent_queue,), daemon=True
+        )
 
-            # after 500 milliseconds start the torrent queue loop
-            root.after(500, torrent_queue_loop)
+        # after 500 milliseconds start the torrent queue loop
+        root.after(500, torrent_queue_loop)
 
-            # start the torrent thread
-            torrent_thread.start()
+        # start the torrent thread
+        torrent_thread.start()
 
     # create torrent button
     create_torrent_button = HoverButton(
