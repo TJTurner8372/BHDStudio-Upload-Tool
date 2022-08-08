@@ -102,7 +102,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.42"
+main_root_title = "BHDStudio Upload Tool v1.43"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
@@ -969,16 +969,27 @@ def search_movie_global_function(*args):
 
             # if False is sent to the queue exit this loop
             if not api_queue_data:
+                # send task done to the queue
+                api_thread_queue.task_done()
+
                 # exit this loop
                 return
 
             # if the data has Error as the first key, use this to spawn message box's
             elif list(api_queue_data.keys())[0] == "Error":
+                # spawn message box
                 messagebox.showerror(
                     parent=movie_info_window,
                     title=api_queue_data["Error"]["title"],
                     message=api_queue_data["Error"]["message"],
                 )
+
+                # send task done to the queue
+                api_thread_queue.task_done()
+
+                # join queue thread to exit safely
+                api_thread_queue.join()
+
                 # exit this loop
                 return
 
@@ -987,14 +998,26 @@ def search_movie_global_function(*args):
 
                 # delete listbox contents
                 if api_queue_data["Listbox"] == "Delete":
+                    # send task done to the queue
+                    api_thread_queue.task_done()
+
+                    # delete movie list box
                     movie_listbox.delete(0, END)
 
                 # if it's a simple string that IS NOT Delete, display it in the list box
                 elif api_queue_data["Listbox"] != "Delete":
+                    # send task done to the queue
+                    api_thread_queue.task_done()
+
+                    # insert simple string into the listbox
                     movie_listbox.insert(END, api_queue_data["Listbox"])
 
             # if the data has "Listbox Dict", run the function to update the listbox with the queued dictionary
             elif list(api_queue_data.keys())[0] == "Listbox Dict":
+                # send task done to the queue
+                api_thread_queue.task_done()
+
+                # update listbox with listbox dict information
                 update_movie_listbox(api_queue_data["Listbox Dict"])
 
         # keep polling data every millisecond
@@ -5117,12 +5140,28 @@ def auto_screen_shot_status_window():
 
         # if ss_queue_data is not empty update status
         if ss_queue_data is not None:
-            update_status(ss_queue_data)
+
             # if ss_queue_data is 'Completed' close the window and continue
             if ss_queue_data == "Completed":
+                # send task done and clean up queue
+                ss_status_queue.task_done()
+                ss_status_queue.join()
+
+                # close screenshot status window
                 screenshot_status_window.destroy()
+
+                # open automatic screenshot generator window
                 automatic_screenshot_generator()
-                return  # exit this loop
+
+                # exit this loop
+                return
+            # if ss_queue_data is anything other than "Completed"
+            else:
+                # update screenshot status window
+                update_status(ss_queue_data)
+
+                # call queue done
+                ss_status_queue.task_done()
 
         # loop every millisecond to check the queue
         root.after(1, gui_loop_checker)
@@ -5131,8 +5170,10 @@ def auto_screen_shot_status_window():
     ss_gen_thread = threading.Thread(
         target=semi_automatic_screenshots, args=(ss_status_queue,), daemon=True
     )
+
     # start ss queue checker
     gui_loop_checker()
+
     # start thread
     ss_gen_thread.start()
 
@@ -5570,12 +5611,23 @@ def upload_to_beyond_hd_co_window():
 
         # if data is not equal to None
         if bhd_co_data is not None:
-            # if the data has Error in the beginning of the string, use this to spawn message box's
+            # if the data is anything other than "Completed!"
             if str(bhd_co_data) != "Completed!":
+                # send task_done to queue
+                upload_to_bhdco_queue.task_done()
+
+                # update screenshot status window
                 manipulate_ss_upload_window(bhd_co_data)
 
             # if queue is "Completed!" exit the loop
             elif str(bhd_co_data) == "Completed!":
+                # send task_done to queue
+                upload_to_bhdco_queue.task_done()
+
+                # exit the queue
+                upload_to_bhdco_queue.join()
+
+                # exit the loop
                 return
 
         # keep polling loop going
@@ -7132,8 +7184,7 @@ def torrent_function_window():
 
             # if pieces are done and torrent file is present send "Complete" to the Queue
             if pieces_done == pieces_total:
-                if pathlib.Path(torrent_file_path.get()).is_file():
-                    tor_queue.put("Complete")
+                tor_queue.put("Complete")
 
         # if callback torrent_progress returns anything other than None, exit the function
         if not build_torrent.generate(callback=torrent_progress):
@@ -7172,6 +7223,11 @@ def torrent_function_window():
                     title="Error",
                     message=f"{str(torrent_queue_data).replace('Error ', '')}",
                 )
+
+                # call task done and exit queue
+                torrent_queue.task_done()
+                torrent_queue.join()
+
                 # exit this loop
                 return
 
@@ -7185,7 +7241,15 @@ def torrent_function_window():
                         "text.Horizontal.TProgressbar",
                         text=f"{str(torrent_queue_data).split()[1].strip()}",
                     )
+
+                    # call task_done() on the queue
+                    torrent_queue.task_done()
+
                 except TclError:
+                    # call task done and exit queue
+                    torrent_queue.task_done()
+                    torrent_queue.join()
+
                     # exit this function
                     return
 
@@ -7193,12 +7257,18 @@ def torrent_function_window():
             elif str(torrent_queue_data) == "Complete":
                 # if *.torrent exists then exit the window
                 if pathlib.Path(torrent_file_path.get()).is_file():
+
+                    # call task done and exit queue
+                    torrent_queue.task_done()
+                    torrent_queue.join()
+
+                    # call the torrent window exit function
                     torrent_window_exit_function()
 
-                # exit this loop
-                return
+                    # exit this loop
+                    return
 
-        # keep polling data every milisecond
+        # keep polling data every millisecond
         root.after(1, torrent_queue_loop)
 
     def create_torrent_btn_func():
@@ -7235,13 +7305,13 @@ def torrent_function_window():
                     if not save_new_file:
                         return  # exit this function
 
+        # after 500 milliseconds start the torrent queue loop
+        root.after(500, torrent_queue_loop)
+
         # define a torrent thread
         torrent_thread = threading.Thread(
             target=create_torrent, args=(torrent_queue,), daemon=True
         )
-
-        # after 500 milliseconds start the torrent queue loop
-        root.after(500, torrent_queue_loop)
 
         # start the torrent thread
         torrent_thread.start()
