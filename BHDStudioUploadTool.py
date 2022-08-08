@@ -489,6 +489,7 @@ if config["themes"]["selected_theme"] != "system_theme":
         text="",
         anchor="center",
         background=custom_button_colors["foreground"],
+        foreground=custom_button_colors["activeforeground"],
     )
     custom_style.master.option_add(
         "*TCombobox*Listbox.foreground", custom_listbox_color["foreground"]
