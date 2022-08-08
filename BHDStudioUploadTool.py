@@ -102,7 +102,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.39"
+main_root_title = "BHDStudio Upload Tool v1.4"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
@@ -9456,11 +9456,13 @@ elif auto_update_var.get() == "False":
     auto_update_var.set(config["check_for_updates"]["value"])
 
 
-# function to save to config
 def auto_update_func():
+    """save auto update value to config"""
+
     # parser
     a_u_parser = ConfigParser()
     a_u_parser.read(config_file)
+
     # write
     a_u_parser.set("check_for_updates", "value", auto_update_var.get())
     with open(config_file, "w") as au_configfile:
@@ -9476,36 +9478,135 @@ options_submenu2.add_radiobutton(
 options_submenu2.add_radiobutton(
     label="Off", variable=auto_update_var, value="False", command=auto_update_func
 )
-#
-#
-# auto update options menu
+
+options_menu.add_separator()
+
+# theme options menu
 theme_var = StringVar()
-# theme_var.set(config["themes"]["selected_theme"])
-# if theme_var.get() == "True":
-#     theme_var.set("True")
-# elif theme_var.get() == "False":
-#     theme_var.set(config["themes"]["selected_theme"])
+if config["themes"]["selected_theme"] == "":
+    theme_var.set("bhd_theme")
+else:
+    theme_var.set(config["themes"]["selected_theme"])
 
 
-# function to save to config
-# def auto_update_func():
-#     # parser
-#     a_u_parser = ConfigParser()
-#     a_u_parser.read(config_file)
-#     # write
-#     a_u_parser.set("themes", "selected_theme", theme_var.get())
-#     with open(config_file, "w") as au_configfile:
-#         a_u_parser.write(au_configfile)
-#
-#
-# auto_update_func()
+def theme_selection_func(start_up):
+    """save theme to config"""
+
+    # parser
+    theme_parser = ConfigParser()
+    theme_parser.read(config_file)
+
+    # write
+    theme_parser.set("themes", "selected_theme", theme_var.get())
+    with open(config_file, "w") as theme_config_file:
+        theme_parser.write(theme_config_file)
+
+    if not start_up:
+        # prompt user with message
+        messagebox.showinfo(
+            parent=root,
+            title="Prompt",
+            message="Program must be restarted for changes to take effect",
+        )
+
+
+# run theme function on start up
+theme_selection_func(start_up=True)
 options_theme = Menu(root, tearoff=0, activebackground="dim grey")
 options_menu.add_cascade(label="Themes", menu=options_theme)
-# options_theme.add_radiobutton(
-#     label="Off", variable=theme_var, value="False", command=auto_update_func
-# )
-#
-#
+options_theme.add_radiobutton(
+    label="BHDStudio",
+    variable=theme_var,
+    value="bhd_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="System Default",
+    variable=theme_var,
+    value="system_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Light",
+    variable=theme_var,
+    value="light_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_separator()
+options_theme.add_radiobutton(
+    label="Dark Cyan",
+    variable=theme_var,
+    value="dark_cyan_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Dark Green",
+    variable=theme_var,
+    value="dark_green_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Dark Orange",
+    variable=theme_var,
+    value="dark_orange_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Dark Purple",
+    variable=theme_var,
+    value="dark_purple_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Dark Red",
+    variable=theme_var,
+    value="dark_red_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Dark Yellow",
+    variable=theme_var,
+    value="dark_yellow_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_separator()
+options_theme.add_radiobutton(
+    label="Mid Dark Cyan",
+    variable=theme_var,
+    value="mid_dark_cyan_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Mid Dark Green",
+    variable=theme_var,
+    value="mid_dark_green_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Mid Dark Orange",
+    variable=theme_var,
+    value="mid_dark_orange_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Mid Dark Purple",
+    variable=theme_var,
+    value="mid_dark_purple_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Mid Dark Red",
+    variable=theme_var,
+    value="mid_dark_red_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+options_theme.add_radiobutton(
+    label="Mid Dark Yellow",
+    variable=theme_var,
+    value="mid_dark_yellow_theme",
+    command=lambda: theme_selection_func(start_up=False),
+)
+
 options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
