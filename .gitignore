@@ -1,5 +1,6 @@
 .idea/
 __pycache__/
+env/
 config.ini
 tmdb_key.py
 Packages/user_pw_key.py
