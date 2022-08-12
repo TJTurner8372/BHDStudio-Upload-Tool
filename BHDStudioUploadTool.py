@@ -102,7 +102,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.43"
+main_root_title = "BHDStudio Upload Tool v1.44"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
@@ -1450,6 +1450,8 @@ def search_movie_global_function(*args):
 
 
 def source_input_function(*args):
+    """function for source file input"""
+
     # define parser
     source_input_parser = ConfigParser()
     source_input_parser.read(config_file)
@@ -1458,6 +1460,14 @@ def source_input_function(*args):
     source_input_parser.set("last_used_folder", "path", str(pathlib.Path(*args).parent))
     with open(config_file, "w") as s_i_c_config:
         source_input_parser.write(s_i_c_config)
+
+    # update directory variable
+    if pathlib.Path(source_input_parser["last_used_folder"]["path"]).is_dir():
+        s_i_f_initial_dir = pathlib.Path(
+            source_input_parser["last_used_folder"]["path"]
+        )
+    else:
+        s_i_f_initial_dir = "/"
 
     # check if script is the correct script
     if str(pathlib.Path(pathlib.Path(*args).name).with_suffix("")).endswith("_source"):
@@ -1532,16 +1542,9 @@ def source_input_function(*args):
             title="Missing Source",
             message="Cannot locate source file. Would you like to manually find this?",
         )
-        if find_source:
-            # check if last used folder exists
-            if pathlib.Path(source_input_parser["last_used_folder"]["path"]).is_dir():
-                s_i_f_initial_dir = pathlib.Path(
-                    source_input_parser["last_used_folder"]["path"]
-                )
-            else:
-                s_i_f_initial_dir = "/"
 
-            # open prompt to navigate to file
+        # open prompt to navigate to file
+        if find_source:
             source_file_input = filedialog.askopenfilename(
                 parent=root,
                 title="Select Source File",
@@ -1625,110 +1628,161 @@ def source_input_function(*args):
 
     # if source has 0 audio streams (this should never happen)
     if not media_info.general_tracks[0].count_of_audio_streams:
-        messagebox.showerror(
-            parent=root, title="Error", message="Source has no audio track"
+        audio_missing = messagebox.askyesno(
+            parent=root,
+            title="Missing Audio Track",
+            message="Source has no audio track\n\nWould you like to manually open an audio file? ",
         )
-        return
+        # if user presses "No"
+        if not audio_missing:
+            return  # exit this function
 
-    # if source file only has 2 or more tracks
-    if int(media_info.general_tracks[0].count_of_audio_streams) >= 2:
-        audio_track_win = Toplevel()  # Toplevel window
-        audio_track_win.configure(background=custom_window_bg_color)
-        audio_track_win.title("Audio Track Selection")
-        # Open on top left of root window
-        audio_track_win.geometry(
-            f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
-            f'{str(int(root.geometry().split("+")[2]) + 80)}'
-        )
-        audio_track_win.resizable(False, False)  # makes window not resizable
-        audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
-        audio_track_win.wm_overrideredirect(True)
-        root.wm_attributes("-alpha", 0.92)  # set main gui to be slightly transparent
-        audio_track_win.grid_rowconfigure(0, weight=1)
-        audio_track_win.grid_columnconfigure(0, weight=1)
+        # if user presses "Yes"
+        elif audio_missing:
+            manual_audio_input = filedialog.askopenfilename(
+                parent=root,
+                title="Select Soure Audio File",
+                initialdir=s_i_f_initial_dir,
+                filetypes=[("Source Audio", "*.*")],
+            )
+            if not manual_audio_input:
+                return  # exit this function
 
-        track_frame = Frame(
-            audio_track_win,
-            highlightbackground=custom_frame_bg_colors["highlightcolor"],
-            highlightthickness=2,
-            bg=custom_frame_bg_colors["background"],
-            highlightcolor=custom_frame_bg_colors["highlightcolor"],
-        )
-        track_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
-        for e_n_f in range(3):
-            track_frame.grid_columnconfigure(e_n_f, weight=1)
-            track_frame.grid_rowconfigure(e_n_f, weight=1)
+            elif manual_audio_input:
+                try:
+                    audio_media_info = (
+                        MediaInfo.parse(pathlib.Path(manual_audio_input))
+                        .audio_tracks[0]
+                        .to_data()
+                    )
+                except IndexError:
+                    messagebox.showerror(
+                        parent=root,
+                        title="Error",
+                        message="Opened file has no audio tracks...",
+                    )
+                    return  # exit function
 
-        # create label
-        track_selection_label = Label(
-            track_frame,
-            text="Select audio source that down-mix was encoded from:",
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size, "bold"),
-        )
-        track_selection_label.grid(
-            row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0)
+                # selected source audio track info
+                source_file_information.update(
+                    {"source_selected_audio_info": audio_media_info, "audio_track": "0"}
+                )
+
+    # if source has at least 1 audio stream
+    else:
+        # if source file only has 2 or more tracks
+        if int(media_info.general_tracks[0].count_of_audio_streams) >= 2:
+            audio_track_win = Toplevel()  # Toplevel window
+            audio_track_win.configure(background=custom_window_bg_color)
+            audio_track_win.title("Audio Track Selection")
+            # Open on top left of root window
+            audio_track_win.geometry(
+                f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
+                f'{str(int(root.geometry().split("+")[2]) + 80)}'
+            )
+            audio_track_win.resizable(False, False)  # makes window not resizable
+            audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
+            audio_track_win.wm_overrideredirect(True)
+            root.wm_attributes(
+                "-alpha", 0.92
+            )  # set main gui to be slightly transparent
+            audio_track_win.grid_rowconfigure(0, weight=1)
+            audio_track_win.grid_columnconfigure(0, weight=1)
+
+            track_frame = Frame(
+                audio_track_win,
+                highlightbackground=custom_frame_bg_colors["highlightcolor"],
+                highlightthickness=2,
+                bg=custom_frame_bg_colors["background"],
+                highlightcolor=custom_frame_bg_colors["highlightcolor"],
+            )
+            track_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+            for e_n_f in range(3):
+                track_frame.grid_columnconfigure(e_n_f, weight=1)
+                track_frame.grid_rowconfigure(e_n_f, weight=1)
+
+            # create label
+            track_selection_label = Label(
+                track_frame,
+                text="Select audio source that down-mix was encoded from:",
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_font, set_font_size, "bold"),
+            )
+            track_selection_label.grid(
+                row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 0)
+            )
+
+            # create drop down menu set
+            audio_stream_track_counter = {}
+            for i in range(int(media_info.general_tracks[0].count_of_audio_streams)):
+                audio_stream_track_counter[
+                    f"Track #{i + 1}  |  {stream_menu(loaded_source_file)[i]}"
+                ] = i
+
+            audio_pop_up_var.set(
+                next(iter(audio_stream_track_counter))
+            )  # set the default option
+            audio_pop_up_menu = OptionMenu(
+                track_frame, audio_pop_up_var, *audio_stream_track_counter.keys()
+            )
+            audio_pop_up_menu.config(
+                highlightthickness=1,
+                width=48,
+                anchor="w",
+                activebackground=custom_button_colors["activebackground"],
+                activeforeground=custom_button_colors["activeforeground"],
+                background=custom_button_colors["background"],
+                foreground=custom_button_colors["foreground"],
+            )
+            audio_pop_up_menu.grid(
+                row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
+            )
+            audio_pop_up_menu["menu"].configure(
+                activebackground=custom_button_colors["activebackground"],
+                activeforeground=custom_button_colors["activeforeground"],
+                background=custom_button_colors["background"],
+                foreground=custom_button_colors["foreground"],
+            )
+
+            # create 'OK' button
+            def audio_ok_button_function():
+                audio_pop_up_var.set(audio_stream_track_counter[audio_pop_up_var.get()])
+                root.wm_attributes("-alpha", 1.0)  # restore transparency
+                audio_track_win.destroy()
+
+            audio_track_okay_btn = HoverButton(
+                track_frame,
+                text="OK",
+                command=audio_ok_button_function,
+                borderwidth="3",
+                width=8,
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
+            )
+            audio_track_okay_btn.grid(
+                row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
+            )
+            audio_track_win.wait_window()
+
+        # if source file only has 1 audio track
+        elif int(media_info.general_tracks[0].count_of_audio_streams) == 1:
+            audio_pop_up_var.set("0")
+
+        # selected source audio track info
+        source_file_information.update(
+            {
+                "source_selected_audio_info": media_info.audio_tracks[
+                    int(audio_pop_up_var.get())
+                ].to_data()
+            }
         )
 
-        # create drop down menu set
-        audio_stream_track_counter = {}
-        for i in range(int(media_info.general_tracks[0].count_of_audio_streams)):
-            audio_stream_track_counter[
-                f"Track #{i + 1}  |  {stream_menu(loaded_source_file)[i]}"
-            ] = i
-
-        audio_pop_up_var.set(
-            next(iter(audio_stream_track_counter))
-        )  # set the default option
-        audio_pop_up_menu = OptionMenu(
-            track_frame, audio_pop_up_var, *audio_stream_track_counter.keys()
-        )
-        audio_pop_up_menu.config(
-            highlightthickness=1,
-            width=48,
-            anchor="w",
-            activebackground=custom_button_colors["activebackground"],
-            activeforeground=custom_button_colors["activeforeground"],
-            background=custom_button_colors["background"],
-            foreground=custom_button_colors["foreground"],
-        )
-        audio_pop_up_menu.grid(
-            row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
-        )
-        audio_pop_up_menu["menu"].configure(
-            activebackground=custom_button_colors["activebackground"],
-            activeforeground=custom_button_colors["activeforeground"],
-            background=custom_button_colors["background"],
-            foreground=custom_button_colors["foreground"],
-        )
-
-        # create 'OK' button
-        def audio_ok_button_function():
-            audio_pop_up_var.set(audio_stream_track_counter[audio_pop_up_var.get()])
-            root.wm_attributes("-alpha", 1.0)  # restore transparency
-            audio_track_win.destroy()
-
-        audio_track_okay_btn = HoverButton(
-            track_frame,
-            text="OK",
-            command=audio_ok_button_function,
-            borderwidth="3",
-            width=8,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
-        )
-        audio_track_okay_btn.grid(
-            row=2, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
-        )
-        audio_track_win.wait_window()
-
-    # if source file only has 1 audio track
-    elif int(media_info.general_tracks[0].count_of_audio_streams) == 1:
-        audio_pop_up_var.set("0")
+        # audio track selection
+        source_file_information.update({"audio_track": audio_pop_up_var.get()})
 
     # set source variables
     source_loaded.set("loaded")  # set string var to loaded
@@ -1738,18 +1792,6 @@ def source_input_function(*args):
     source_file_information.update(
         {"source_path": str(pathlib.Path(loaded_source_file))}
     )
-
-    # selected source audio track info
-    source_file_information.update(
-        {
-            "source_selected_audio_info": media_info.audio_tracks[
-                int(audio_pop_up_var.get())
-            ].to_data()
-        }
-    )
-
-    # audio track selection
-    source_file_information.update({"audio_track": audio_pop_up_var.get()})
 
     # resolution
     source_file_information.update(
