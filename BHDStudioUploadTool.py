@@ -15,6 +15,7 @@ from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
+from src.clients import Clients
 from tkinter import (
     filedialog,
     StringVar,
@@ -119,6 +120,19 @@ if not config.has_option("torrent_settings", "tracker_url"):
     config.set("torrent_settings", "tracker_url", "")
 if not config.has_option("torrent_settings", "default_path"):
     config.set("torrent_settings", "default_path", "")
+
+# qbit client settings
+if not config.has_section("qbit_client"):
+    config.add_section("qbit_client")
+if not config.has_option("qbit_client","qbit_url"):
+    config.set("qbit_client","qbit_url", "")
+if not config.has_option("qbit_client","qbit_port"):
+    config.set("qbit_client","qbit_port", "") 
+if not config.has_option("qbit_client","qbit_user"):
+    config.set("qbit_client","qbit_user", "")
+if not config.has_option("qbit_client","qbit_password"):
+    config.set("qbit_client","qbit_password", "") 
+
 
 # encoder name
 if not config.has_section("encoder_name"):
@@ -8509,6 +8523,18 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\n\nUpload has been successfully "
                     "saved as a draft on site",
                 )
+                # Inject torrent to qbit (if set)
+                meta = dict()
+                torrent_path = torrent_file_path.get()
+                if os.path.exists(torrent_path):
+                    meta["torrent_path"] = torrent_path
+                # Verify config is setup
+                elif(config["qbit_client"]["qbit_url"] != "None"):
+                    # Config set for injection
+                    print("Config is set")
+                    clients = Clients(config)
+                    clients.add_to_client(meta)
+                    
             else:
                 upload_status_info.insert(
                     END,

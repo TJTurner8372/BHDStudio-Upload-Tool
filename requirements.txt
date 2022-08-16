@@ -17,3 +17,4 @@ tmdb-python
 cffi
 cinemagoer
 VapourSynth==59
+qbittorrent-api
