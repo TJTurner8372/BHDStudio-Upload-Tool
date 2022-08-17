@@ -15,7 +15,7 @@ from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
-from packages.clients import Clients
+from packages.torrent_clients import Clients
 from tkinter import (
     filedialog,
     StringVar,
@@ -81,6 +81,7 @@ from packages.icon import (
 from packages.show_streams import stream_menu
 from packages.tmdb_key import tmdb_api_key
 from packages.user_pw_key import crypto_key
+
 
 # check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
@@ -8523,17 +8524,17 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\n\nUpload has been successfully "
                     "saved as a draft on site",
                 )
+
                 # Inject torrent to qbit (if set)
-                meta = dict()
-                torrent_path = torrent_file_path.get()
-                if os.path.exists(torrent_path):
-                    meta["torrent_path"] = torrent_path
-                # Verify config is setup
-                elif(config["qbit_client"]["qbit_url"] != "None"):
-                    # Config set for injection
-                    print("Config is set")
-                    clients = Clients(config)
-                    clients.add_to_client(meta)
+                if pathlib.Path(torrent_file_path.get()).is_file():
+                    meta = {"torrent_path": pathlib.Path(torrent_file_path.get())}
+
+                    # Verify config is set up
+                    if config["qbit_client"]["qbit_url"] != "None":
+                        # Config set for injection
+                        print("Config is set")
+                        clients = Clients(config)
+                        clients.add_to_client(meta)
                     
             else:
                 upload_status_info.insert(
@@ -9579,19 +9580,6 @@ def screen_shot_count_spinbox(*e_hotkey):
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Options", menu=options_menu)
 options_menu.add_command(
-    label="Encoder Name",
-    accelerator="[Ctrl+E]",
-    command=lambda: [
-        custom_input_prompt(root, "Encoder Name:", "encoder_name", "name", "show")
-    ],
-)
-root.bind(
-    "<Control-e>",
-    lambda event: custom_input_prompt(
-        root, "Encoder Name:", "encoder_name", "name", "show"
-    ),
-)
-options_menu.add_command(
     label="API Key",
     accelerator="[Ctrl+A]",
     command=lambda: [
@@ -9605,15 +9593,34 @@ root.bind(
     ),
 )
 options_menu.add_command(
+    label="BeyondHD.co", command=bhd_co_login_window, accelerator="[Ctrl+I]"
+)
+root.bind("<Control-i>", bhd_co_login_window)
+options_menu.add_command(
+    label="Encoder Name",
+    accelerator="[Ctrl+E]",
+    command=lambda: [
+        custom_input_prompt(root, "Encoder Name:", "encoder_name", "name", "show")
+    ],
+)
+root.bind(
+    "<Control-e>",
+    lambda event: custom_input_prompt(
+        root, "Encoder Name:", "encoder_name", "name", "show"
+    ),
+)
+options_menu.add_command(
     label="Torrent Output Path",
     command=torrent_path_window_function,
     accelerator="[Ctrl+T]",
 )
 root.bind("<Control-t>", torrent_path_window_function)
 options_menu.add_command(
-    label="BeyondHD.co", command=bhd_co_login_window, accelerator="[Ctrl+I]"
+    label="qBitorrent Injection",
+    command=torrent_path_window_function,
+    accelerator="[Ctrl+Q]",
 )
-root.bind("<Control-i>", bhd_co_login_window)
+root.bind("<Control-q>", torrent_path_window_function)
 options_menu.add_separator()
 options_menu.add_command(
     label="Semi-Auto Screenshot Count",
