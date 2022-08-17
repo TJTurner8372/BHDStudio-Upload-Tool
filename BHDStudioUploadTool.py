@@ -15,7 +15,7 @@ from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
-from src.clients import Clients
+from packages.clients import Clients
 from tkinter import (
     filedialog,
     StringVar,
@@ -70,19 +70,19 @@ from pymediainfo import MediaInfo
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from torf import Torrent
 
-from Packages.About import openaboutwindow
-from Packages.icon import (
+from packages.About import openaboutwindow
+from packages.icon import (
     base_64_icon,
     imdb_icon,
     tmdb_icon,
     bhd_upload_icon,
     bhd_upload_icon_disabled,
 )
-from Packages.show_streams import stream_menu
-from Packages.tmdb_key import tmdb_api_key
-from Packages.user_pw_key import crypto_key
+from packages.show_streams import stream_menu
+from packages.tmdb_key import tmdb_api_key
+from packages.user_pw_key import crypto_key
 
-# check if program had a file dropped/any commands on the .exe or .pyscript upon launch
+# check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
     cli_command = sys.argv[1]
 except IndexError:  # if it doesn't set variable to None
@@ -106,10 +106,10 @@ elif app_type == "script":
 main_root_title = "BHDStudio Upload Tool v1.44"
 
 # create runtime folder if it does not exist
-pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
+pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
 
 # define config file and settings
-config_file = "Runtime/config.ini"  # Creates (if it doesn't exist) and defines location of config.ini
+config_file = "runtime/config.ini"  # Creates (if it doesn't exist) and defines location of config.ini
 config = ConfigParser()
 config.read(config_file)
 
@@ -225,46 +225,46 @@ if (
     config["themes"]["selected_theme"] == "bhd_theme"
     or config["themes"]["selected_theme"] == ""
 ):
-    from Packages.themes.bhd_theme import *
+    from packages.themes.bhd_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_green_theme":
-    from Packages.themes.dark_green_theme import *
+    from packages.themes.dark_green_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_red_theme":
-    from Packages.themes.dark_red_theme import *
+    from packages.themes.dark_red_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_yellow_theme":
-    from Packages.themes.dark_yellow_theme import *
+    from packages.themes.dark_yellow_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_orange_theme":
-    from Packages.themes.dark_orange_theme import *
+    from packages.themes.dark_orange_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_cyan_theme":
-    from Packages.themes.dark_cyan_theme import *
+    from packages.themes.dark_cyan_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_purple_theme":
-    from Packages.themes.dark_purple_theme import *
+    from packages.themes.dark_purple_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_green_theme":
-    from Packages.themes.mid_dark_green_theme import *
+    from packages.themes.mid_dark_green_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_red_theme":
-    from Packages.themes.mid_dark_red_theme import *
+    from packages.themes.mid_dark_red_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_yellow_theme":
-    from Packages.themes.mid_dark_yellow_theme import *
+    from packages.themes.mid_dark_yellow_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_orange_theme":
-    from Packages.themes.mid_dark_orange_theme import *
+    from packages.themes.mid_dark_orange_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_cyan_theme":
-    from Packages.themes.mid_dark_cyan_theme import *
+    from packages.themes.mid_dark_cyan_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_purple_theme":
-    from Packages.themes.mid_dark_purple_theme import *
+    from packages.themes.mid_dark_purple_theme import *
 
 elif config["themes"]["selected_theme"] == "light_theme":
-    from Packages.themes.light_theme import *
+    from packages.themes.light_theme import *
 
 
 def root_exit_function():
@@ -4887,23 +4887,23 @@ def auto_screen_shot_status_window():
 
         # load needed plugins
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/SubText.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/SubText.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libimwri.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libimwri.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libvslsmashsource.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libvslsmashsource.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libfpng.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libfpng.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/ffms2.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/ffms2.dll")
         except vs.Error:
             pass
 
@@ -5165,7 +5165,7 @@ def auto_screen_shot_status_window():
         # update queue with information
         ss_queue.put("\n\nGenerating Screenshots, please wait...")
 
-        # generate screenshots with awmfunc screengen
+        # generate screenshots with awsmfunc screen gen
         awsmfunc.ScreenGen(
             [vs_source_info, vs_encode_info],
             frame_numbers=b_frames,
@@ -5585,15 +5585,15 @@ def upload_to_beyond_hd_co_window():
 
     # if user and pass bin exists
     if (
-        pathlib.Path("Runtime/user.bin").is_file()
-        and pathlib.Path("Runtime/pass.bin").is_file()
+        pathlib.Path("runtime/user.bin").is_file()
+        and pathlib.Path("runtime/pass.bin").is_file()
     ):
         # start fernet instance to convert stored username and password files
         pass_user_decoder = Fernet(crypto_key)
 
         # open both user and pass bin files
-        with open("Runtime/user.bin", "rb") as user_file, open(
-            "Runtime/pass.bin", "rb"
+        with open("runtime/user.bin", "rb") as user_file, open(
+                "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read()).decode("utf-8")
@@ -5614,8 +5614,8 @@ def upload_to_beyond_hd_co_window():
                 bhd_co_login_window()
                 # update login variables
                 pass_user_decoder = Fernet(crypto_key)
-                with open("Runtime/user.bin", "rb") as user_file, open(
-                    "Runtime/pass.bin", "rb"
+                with open("runtime/user.bin", "rb") as user_file, open(
+                        "runtime/pass.bin", "rb"
                 ) as pass_file:
                     decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                         "utf-8"
@@ -5641,8 +5641,8 @@ def upload_to_beyond_hd_co_window():
             bhd_co_login_window()
             # update login variables
             pass_user_decoder = Fernet(crypto_key)
-            with open("Runtime/user.bin", "rb") as user_file, open(
-                "Runtime/pass.bin", "rb"
+            with open("runtime/user.bin", "rb") as user_file, open(
+                    "runtime/pass.bin", "rb"
             ) as pass_file:
                 decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                     "utf-8"
@@ -8761,8 +8761,8 @@ def reset_all_settings():
     # if user presses yes
     if reset_settings:
         pathlib.Path(config_file).unlink(missing_ok=True)
-        pathlib.Path("Runtime/user.bin").unlink(missing_ok=True)
-        pathlib.Path("Runtime/pass.bin").unlink(missing_ok=True)
+        pathlib.Path("runtime/user.bin").unlink(missing_ok=True)
+        pathlib.Path("runtime/pass.bin").unlink(missing_ok=True)
         messagebox.showinfo(
             title="Prompt",
             message="Settings are reset, program will restart automatically",
@@ -9171,8 +9171,8 @@ def bhd_co_login_window():
         )
 
         # write encrypted data to config
-        with open("Runtime/user.bin", "wb") as user_bin, open(
-            "Runtime/pass.bin", "wb"
+        with open("runtime/user.bin", "wb") as user_bin, open(
+                "runtime/pass.bin", "wb"
         ) as pass_bin:
             # write info to user and password bins
             user_bin.write(encode_user)
@@ -9365,14 +9365,14 @@ def bhd_co_login_window():
 
     # decode user and password
     if (
-        pathlib.Path("Runtime/user.bin").is_file()
-        and pathlib.Path("Runtime/pass.bin").is_file()
+        pathlib.Path("runtime/user.bin").is_file()
+        and pathlib.Path("runtime/pass.bin").is_file()
     ):
         # start fernet instance
         pass_user_decoder = Fernet(crypto_key)
         # open both user and pass bin files
-        with open("Runtime/user.bin", "rb") as user_file, open(
-            "Runtime/pass.bin", "rb"
+        with open("runtime/user.bin", "rb") as user_file, open(
+                "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read())

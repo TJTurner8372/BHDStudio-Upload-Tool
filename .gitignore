@@ -2,8 +2,8 @@
 __pycache__/
 env/
 config.ini
-Packages/tmdb_key.py
-Packages/user_pw_key.py
+packages/tmdb_key.py
+packages/user_pw_key.py
 *.bin
 *.exe
 *.zip
