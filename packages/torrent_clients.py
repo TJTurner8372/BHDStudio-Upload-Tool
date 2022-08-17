@@ -1,17 +1,16 @@
 from torf import Torrent
-
 import qbittorrentapi
-
 import os
 
 
-class Clients():
+class Clients:
     """
     Used to add torrents to client
     """
+
     def __init__(self, config):
+        """define config"""
         self.config = config
-        pass
 
     def add_to_client(self, meta):
         if os.path.exists(meta["torrent_path"]):
