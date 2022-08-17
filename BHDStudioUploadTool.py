@@ -71,6 +71,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from torf import Torrent
 
 from packages.About import openaboutwindow
+from packages.hoverbutton import HoverButton
 from packages.icon import (
     base_64_icon,
     imdb_icon,
@@ -81,7 +82,7 @@ from packages.icon import (
 from packages.show_streams import stream_menu
 from packages.tmdb_key import tmdb_api_key
 from packages.user_pw_key import crypto_key
-
+from packages.qbittorrent_window import QBittorrentWindow
 
 # check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
@@ -132,8 +133,15 @@ if not config.has_option("qbit_client","qbit_port"):
 if not config.has_option("qbit_client","qbit_user"):
     config.set("qbit_client","qbit_user", "")
 if not config.has_option("qbit_client","qbit_password"):
-    config.set("qbit_client","qbit_password", "") 
-
+    config.set("qbit_client","qbit_password", "")
+if not config.has_option("qbit_client","qbit_injection_type"):
+    config.set("qbit_client","qbit_injection_type", "webui")
+if not config.has_option("qbit_client","qbit_path"):
+    config.set("qbit_client","qbit_path", "")
+if not config.has_option("qbit_client","qbit_cli_paused"):
+    config.set("qbit_client","qbit_cli_paused", "false")
+if not config.has_option("qbit_client","qbit_cli_skip_check"):
+    config.set("qbit_client","qbit_cli_skip_check", "true")
 
 # encoder name
 if not config.has_section("encoder_name"):
@@ -415,22 +423,6 @@ for n in range(4):
     root.grid_columnconfigure(n, weight=1)
 for n in range(5):
     root.grid_rowconfigure(n, weight=1)
-
-
-# hoverbutton class
-class HoverButton(Button):
-    def __init__(self, master, **kw):
-        Button.__init__(self, master=master, **kw)
-        self.defaultBackground = self["foreground"]
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
-
-    def on_enter(self, e):
-        self["foreground"] = self["activeforeground"]
-
-    def on_leave(self, e):
-        self["foreground"] = self.defaultBackground
-
 
 detect_font = font.nametofont(
     "TkDefaultFont"
@@ -9615,12 +9607,21 @@ options_menu.add_command(
     accelerator="[Ctrl+T]",
 )
 root.bind("<Control-t>", torrent_path_window_function)
+
 options_menu.add_command(
-    label="qBitorrent Injection",
-    command=torrent_path_window_function,
+    label="qBittorrent Injection",
+    command=lambda: QBittorrentWindow(master=root, options_menu=options_menu, custom_window_bg_color=custom_window_bg_color,
+                      font=set_font, font_size=set_font_size,
+                      custom_label_frame_color_dict=custom_label_frame_colors,
+                      custom_frame_color_dict=custom_frame_bg_colors,
+                      custom_button_color_dict=custom_button_colors, custom_entry_colors_dict=custom_entry_colors),
     accelerator="[Ctrl+Q]",
 )
-root.bind("<Control-q>", torrent_path_window_function)
+root.bind("<Control-q>", lambda event: QBittorrentWindow(master=root, options_menu=options_menu, custom_window_bg_color=custom_window_bg_color,
+                      font=set_font, font_size=set_font_size,
+                      custom_label_frame_color_dict=custom_label_frame_colors,
+                      custom_frame_color_dict=custom_frame_bg_colors,
+                      custom_button_color_dict=custom_button_colors, custom_entry_colors_dict=custom_entry_colors))
 options_menu.add_separator()
 options_menu.add_command(
     label="Semi-Auto Screenshot Count",
