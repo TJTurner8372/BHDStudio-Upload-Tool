@@ -126,22 +126,24 @@ if not config.has_option("torrent_settings", "default_path"):
 # qbit client settings
 if not config.has_section("qbit_client"):
     config.add_section("qbit_client")
-if not config.has_option("qbit_client","qbit_url"):
-    config.set("qbit_client","qbit_url", "")
-if not config.has_option("qbit_client","qbit_port"):
-    config.set("qbit_client","qbit_port", "") 
-if not config.has_option("qbit_client","qbit_user"):
-    config.set("qbit_client","qbit_user", "")
-if not config.has_option("qbit_client","qbit_password"):
-    config.set("qbit_client","qbit_password", "")
-if not config.has_option("qbit_client","qbit_injection_type"):
-    config.set("qbit_client","qbit_injection_type", "webui")
-if not config.has_option("qbit_client","qbit_path"):
-    config.set("qbit_client","qbit_path", "")
-if not config.has_option("qbit_client","qbit_cli_paused"):
-    config.set("qbit_client","qbit_cli_paused", "false")
-if not config.has_option("qbit_client","qbit_cli_skip_check"):
-    config.set("qbit_client","qbit_cli_skip_check", "true")
+if not config.has_option("qbit_client", "qbit_injection_toggle"):
+    config.set("qbit_client", "qbit_injection_toggle", "false")
+if not config.has_option("qbit_client", "qbit_url"):
+    config.set("qbit_client", "qbit_url", "")
+if not config.has_option("qbit_client", "qbit_port"):
+    config.set("qbit_client", "qbit_port", "")
+if not config.has_option("qbit_client", "qbit_user"):
+    config.set("qbit_client", "qbit_user", "")
+if not config.has_option("qbit_client", "qbit_password"):
+    config.set("qbit_client", "qbit_password", "")
+if not config.has_option("qbit_client", "qbit_injection_type"):
+    config.set("qbit_client", "qbit_injection_type", "webui")
+if not config.has_option("qbit_client", "qbit_path"):
+    config.set("qbit_client", "qbit_path", "")
+if not config.has_option("qbit_client", "qbit_cli_paused"):
+    config.set("qbit_client", "qbit_cli_paused", "false")
+if not config.has_option("qbit_client", "qbit_cli_skip_check"):
+    config.set("qbit_client", "qbit_cli_skip_check", "true")
 
 # encoder name
 if not config.has_section("encoder_name"):
@@ -5586,7 +5588,7 @@ def upload_to_beyond_hd_co_window():
 
         # open both user and pass bin files
         with open("runtime/user.bin", "rb") as user_file, open(
-                "runtime/pass.bin", "rb"
+            "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read()).decode("utf-8")
@@ -5608,7 +5610,7 @@ def upload_to_beyond_hd_co_window():
                 # update login variables
                 pass_user_decoder = Fernet(crypto_key)
                 with open("runtime/user.bin", "rb") as user_file, open(
-                        "runtime/pass.bin", "rb"
+                    "runtime/pass.bin", "rb"
                 ) as pass_file:
                     decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                         "utf-8"
@@ -5635,7 +5637,7 @@ def upload_to_beyond_hd_co_window():
             # update login variables
             pass_user_decoder = Fernet(crypto_key)
             with open("runtime/user.bin", "rb") as user_file, open(
-                    "runtime/pass.bin", "rb"
+                "runtime/pass.bin", "rb"
             ) as pass_file:
                 decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                     "utf-8"
@@ -8513,21 +8515,26 @@ def open_uploader_window(job_mode):
             ):
                 upload_status_info.insert(
                     END,
-                    "Upload is successful!\n\nUpload has been successfully "
+                    "Upload is successful!\nUpload has been successfully "
                     "saved as a draft on site",
                 )
 
-                # Inject torrent to qbit (if set)
-                if pathlib.Path(torrent_file_path.get()).is_file():
-                    meta = {"torrent_path": pathlib.Path(torrent_file_path.get())}
+                # inject torrent to qBittorrent if injection is enabled
+                if config["qbit_client"]["qbit_injection_toggle"] == "true":
+                    # create Clients() instance
+                    injection_client = Clients()
 
-                    # Verify config is set up
-                    if config["qbit_client"]["qbit_url"] != "None":
-                        # Config set for injection
-                        print("Config is set")
-                        clients = Clients(config)
-                        clients.add_to_client(meta)
-                    
+                    # use qBittorrent method
+                    injection_client.qbittorrent(
+                        encode_file_path=encode_file_path.get(),
+                        torrent_file_path=torrent_file_path.get(),
+                    )
+
+                    # update status window
+                    upload_status_info.insert(
+                        END,
+                        "\n\nTorrent was automatically injected into qBittorrent",
+                    )
             else:
                 upload_status_info.insert(
                     END,
@@ -9165,7 +9172,7 @@ def bhd_co_login_window():
 
         # write encrypted data to config
         with open("runtime/user.bin", "wb") as user_bin, open(
-                "runtime/pass.bin", "wb"
+            "runtime/pass.bin", "wb"
         ) as pass_bin:
             # write info to user and password bins
             user_bin.write(encode_user)
@@ -9365,7 +9372,7 @@ def bhd_co_login_window():
         pass_user_decoder = Fernet(crypto_key)
         # open both user and pass bin files
         with open("runtime/user.bin", "rb") as user_file, open(
-                "runtime/pass.bin", "rb"
+            "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read())
@@ -9610,18 +9617,35 @@ root.bind("<Control-t>", torrent_path_window_function)
 
 options_menu.add_command(
     label="qBittorrent Injection",
-    command=lambda: QBittorrentWindow(master=root, options_menu=options_menu, custom_window_bg_color=custom_window_bg_color,
-                      font=set_font, font_size=set_font_size,
-                      custom_label_frame_color_dict=custom_label_frame_colors,
-                      custom_frame_color_dict=custom_frame_bg_colors,
-                      custom_button_color_dict=custom_button_colors, custom_entry_colors_dict=custom_entry_colors),
+    command=lambda: QBittorrentWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
     accelerator="[Ctrl+Q]",
 )
-root.bind("<Control-q>", lambda event: QBittorrentWindow(master=root, options_menu=options_menu, custom_window_bg_color=custom_window_bg_color,
-                      font=set_font, font_size=set_font_size,
-                      custom_label_frame_color_dict=custom_label_frame_colors,
-                      custom_frame_color_dict=custom_frame_bg_colors,
-                      custom_button_color_dict=custom_button_colors, custom_entry_colors_dict=custom_entry_colors))
+root.bind(
+    "<Control-q>",
+    lambda event: QBittorrentWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
+)
 options_menu.add_separator()
 options_menu.add_command(
     label="Semi-Auto Screenshot Count",
