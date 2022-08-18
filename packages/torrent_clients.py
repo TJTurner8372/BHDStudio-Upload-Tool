@@ -17,7 +17,6 @@ class Clients:
 
     def qbittorrent(self, encode_file_path, torrent_file_path):
         """check qBittorrent client injection type"""
-        print(self.client_config["qbit_client"]["qbit_injection_type"])
         if self.client_config["qbit_client"]["qbit_injection_type"] == "cli":
             self.qbittorrent_cli(
                 encode_file_path=encode_file_path, torrent_file_path=torrent_file_path
@@ -61,7 +60,7 @@ class Clients:
         elif self.client_config["qbit_client"]["qbit_cli_skip_check"] == "false":
             skip_hash = ""
 
-        # create command to be sent to subprocess_run
+        # create command to be sent to subprocess_Popen
         cli_command = (
             f'"{self.client_config["qbit_client"]["qbit_path"]}" --skip-dialog=true --no-splash '
             f'--save-path="{str(pathlib.Path(encode_file_path).parent)}" '
