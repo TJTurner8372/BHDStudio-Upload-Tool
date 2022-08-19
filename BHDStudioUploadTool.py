@@ -5152,6 +5152,10 @@ def auto_screen_shot_status_window():
         # update queue with information
         ss_queue.put("\n\nGenerating Screenshots, please wait...")
 
+        def screen_gen_callback(sg_call_back):
+            """define callback function for screen gen"""
+            ss_queue.put("\n" + str(sg_call_back).replace("ScreenGen: ", ""))
+
         # generate screenshots with awsmfunc screen gen
         awsmfunc.ScreenGen(
             [vs_source_info, vs_encode_info],
@@ -5159,6 +5163,7 @@ def auto_screen_shot_status_window():
             fpng_compression=2,
             folder=screenshot_comparison_var.get(),
             suffix=["a_source__%d", "b_encode__%d"],
+            callback=screen_gen_callback,
         )
 
         # update queue with information
@@ -7221,6 +7226,7 @@ def torrent_function_window():
 
         class WaitForTorrent:
             """class to wait for torrent creation"""
+
             def __init__(self):
                 self.wait_counter = 0
 
