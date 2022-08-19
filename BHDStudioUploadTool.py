@@ -7226,7 +7226,7 @@ def torrent_function_window():
 
             def wait_for_torrent_output(self):
                 """check for torrent file output, if not found check after 1 second or until timed out"""
-                if self.wait_counter < 5:
+                if self.wait_counter < 10:
                     if not pathlib.Path(torrent_file_path.get()).is_file():
                         self.wait_counter += 1
                         root.after(1000, self.wait_for_torrent_output)
