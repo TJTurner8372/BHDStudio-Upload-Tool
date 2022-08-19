@@ -435,6 +435,15 @@ class QBittorrentWindow:
         with open(self.configfile, "w") as apply_cfg:
             apply_btn_parser.write(apply_cfg)
 
+        # show bask info prompt
+        messagebox.showinfo(
+            parent=self.qbit_window,
+            title="Information",
+            message="Making changes in qBittorrent WebUI or Category settings requires a "
+            "client restart to work properly. Ensure that you have restarted the client "
+            "before attempting to use automatic injection",
+        )
+
         # run exit function
         self.win_exit()
 
