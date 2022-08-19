@@ -31,14 +31,27 @@ class Clients:
                 "hostname, port, user and password before trying automatic injection again"
             )
 
+        # change variables around depending on local vs remote injection
+        if (
+            self.client_config["qbit_client"]["qbit_url"] == "localhost"
+            or self.client_config["qbit_client"]["qbit_url"] == "127.0.0.1"
+        ):
+            category_var = None
+            save_path_var = pathlib.Path(encode_file_path).parent
+            auto_management_var = False
+        else:
+            category_var = self.client_config["qbit_client"]["qbit_category"]
+            save_path_var = None
+            auto_management_var = True
+
         # add torrent file to qBittorrent
         try:
             add_torrent = qbt_client.torrents_add(
                 torrent_files=torrent_file_path,
-                save_path=pathlib.Path(encode_file_path).parent,
-                use_auto_torrent_management=False,
+                save_path=save_path_var,
+                use_auto_torrent_management=auto_management_var,
                 is_skip_checking=True,
-                content_layout="Original",
+                category=category_var,
             )
         except qbittorrentapi.exceptions.APIConnectionError:
             raise ValueError(
