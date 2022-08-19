@@ -1,25 +1,23 @@
-import pathlib
+import re
 from configparser import ConfigParser
 from tkinter import (
     Toplevel,
-    LabelFrame,
     W,
     N,
     E,
     S,
     Checkbutton,
     StringVar,
-    DISABLED,
-    ttk,
     Frame,
     Entry,
-    filedialog,
     Label,
     SUNKEN,
     messagebox,
 )
-from packages.hoverbutton import HoverButton
+
 from custom_hovertip import CustomTooltipLabel
+
+from packages.hoverbutton import HoverButton
 
 
 class QBittorrentWindow:
@@ -54,6 +52,22 @@ class QBittorrentWindow:
         self.custom_button_color_dict = custom_button_color_dict
         self.custom_entry_colors_dict = custom_entry_colors_dict
         self.custom_label_colors_dict = custom_label_colors_dict
+
+        # host name var
+        self.host_name_var = StringVar()
+        self.host_name_var.set(self.qbit_config["qbit_client"]["qbit_url"])
+
+        # host port var
+        self.host_port_var = StringVar()
+        self.host_port_var.set(self.qbit_config["qbit_client"]["qbit_port"])
+
+        # username var
+        self.user_name_var = StringVar()
+        self.user_name_var.set(self.qbit_config["qbit_client"]["qbit_user"])
+
+        # password var
+        self.pass_word_var = StringVar()
+        self.pass_word_var.set(self.qbit_config["qbit_client"]["qbit_password"])
 
         # disable menu option
         self.options_menu.entryconfig("qBittorrent Injection", state="disabled")
@@ -100,17 +114,15 @@ class QBittorrentWindow:
             onvalue="true",
             offvalue="false",
             command=self.injection_toggle_func,
-        )
-        self.injection_toggle.grid(
-            row=0, column=0, columnspan=3, padx=5, pady=(5, 3), sticky=E + W
-        )
-        self.injection_toggle.configure(
             background=self.custom_window_bg_color,
             foreground=self.custom_button_color_dict["foreground"],
             activebackground=self.custom_window_bg_color,
             activeforeground=self.custom_button_color_dict["foreground"],
             selectcolor=custom_window_bg_color,
-            font=(self.font, self.font_size + 2),
+            font=(self.font, self.font_size + 2, "bold"),
+        )
+        self.injection_toggle.grid(
+            row=0, column=0, columnspan=3, padx=5, pady=(5, 3), sticky=E + W
         )
 
         # create a tool tip for injection toggle widget
@@ -119,172 +131,158 @@ class QBittorrentWindow:
             hover_delay=400,
             background=custom_window_bg_color,
             foreground=self.custom_label_frame_color_dict["foreground"],
-            font=(self.font, 9, "bold"),
+            font=(self.font, self.font_size, "bold"),
             text="Enables automatic qBittorrent torrent client\ninjection when "
             "uploading your torrent to BeyondHD",
         )
 
         # define options label frame
-        self.injection_type = LabelFrame(
+        self.injection_frame = Frame(
             self.qbit_window,
-            text=" Injection Options ",
-            labelanchor="nw",
-            bd=3,
-            font=(self.font, 10, "bold"),
-            fg=self.custom_label_frame_color_dict["foreground"],
+            bd=0,
             bg=self.custom_label_frame_color_dict["background"],
         )
-        self.injection_type.grid(
-            column=0, row=1, columnspan=3, padx=5, pady=(5, 3), sticky=W + E + N + S
+        self.injection_frame.grid(
+            row=1, column=0, columnspan=3, padx=5, pady=(5, 3), sticky=W + E + N + S
         )
 
-        self.injection_type.grid_rowconfigure(0, weight=300)
-        self.injection_type.grid_rowconfigure(1, weight=1)
-        self.injection_type.grid_columnconfigure(0, weight=1)
-        self.injection_type.grid_columnconfigure(1, weight=1)
+        for i_f in range(8):
+            self.injection_frame.grid_rowconfigure(i_f, weight=1)
+        for i_f_1 in range(3):
+            self.injection_frame.grid_columnconfigure(i_f_1, weight=1)
 
-        # define injection type variable
-        self.injection_type_var = StringVar()
-        self.injection_type_var.set(
-            self.qbit_config["qbit_client"]["qbit_injection_type"]
-        )
-
-        # define tabbed window
-        self.injection_tabs = ttk.Notebook(self.injection_type, cursor="hand2")
-        self.injection_tabs.grid(
-            row=0, column=0, columnspan=4, sticky=E + W + N + S, padx=2, pady=(2, 2)
-        )
-        self.injection_tabs.grid_columnconfigure(0, weight=1)
-        self.injection_tabs.grid_rowconfigure(1, weight=1)
-
-        # change injection type based on selected tab
-        self.injection_tabs.bind("<<NotebookTabChanged>>", self.tab_changed)
-
-        # webui tab
-        self.webui_tab = Frame(
-            self.injection_tabs, bg=self.custom_frame_color_dict["specialbg"]
-        )
-        self.injection_tabs.add(self.webui_tab, text=" WebUI ")
-        self.webui_tab.grid_rowconfigure(0, weight=1)
-        self.webui_tab.grid_columnconfigure(0, weight=100)
-        self.webui_tab.grid_columnconfigure(3, weight=1)
-
-        # cli tab
-        self.cli_tab = Frame(
-            self.injection_tabs, bg=self.custom_frame_color_dict["specialbg"]
-        )
-        self.injection_tabs.add(self.cli_tab, text=" CLI ")
-        self.cli_tab.grid_rowconfigure(0, weight=1)
-        self.cli_tab.grid_rowconfigure(1, weight=1)
-        self.cli_tab.grid_columnconfigure(0, weight=1)
-        self.cli_tab.grid_columnconfigure(1, weight=1)
-
-        # qBittorrent path label frame
-        self.qbittorrent_frame = Frame(
-            self.cli_tab,
+        # host label
+        self.host_label = Label(
+            self.injection_frame,
+            text="Host:",
             bd=0,
-            bg=self.custom_frame_color_dict["specialbg"],
+            relief=SUNKEN,
+            background=self.custom_label_colors_dict["background"],
+            fg=self.custom_button_color_dict["activeforeground"],
+            font=(self.font, self.font_size, "bold"),
         )
-        self.qbittorrent_frame.grid(
-            column=0, row=0, columnspan=4, padx=5, pady=(0, 3), sticky=E + W + N + S
-        )
-        self.qbittorrent_frame.grid_rowconfigure(0, weight=1)
-        self.qbittorrent_frame.grid_columnconfigure(0, weight=1)
-        self.qbittorrent_frame.grid_columnconfigure(1, weight=1000)
+        self.host_label.grid(row=1, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
-        # set qbittorrent cli button
-        self.set_path = HoverButton(
-            self.qbittorrent_frame,
-            text="Set",
-            command=self.set_qbittorrent_path,
-            borderwidth="3",
-            width=12,
-            foreground=self.custom_button_color_dict["foreground"],
-            background=self.custom_button_color_dict["background"],
-            activeforeground=self.custom_button_color_dict["activeforeground"],
-            activebackground=self.custom_button_color_dict["activebackground"],
-            disabledforeground=self.custom_button_color_dict["disabledforeground"],
-        )
-        self.set_path.grid(row=0, column=0, padx=5, pady=(5, 3), sticky=W + E)
-
-        # qBittorrent program path variable
-        self.qbittorrent_client_path = StringVar()
-
-        # qBittorrent cli entry path
-        self.qbit_path_entry = Entry(
-            self.qbittorrent_frame,
+        # host entry
+        self.host_name = Entry(
+            self.injection_frame,
             borderwidth=4,
-            textvariable=self.qbittorrent_client_path,
+            textvariable=self.host_name_var,
             fg=self.custom_entry_colors_dict["foreground"],
             bg=self.custom_entry_colors_dict["background"],
             disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
-            state=DISABLED,
         )
-        self.qbit_path_entry.grid(
-            row=0, column=1, columnspan=3, padx=5, pady=(5, 2), sticky=W + E
-        )
-
-        # update entry box with saved path var if it exists
-        if pathlib.Path(self.qbit_config["qbit_client"]["qbit_path"]).is_file():
-            self.qbittorrent_client_path.set(
-                str(pathlib.Path(self.qbit_config["qbit_client"]["qbit_path"]))
-            )
-
-        # define variable option for paused torrent
-        self.cli_paused_var = StringVar()
-
-        # set variable from the config
-        self.cli_paused_var.set(self.qbit_config["qbit_client"]["qbit_cli_paused"])
-
-        # define injection option for paused torrent
-        self.cli_paused = Checkbutton(
-            self.cli_tab,
-            text="Torrent Paused",
-            variable=self.cli_paused_var,
-            onvalue="true",
-            offvalue="false",
-        )
-        self.cli_paused.grid(row=1, column=0, padx=5, pady=(5, 3), sticky=E + W)
-        self.cli_paused.configure(
-            background=self.custom_frame_color_dict["specialbg"],
-            foreground=self.custom_button_color_dict["foreground"],
-            activebackground=self.custom_frame_color_dict["specialbg"],
-            activeforeground=self.custom_button_color_dict["foreground"],
-            selectcolor=custom_window_bg_color,
-            font=(self.font, self.font_size + 1),
+        self.host_name.grid(
+            row=2, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
-        # define injection option variable
-        self.cli_skipped_var = StringVar()
-
-        # set skipped torrent variable from config
-        self.cli_skipped_var.set(self.qbit_config["qbit_client"]["qbit_cli_skip_check"])
-
-        # define injection option for skipped torrent
-        self.cli_skip_check = Checkbutton(
-            self.cli_tab,
-            text="Skip Check",
-            variable=self.cli_skipped_var,
-            onvalue="true",
-            offvalue="false",
+        # host tooltip label
+        CustomTooltipLabel(
+            anchor_widget=self.host_name,
+            hover_delay=400,
+            background=custom_window_bg_color,
+            foreground=self.custom_label_frame_color_dict["foreground"],
+            font=(self.font, self.font_size, "bold"),
+            text="If qBittorrent is ran locally:\n'localhost'\n\nDefine host-name IP address:\n'192.168.1.1'",
         )
-        self.cli_skip_check.grid(row=1, column=1, padx=5, pady=(5, 3), sticky=E + W)
-        self.cli_skip_check.configure(
-            background=self.custom_frame_color_dict["specialbg"],
-            foreground=self.custom_button_color_dict["foreground"],
-            activebackground=self.custom_frame_color_dict["specialbg"],
-            activeforeground=self.custom_button_color_dict["foreground"],
-            selectcolor=custom_window_bg_color,
-            font=(self.font, self.font_size + 1),
-        )
-        ##
 
-        # set tab
-        if "webui" in self.injection_type_var.get():
-            self.injection_tabs.select(0)
-        elif "cli" in self.injection_type_var.get():
-            self.injection_tabs.select(1)
+        # host port
+        self.host_port = Label(
+            self.injection_frame,
+            text="Port:",
+            bd=0,
+            relief=SUNKEN,
+            background=self.custom_label_colors_dict["background"],
+            fg=self.custom_button_color_dict["activeforeground"],
+            font=(self.font, self.font_size, "bold"),
+        )
+        self.host_port.grid(row=3, column=0, padx=5, pady=(5, 0), sticky=S + W)
+
+        # host port entry
+        self.host_port_name = Entry(
+            self.injection_frame,
+            borderwidth=4,
+            textvariable=self.host_port_var,
+            fg=self.custom_entry_colors_dict["foreground"],
+            bg=self.custom_entry_colors_dict["background"],
+            disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
+            disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
+        )
+        self.host_port_name.grid(
+            row=4, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+        )
+
+        # host tooltip label
+        CustomTooltipLabel(
+            anchor_widget=self.host_port_name,
+            hover_delay=400,
+            background=custom_window_bg_color,
+            foreground=self.custom_label_frame_color_dict["foreground"],
+            font=(self.font, self.font_size, "bold"),
+            text="e.g. '8080' (8080 is default)",
+        )
+
+        # username label
+        self.user_name = Label(
+            self.injection_frame,
+            text="User:",
+            bd=0,
+            relief=SUNKEN,
+            background=self.custom_label_colors_dict["background"],
+            fg=self.custom_button_color_dict["activeforeground"],
+            font=(self.font, self.font_size, "bold"),
+        )
+        self.user_name.grid(row=5, column=0, padx=5, pady=(5, 0), sticky=S + W)
+
+        # username entry
+        self.host_port_name = Entry(
+            self.injection_frame,
+            borderwidth=4,
+            textvariable=self.user_name_var,
+            fg=self.custom_entry_colors_dict["foreground"],
+            bg=self.custom_entry_colors_dict["background"],
+            disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
+            disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
+        )
+        self.host_port_name.grid(
+            row=6, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+        )
+
+        # password label
+        self.password_label = Label(
+            self.injection_frame,
+            text="Password:",
+            bd=0,
+            relief=SUNKEN,
+            background=self.custom_label_colors_dict["background"],
+            fg=self.custom_button_color_dict["activeforeground"],
+            font=(self.font, self.font_size, "bold"),
+        )
+        self.password_label.grid(row=7, column=0, padx=5, pady=(5, 0), sticky=S + W)
+
+        # password entry
+        self.pass_word_entry = Entry(
+            self.injection_frame,
+            borderwidth=4,
+            textvariable=self.pass_word_var,
+            show="*",
+            fg=self.custom_entry_colors_dict["foreground"],
+            bg=self.custom_entry_colors_dict["background"],
+            disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
+            disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
+        )
+        self.pass_word_entry.grid(
+            row=8, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+        )
+
+        # show password when mouse hovers over password entry box
+        self.pass_word_entry.bind(
+            "<Enter>", lambda event: self.pass_word_entry.config(show="")
+        )
+        self.pass_word_entry.bind(
+            "<Leave>", lambda event: self.pass_word_entry.config(show="*")
+        )
 
         # cancel button
         self.cancel_button = HoverButton(
@@ -301,20 +299,6 @@ class QBittorrentWindow:
         )
         self.cancel_button.grid(row=2, column=0, padx=5, pady=(5, 3), sticky=W + S + N)
 
-        # status label
-        self.qbit_status_label = Label(
-            self.qbit_window,
-            text=f"Injection Mode: {self.injection_type_var.get().upper()}",
-            bd=0,
-            relief=SUNKEN,
-            background=self.custom_label_colors_dict["background"],
-            fg=self.custom_label_colors_dict["foreground"],
-            font=(self.font, self.font_size - 1),
-        )
-        self.qbit_status_label.grid(
-            row=2, column=1, padx=5, pady=(5, 3), sticky=S + N + W + E
-        )
-
         # apply button
         self.apply_button = HoverButton(
             self.qbit_window,
@@ -330,22 +314,6 @@ class QBittorrentWindow:
         )
         self.apply_button.grid(row=2, column=2, padx=5, pady=(5, 3), sticky=E + S + N)
 
-    # def update_cli_paused_var(self):
-    #     """update cli paused variable to config"""
-    #     update_cli_parser = ConfigParser()
-    #     update_cli_parser.read(self.configfile)
-    #     update_cli_parser.set("qbit_client", "qbit_cli_paused", self.cli_paused_var.get())
-    #     with open(self.configfile, "w") as cli_cfg:
-    #         update_cli_parser.write(cli_cfg)
-    #
-    # def update_cli_skipped_var(self):
-    #     """update cli skipped variable to config"""
-    #     update_skip_parser = ConfigParser()
-    #     update_skip_parser.read(self.configfile)
-    #     update_skip_parser.set("qbit_client", "qbit_cli_skip_check", self.cli_skipped_var.get())
-    #     with open(self.configfile, "w") as cli_cfg1:
-    #         update_skip_parser.write(cli_cfg1)
-
     def injection_toggle_func(self):
         """update config file with injection enabled/disable"""
         injection_enable_disable_parser = ConfigParser()
@@ -356,103 +324,51 @@ class QBittorrentWindow:
         with open(self.configfile, "w") as enable_disable:
             injection_enable_disable_parser.write(enable_disable)
 
-    def set_qbittorrent_path(self):
-        """set path to qbittorrent"""
-        qbit_path_parser = ConfigParser()
-        qbit_path_parser.read(self.configfile)
-
-        # check config file for existing path
-        if (
-            qbit_path_parser["qbit_client"]["qbit_path"] != ""
-            and pathlib.Path(qbit_path_parser["qbit_client"]["qbit_path"]).is_file()
-        ):
-            qbit_path_directory = pathlib.Path(
-                qbit_path_parser["qbit_client"]["qbit_path"]
-            ).parent
-            qbit_exe = pathlib.Path(qbit_path_parser["qbit_client"]["qbit_path"]).name
-        else:
-            qbit_path_directory = "/"
-            qbit_exe = ""
-
-        # dialog to define the path
-        qbit_app_path = filedialog.askopenfilename(
-            parent=self.qbit_window,
-            title="Set Path to qBittorrent",
-            initialdir=qbit_path_directory,
-            initialfile=qbit_exe,
-            filetypes=[("qBittorrent", "qbittorrent.exe")],
-        )
-
-        if qbit_app_path:
-            # update entry variable
-            self.qbittorrent_client_path.set(str(pathlib.Path(qbit_app_path)))
-
-            # write new path to config
-            qbit_path_parser.set(
-                "qbit_client", "qbit_path", str(pathlib.Path(qbit_app_path))
-            )
-            with open(self.configfile, "w") as qbit_path_cfg:
-                qbit_path_parser.write(qbit_path_cfg)
-
-    def tab_changed(self, _):
-        """
-        Re-assign injection type var each time the tab is changed
-        If selected tab is webui update variable to webui, if selected tab is cli update variable to cli
-
-        Update status label with injection type
-        """
-        if (
-            str(self.injection_tabs.tab(self.injection_tabs.select(), "text"))
-            .lower()
-            .strip()
-            == "webui"
-        ):
-            self.injection_type_var.set("webui")
-        elif (
-            str(self.injection_tabs.tab(self.injection_tabs.select(), "text"))
-            .lower()
-            .strip()
-            == "cli"
-        ):
-            self.injection_type_var.set("cli")
-
-        self.qbit_status_label.config(
-            text=f"Injection Mode: {self.injection_type_var.get().upper()}"
-        )
-
     def apply_button_function(self):
         """run when apply button is selected"""
+
+        # check for host name
+        if self.host_name_var.get() == "":
+            self.host_name_var.set("localhost")
+
+        # check for port
+        if self.host_port_var.get() == "":
+            self.host_port_var.set("8080")
+        else:
+            check_for_only_digits = re.search(r"\D", self.host_port_var.get())
+            if check_for_only_digits:
+                self.show_error(
+                    "Port entry box should only be numerical digits... e.g. 8080"
+                )
+                return
+
+        # check for username
+        if self.user_name_var.get() == "":
+            self.show_error(
+                "You must setup a user name in qBittorrent's WebUI settings and enter it here"
+            )
+            return
+
+        # check for password
+        if self.pass_word_var.get() == "":
+            self.show_error(
+                "You must setup a password in the qBittorrent's WebUI settings and enter it here"
+            )
+            return
 
         # define parser for apply
         apply_btn_parser = ConfigParser()
         apply_btn_parser.read(self.configfile)
 
-        # run different functions based off of selected injection type
-        if self.injection_type_var.get() == "webui":
-            pass
-        elif self.injection_type_var.get() == "cli":
-            apply_btn_parser.set(
-                "qbit_client", "qbit_cli_skip_check", self.cli_skipped_var.get()
-            )
-            apply_btn_parser.set(
-                "qbit_client", "qbit_cli_paused", self.cli_paused_var.get()
-            )
+        # define all settings for config file
+        apply_btn_parser.set("qbit_client", "qbit_url", self.host_name_var.get())
+        apply_btn_parser.set("qbit_client", "qbit_port", self.host_port_var.get())
+        apply_btn_parser.set("qbit_client", "qbit_user", self.user_name_var.get())
+        apply_btn_parser.set("qbit_client", "qbit_password", self.pass_word_var.get())
 
-        # update config information to file
+        # save all settings in config file
         with open(self.configfile, "w") as apply_cfg:
             apply_btn_parser.write(apply_cfg)
-
-        # check if all parameters are correctly setup
-        if self.injection_enable.get() == "true":
-            if self.injection_type_var.get().lower() == "cli":
-                if not pathlib.Path(self.qbittorrent_client_path.get()).is_file():
-                    messagebox.showerror(
-                        parent=self.qbit_window,
-                        title="Error",
-                        message="qBittorrent.exe path must be defined or "
-                        "injection mode must be set to disabled",
-                    )
-                    return  # exit
 
         # run exit function
         self.win_exit()
@@ -485,3 +401,8 @@ class QBittorrentWindow:
 
         # close window
         self.qbit_window.destroy()
+
+    def show_error(self, error_message):
+        messagebox.showerror(
+            parent=self.qbit_window, title="Error", message=error_message
+        )
