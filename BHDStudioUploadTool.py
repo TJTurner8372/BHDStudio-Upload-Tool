@@ -7219,6 +7219,22 @@ def torrent_function_window():
         if error:  # if error is true
             return  # exit the function
 
+        class WaitForTorrent:
+            """class to wait for torrent creation"""
+            def __init__(self):
+                self.wait_counter = 0
+
+            def wait_for_torrent_output(self):
+                """check for torrent file output, if not found check after 1 second or until timed out"""
+                if self.wait_counter < 5:
+                    if not pathlib.Path(torrent_file_path.get()).is_file():
+                        self.wait_counter += 1
+                        root.after(1000, self.wait_for_torrent_output)
+                    else:
+                        tor_queue.put("Complete")
+                else:
+                    raise ValueError("Cannot locate saved torrent file")
+
         def torrent_progress(torrent, filepath, pieces_done, pieces_total):
             """call back method to read/abort progress"""
 
@@ -7227,7 +7243,8 @@ def torrent_function_window():
 
             # if pieces are done and torrent file is present send "Complete" to the Queue
             if pieces_done == pieces_total:
-                tor_queue.put("Complete")
+                check_for_tor = WaitForTorrent()
+                check_for_tor.wait_for_torrent_output()
 
         # if callback torrent_progress returns anything other than None, exit the function
         if not build_torrent.generate(callback=torrent_progress):
@@ -7298,18 +7315,15 @@ def torrent_function_window():
 
             # if the data has Complete sent to it, confirm that the torrent file is there and call the exit function
             elif str(torrent_queue_data) == "Complete":
-                # if *.torrent exists then exit the window
-                if pathlib.Path(torrent_file_path.get()).is_file():
+                # call task done and exit queue
+                torrent_queue.task_done()
+                torrent_queue.join()
 
-                    # call task done and exit queue
-                    torrent_queue.task_done()
-                    torrent_queue.join()
+                # call the torrent window exit function
+                torrent_window_exit_function()
 
-                    # call the torrent window exit function
-                    torrent_window_exit_function()
-
-                    # exit this loop
-                    return
+                # exit this loop
+                return
 
         # keep polling data every millisecond
         root.after(1, torrent_queue_loop)
