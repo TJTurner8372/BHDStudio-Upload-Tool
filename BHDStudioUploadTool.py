@@ -11,11 +11,9 @@ import threading
 import tkinter.scrolledtext as scrolledtextwidget
 import webbrowser
 import zipfile
-from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
-from packages.torrent_clients import Clients
 from tkinter import (
     filedialog,
     StringVar,
@@ -71,6 +69,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from torf import Torrent
 
 from packages.About import openaboutwindow
+from packages.default_config_params import *
 from packages.hoverbutton import HoverButton
 from packages.icon import (
     base_64_icon,
@@ -79,10 +78,11 @@ from packages.icon import (
     bhd_upload_icon,
     bhd_upload_icon_disabled,
 )
+from packages.qbittorrent_window import QBittorrentWindow
 from packages.show_streams import stream_menu
 from packages.tmdb_key import tmdb_api_key
+from packages.torrent_clients import Clients
 from packages.user_pw_key import crypto_key
-from packages.qbittorrent_window import QBittorrentWindow
 
 # check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
@@ -109,121 +109,6 @@ main_root_title = "BHDStudio Upload Tool v1.44"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
-
-# define config file and settings
-config_file = "runtime/config.ini"  # Creates (if it doesn't exist) and defines location of config.ini
-config = ConfigParser()
-config.read(config_file)
-
-# torrent settings
-if not config.has_section("torrent_settings"):
-    config.add_section("torrent_settings")
-if not config.has_option("torrent_settings", "tracker_url"):
-    config.set("torrent_settings", "tracker_url", "")
-if not config.has_option("torrent_settings", "default_path"):
-    config.set("torrent_settings", "default_path", "")
-
-# qbit client settings
-if not config.has_section("qbit_client"):
-    config.add_section("qbit_client")
-if not config.has_option("qbit_client", "qbit_injection_toggle"):
-    config.set("qbit_client", "qbit_injection_toggle", "false")
-if not config.has_option("qbit_client", "qbit_url"):
-    config.set("qbit_client", "qbit_url", "localhost")
-if not config.has_option("qbit_client", "qbit_port"):
-    config.set("qbit_client", "qbit_port", "8080")
-if not config.has_option("qbit_client", "qbit_user"):
-    config.set("qbit_client", "qbit_user", "admin")
-if not config.has_option("qbit_client", "qbit_password"):
-    config.set("qbit_client", "qbit_password", "password")
-if not config.has_option("qbit_client", "qbit_category"):
-    config.set("qbit_client", "qbit_category", "")
-
-# encoder name
-if not config.has_section("encoder_name"):
-    config.add_section("encoder_name")
-if not config.has_option("encoder_name", "name"):
-    config.set("encoder_name", "name", "")
-
-# bhd upload api
-if not config.has_section("bhd_upload_api"):
-    config.add_section("bhd_upload_api")
-if not config.has_option("bhd_upload_api", "key"):
-    config.set("bhd_upload_api", "key", "")
-
-# live release
-if not config.has_section("live_release"):
-    config.add_section("live_release")
-if not config.has_option("live_release", "password"):
-    config.set("live_release", "password", "")
-if not config.has_option("live_release", "value"):
-    config.set("live_release", "value", "")
-
-# nfo font
-if not config.has_section("nfo_pad_font_settings"):
-    config.add_section("nfo_pad_font_settings")
-if not config.has_option("nfo_pad_font_settings", "font"):
-    config.set("nfo_pad_font_settings", "font", "")
-if not config.has_option("nfo_pad_font_settings", "style"):
-    config.set("nfo_pad_font_settings", "style", "")
-if not config.has_option("nfo_pad_font_settings", "size"):
-    config.set("nfo_pad_font_settings", "size", "")
-
-# # nfo color scheme
-if not config.has_section("nfo_pad_color_settings"):
-    config.add_section("nfo_pad_color_settings")
-if not config.has_option("nfo_pad_color_settings", "text"):
-    config.set("nfo_pad_color_settings", "text", "")
-if not config.has_option("nfo_pad_color_settings", "background"):
-    config.set("nfo_pad_color_settings", "background", "")
-
-# check for updates
-if not config.has_section("check_for_updates"):
-    config.add_section("check_for_updates")
-if not config.has_option("check_for_updates", "value"):
-    config.set("check_for_updates", "value", "True")
-if not config.has_option("check_for_updates", "ignore_version"):
-    config.set("check_for_updates", "ignore_version", "")
-
-# window location settings
-if not config.has_section("save_window_locations"):
-    config.add_section("save_window_locations")
-if not config.has_option("save_window_locations", "bhdstudiotool"):
-    config.set("save_window_locations", "bhdstudiotool", "")
-if not config.has_option("save_window_locations", "torrent_window"):
-    config.set("save_window_locations", "torrent_window", "")
-if not config.has_option("save_window_locations", "nfo_pad"):
-    config.set("save_window_locations", "nfo_pad", "")
-if not config.has_option("save_window_locations", "uploader"):
-    config.set("save_window_locations", "uploader", "")
-if not config.has_option("save_window_locations", "movie_info"):
-    config.set("save_window_locations", "movie_info", "")
-if not config.has_option("save_window_locations", "about_window"):
-    config.set("save_window_locations", "about_window", "")
-if not config.has_option("save_window_locations", "image_viewer"):
-    config.set("save_window_locations", "image_viewer", "")
-
-# screenshot settings
-if not config.has_section("screenshot_settings"):
-    config.add_section("screenshot_settings")
-if not config.has_option("screenshot_settings", "semi_auto_count"):
-    config.set("screenshot_settings", "semi_auto_count", "")
-
-# last used folder
-if not config.has_section("last_used_folder"):
-    config.add_section("last_used_folder")
-if not config.has_option("last_used_folder", "path"):
-    config.set("last_used_folder", "path", "")
-
-# themes
-if not config.has_section("themes"):
-    config.add_section("themes")
-if not config.has_option("themes", "selected_theme"):
-    config.set("themes", "selected_theme", "bhd_theme")
-
-# write options to config if they do not exist
-with open(config_file, "w") as configfile:
-    config.write(configfile)
 
 # define theme colors based on user selection
 if (
@@ -10272,11 +10157,6 @@ def clean_update_files():
 
 if app_type == "bundled":
     root.after(5000, clean_update_files)
-
-# list_of_all_buttons = [source_button, encode_button]
-#
-# for x in list_of_all_buttons:
-#     x.configure(background="SystemButtonFace")
 
 # tkinter mainloop
 root.mainloop()
