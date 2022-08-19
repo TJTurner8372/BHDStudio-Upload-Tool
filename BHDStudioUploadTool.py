@@ -11,7 +11,6 @@ import threading
 import tkinter.scrolledtext as scrolledtextwidget
 import webbrowser
 import zipfile
-from configparser import ConfigParser
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
@@ -69,19 +68,23 @@ from pymediainfo import MediaInfo
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from torf import Torrent
 
-from Packages.About import openaboutwindow
-from Packages.icon import (
+from packages.About import openaboutwindow
+from packages.default_config_params import *
+from packages.hoverbutton import HoverButton
+from packages.icon import (
     base_64_icon,
     imdb_icon,
     tmdb_icon,
     bhd_upload_icon,
     bhd_upload_icon_disabled,
 )
-from Packages.show_streams import stream_menu
-from Packages.tmdb_key import tmdb_api_key
-from Packages.user_pw_key import crypto_key
+from packages.qbittorrent_window import QBittorrentWindow
+from packages.show_streams import stream_menu
+from packages.tmdb_key import tmdb_api_key
+from packages.torrent_clients import Clients
+from packages.user_pw_key import crypto_key
 
-# check if program had a file dropped/any commands on the .exe or .pyscript upon launch
+# check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
     cli_command = sys.argv[1]
 except IndexError:  # if it doesn't set variable to None
@@ -105,152 +108,53 @@ elif app_type == "script":
 main_root_title = "BHDStudio Upload Tool v1.44"
 
 # create runtime folder if it does not exist
-pathlib.Path(pathlib.Path.cwd() / "Runtime").mkdir(parents=True, exist_ok=True)
-
-# define config file and settings
-config_file = "Runtime/config.ini"  # Creates (if it doesn't exist) and defines location of config.ini
-config = ConfigParser()
-config.read(config_file)
-
-# torrent settings
-if not config.has_section("torrent_settings"):
-    config.add_section("torrent_settings")
-if not config.has_option("torrent_settings", "tracker_url"):
-    config.set("torrent_settings", "tracker_url", "")
-if not config.has_option("torrent_settings", "default_path"):
-    config.set("torrent_settings", "default_path", "")
-
-# encoder name
-if not config.has_section("encoder_name"):
-    config.add_section("encoder_name")
-if not config.has_option("encoder_name", "name"):
-    config.set("encoder_name", "name", "")
-
-# bhd upload api
-if not config.has_section("bhd_upload_api"):
-    config.add_section("bhd_upload_api")
-if not config.has_option("bhd_upload_api", "key"):
-    config.set("bhd_upload_api", "key", "")
-
-# live release
-if not config.has_section("live_release"):
-    config.add_section("live_release")
-if not config.has_option("live_release", "password"):
-    config.set("live_release", "password", "")
-if not config.has_option("live_release", "value"):
-    config.set("live_release", "value", "")
-
-# nfo font
-if not config.has_section("nfo_pad_font_settings"):
-    config.add_section("nfo_pad_font_settings")
-if not config.has_option("nfo_pad_font_settings", "font"):
-    config.set("nfo_pad_font_settings", "font", "")
-if not config.has_option("nfo_pad_font_settings", "style"):
-    config.set("nfo_pad_font_settings", "style", "")
-if not config.has_option("nfo_pad_font_settings", "size"):
-    config.set("nfo_pad_font_settings", "size", "")
-
-# # nfo color scheme
-if not config.has_section("nfo_pad_color_settings"):
-    config.add_section("nfo_pad_color_settings")
-if not config.has_option("nfo_pad_color_settings", "text"):
-    config.set("nfo_pad_color_settings", "text", "")
-if not config.has_option("nfo_pad_color_settings", "background"):
-    config.set("nfo_pad_color_settings", "background", "")
-
-# check for updates
-if not config.has_section("check_for_updates"):
-    config.add_section("check_for_updates")
-if not config.has_option("check_for_updates", "value"):
-    config.set("check_for_updates", "value", "True")
-if not config.has_option("check_for_updates", "ignore_version"):
-    config.set("check_for_updates", "ignore_version", "")
-
-# window location settings
-if not config.has_section("save_window_locations"):
-    config.add_section("save_window_locations")
-if not config.has_option("save_window_locations", "bhdstudiotool"):
-    config.set("save_window_locations", "bhdstudiotool", "")
-if not config.has_option("save_window_locations", "torrent_window"):
-    config.set("save_window_locations", "torrent_window", "")
-if not config.has_option("save_window_locations", "nfo_pad"):
-    config.set("save_window_locations", "nfo_pad", "")
-if not config.has_option("save_window_locations", "uploader"):
-    config.set("save_window_locations", "uploader", "")
-if not config.has_option("save_window_locations", "movie_info"):
-    config.set("save_window_locations", "movie_info", "")
-if not config.has_option("save_window_locations", "about_window"):
-    config.set("save_window_locations", "about_window", "")
-if not config.has_option("save_window_locations", "image_viewer"):
-    config.set("save_window_locations", "image_viewer", "")
-
-# screenshot settings
-if not config.has_section("screenshot_settings"):
-    config.add_section("screenshot_settings")
-if not config.has_option("screenshot_settings", "semi_auto_count"):
-    config.set("screenshot_settings", "semi_auto_count", "")
-
-# last used folder
-if not config.has_section("last_used_folder"):
-    config.add_section("last_used_folder")
-if not config.has_option("last_used_folder", "path"):
-    config.set("last_used_folder", "path", "")
-
-# themes
-if not config.has_section("themes"):
-    config.add_section("themes")
-if not config.has_option("themes", "selected_theme"):
-    config.set("themes", "selected_theme", "bhd_theme")
-
-# write options to config if they do not exist
-with open(config_file, "w") as configfile:
-    config.write(configfile)
+pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
 
 # define theme colors based on user selection
 if (
     config["themes"]["selected_theme"] == "bhd_theme"
     or config["themes"]["selected_theme"] == ""
 ):
-    from Packages.themes.bhd_theme import *
+    from packages.themes.bhd_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_green_theme":
-    from Packages.themes.dark_green_theme import *
+    from packages.themes.dark_green_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_red_theme":
-    from Packages.themes.dark_red_theme import *
+    from packages.themes.dark_red_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_yellow_theme":
-    from Packages.themes.dark_yellow_theme import *
+    from packages.themes.dark_yellow_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_orange_theme":
-    from Packages.themes.dark_orange_theme import *
+    from packages.themes.dark_orange_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_cyan_theme":
-    from Packages.themes.dark_cyan_theme import *
+    from packages.themes.dark_cyan_theme import *
 
 elif config["themes"]["selected_theme"] == "dark_purple_theme":
-    from Packages.themes.dark_purple_theme import *
+    from packages.themes.dark_purple_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_green_theme":
-    from Packages.themes.mid_dark_green_theme import *
+    from packages.themes.mid_dark_green_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_red_theme":
-    from Packages.themes.mid_dark_red_theme import *
+    from packages.themes.mid_dark_red_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_yellow_theme":
-    from Packages.themes.mid_dark_yellow_theme import *
+    from packages.themes.mid_dark_yellow_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_orange_theme":
-    from Packages.themes.mid_dark_orange_theme import *
+    from packages.themes.mid_dark_orange_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_cyan_theme":
-    from Packages.themes.mid_dark_cyan_theme import *
+    from packages.themes.mid_dark_cyan_theme import *
 
 elif config["themes"]["selected_theme"] == "mid_dark_purple_theme":
-    from Packages.themes.mid_dark_purple_theme import *
+    from packages.themes.mid_dark_purple_theme import *
 
 elif config["themes"]["selected_theme"] == "light_theme":
-    from Packages.themes.light_theme import *
+    from packages.themes.light_theme import *
 
 
 def root_exit_function():
@@ -400,22 +304,6 @@ for n in range(4):
     root.grid_columnconfigure(n, weight=1)
 for n in range(5):
     root.grid_rowconfigure(n, weight=1)
-
-
-# hoverbutton class
-class HoverButton(Button):
-    def __init__(self, master, **kw):
-        Button.__init__(self, master=master, **kw)
-        self.defaultBackground = self["foreground"]
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
-
-    def on_enter(self, e):
-        self["foreground"] = self["activeforeground"]
-
-    def on_leave(self, e):
-        self["foreground"] = self.defaultBackground
-
 
 detect_font = font.nametofont(
     "TkDefaultFont"
@@ -4873,23 +4761,23 @@ def auto_screen_shot_status_window():
 
         # load needed plugins
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/SubText.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/SubText.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libimwri.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libimwri.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libvslsmashsource.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libvslsmashsource.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/libfpng.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/libfpng.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("Runtime/Apps/image_comparison/ffms2.dll")
+            core.std.LoadPlugin("runtime/Apps/image_comparison/ffms2.dll")
         except vs.Error:
             pass
 
@@ -5149,15 +5037,20 @@ def auto_screen_shot_status_window():
         )
 
         # update queue with information
-        ss_queue.put("\n\nGenerating Screenshots, please wait...")
+        ss_queue.put("\n\nGenerating Screenshots, please wait...\n")
 
-        # generate screenshots with awmfunc screengen
+        def screen_gen_callback(sg_call_back):
+            """define callback function for screen gen"""
+            ss_queue.put("\n" + str(sg_call_back).replace("ScreenGen: ", ""))
+
+        # generate screenshots with awsmfunc screen gen
         awsmfunc.ScreenGen(
             [vs_source_info, vs_encode_info],
             frame_numbers=b_frames,
             fpng_compression=2,
             folder=screenshot_comparison_var.get(),
             suffix=["a_source__%d", "b_encode__%d"],
+            callback=screen_gen_callback,
         )
 
         # update queue with information
@@ -5571,15 +5464,15 @@ def upload_to_beyond_hd_co_window():
 
     # if user and pass bin exists
     if (
-        pathlib.Path("Runtime/user.bin").is_file()
-        and pathlib.Path("Runtime/pass.bin").is_file()
+        pathlib.Path("runtime/user.bin").is_file()
+        and pathlib.Path("runtime/pass.bin").is_file()
     ):
         # start fernet instance to convert stored username and password files
         pass_user_decoder = Fernet(crypto_key)
 
         # open both user and pass bin files
-        with open("Runtime/user.bin", "rb") as user_file, open(
-            "Runtime/pass.bin", "rb"
+        with open("runtime/user.bin", "rb") as user_file, open(
+            "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read()).decode("utf-8")
@@ -5600,8 +5493,8 @@ def upload_to_beyond_hd_co_window():
                 bhd_co_login_window()
                 # update login variables
                 pass_user_decoder = Fernet(crypto_key)
-                with open("Runtime/user.bin", "rb") as user_file, open(
-                    "Runtime/pass.bin", "rb"
+                with open("runtime/user.bin", "rb") as user_file, open(
+                    "runtime/pass.bin", "rb"
                 ) as pass_file:
                     decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                         "utf-8"
@@ -5627,8 +5520,8 @@ def upload_to_beyond_hd_co_window():
             bhd_co_login_window()
             # update login variables
             pass_user_decoder = Fernet(crypto_key)
-            with open("Runtime/user.bin", "rb") as user_file, open(
-                "Runtime/pass.bin", "rb"
+            with open("runtime/user.bin", "rb") as user_file, open(
+                "runtime/pass.bin", "rb"
             ) as pass_file:
                 decode_user = pass_user_decoder.decrypt(user_file.read()).decode(
                     "utf-8"
@@ -7218,6 +7111,23 @@ def torrent_function_window():
         if error:  # if error is true
             return  # exit the function
 
+        class WaitForTorrent:
+            """class to wait for torrent creation"""
+
+            def __init__(self):
+                self.wait_counter = 0
+
+            def wait_for_torrent_output(self):
+                """check for torrent file output, if not found check after 1 second or until timed out"""
+                if self.wait_counter < 10:
+                    if not pathlib.Path(torrent_file_path.get()).is_file():
+                        self.wait_counter += 1
+                        root.after(1000, self.wait_for_torrent_output)
+                    else:
+                        tor_queue.put("Complete")
+                else:
+                    raise ValueError("Cannot locate saved torrent file")
+
         def torrent_progress(torrent, filepath, pieces_done, pieces_total):
             """call back method to read/abort progress"""
 
@@ -7226,7 +7136,8 @@ def torrent_function_window():
 
             # if pieces are done and torrent file is present send "Complete" to the Queue
             if pieces_done == pieces_total:
-                tor_queue.put("Complete")
+                check_for_tor = WaitForTorrent()
+                check_for_tor.wait_for_torrent_output()
 
         # if callback torrent_progress returns anything other than None, exit the function
         if not build_torrent.generate(callback=torrent_progress):
@@ -7297,18 +7208,15 @@ def torrent_function_window():
 
             # if the data has Complete sent to it, confirm that the torrent file is there and call the exit function
             elif str(torrent_queue_data) == "Complete":
-                # if *.torrent exists then exit the window
-                if pathlib.Path(torrent_file_path.get()).is_file():
+                # call task done and exit queue
+                torrent_queue.task_done()
+                torrent_queue.join()
 
-                    # call task done and exit queue
-                    torrent_queue.task_done()
-                    torrent_queue.join()
+                # call the torrent window exit function
+                torrent_window_exit_function()
 
-                    # call the torrent window exit function
-                    torrent_window_exit_function()
-
-                    # exit this loop
-                    return
+                # exit this loop
+                return
 
         # keep polling data every millisecond
         root.after(1, torrent_queue_loop)
@@ -8506,9 +8414,23 @@ def open_uploader_window(job_mode):
             ):
                 upload_status_info.insert(
                     END,
-                    "Upload is successful!\n\nUpload has been successfully "
+                    "Upload is successful!\nUpload has been successfully "
                     "saved as a draft on site",
                 )
+
+                # inject torrent to qBittorrent if injection is enabled
+                if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
+                    # create Clients() instance
+                    injection_client = Clients()
+
+                    # use qBittorrent method
+                    auto_injection = injection_client.qbittorrent(
+                        encode_file_path=encode_file_path.get(),
+                        torrent_file_path=torrent_file_path.get(),
+                    )
+
+                    # update status window
+                    upload_status_info.insert(END, f"\n\n{auto_injection}")
             else:
                 upload_status_info.insert(
                     END,
@@ -8735,8 +8657,8 @@ def reset_all_settings():
     # if user presses yes
     if reset_settings:
         pathlib.Path(config_file).unlink(missing_ok=True)
-        pathlib.Path("Runtime/user.bin").unlink(missing_ok=True)
-        pathlib.Path("Runtime/pass.bin").unlink(missing_ok=True)
+        pathlib.Path("runtime/user.bin").unlink(missing_ok=True)
+        pathlib.Path("runtime/pass.bin").unlink(missing_ok=True)
         messagebox.showinfo(
             title="Prompt",
             message="Settings are reset, program will restart automatically",
@@ -9145,8 +9067,8 @@ def bhd_co_login_window():
         )
 
         # write encrypted data to config
-        with open("Runtime/user.bin", "wb") as user_bin, open(
-            "Runtime/pass.bin", "wb"
+        with open("runtime/user.bin", "wb") as user_bin, open(
+            "runtime/pass.bin", "wb"
         ) as pass_bin:
             # write info to user and password bins
             user_bin.write(encode_user)
@@ -9339,14 +9261,14 @@ def bhd_co_login_window():
 
     # decode user and password
     if (
-        pathlib.Path("Runtime/user.bin").is_file()
-        and pathlib.Path("Runtime/pass.bin").is_file()
+        pathlib.Path("runtime/user.bin").is_file()
+        and pathlib.Path("runtime/pass.bin").is_file()
     ):
         # start fernet instance
         pass_user_decoder = Fernet(crypto_key)
         # open both user and pass bin files
-        with open("Runtime/user.bin", "rb") as user_file, open(
-            "Runtime/pass.bin", "rb"
+        with open("runtime/user.bin", "rb") as user_file, open(
+            "runtime/pass.bin", "rb"
         ) as pass_file:
             # decode and insert user name
             decode_user = pass_user_decoder.decrypt(user_file.read())
@@ -9553,19 +9475,6 @@ def screen_shot_count_spinbox(*e_hotkey):
 options_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Options", menu=options_menu)
 options_menu.add_command(
-    label="Encoder Name",
-    accelerator="[Ctrl+E]",
-    command=lambda: [
-        custom_input_prompt(root, "Encoder Name:", "encoder_name", "name", "show")
-    ],
-)
-root.bind(
-    "<Control-e>",
-    lambda event: custom_input_prompt(
-        root, "Encoder Name:", "encoder_name", "name", "show"
-    ),
-)
-options_menu.add_command(
     label="API Key",
     accelerator="[Ctrl+A]",
     command=lambda: [
@@ -9579,15 +9488,60 @@ root.bind(
     ),
 )
 options_menu.add_command(
+    label="BeyondHD.co", command=bhd_co_login_window, accelerator="[Ctrl+I]"
+)
+root.bind("<Control-i>", bhd_co_login_window)
+options_menu.add_command(
+    label="Encoder Name",
+    accelerator="[Ctrl+E]",
+    command=lambda: [
+        custom_input_prompt(root, "Encoder Name:", "encoder_name", "name", "show")
+    ],
+)
+root.bind(
+    "<Control-e>",
+    lambda event: custom_input_prompt(
+        root, "Encoder Name:", "encoder_name", "name", "show"
+    ),
+)
+options_menu.add_command(
     label="Torrent Output Path",
     command=torrent_path_window_function,
     accelerator="[Ctrl+T]",
 )
 root.bind("<Control-t>", torrent_path_window_function)
+
 options_menu.add_command(
-    label="BeyondHD.co", command=bhd_co_login_window, accelerator="[Ctrl+I]"
+    label="qBittorrent Injection",
+    command=lambda: QBittorrentWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
+    accelerator="[Ctrl+Q]",
 )
-root.bind("<Control-i>", bhd_co_login_window)
+root.bind(
+    "<Control-q>",
+    lambda event: QBittorrentWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
+)
 options_menu.add_separator()
 options_menu.add_command(
     label="Semi-Auto Screenshot Count",
@@ -10203,11 +10157,6 @@ def clean_update_files():
 
 if app_type == "bundled":
     root.after(5000, clean_update_files)
-
-# list_of_all_buttons = [source_button, encode_button]
-#
-# for x in list_of_all_buttons:
-#     x.configure(background="SystemButtonFace")
 
 # tkinter mainloop
 root.mainloop()

@@ -27,7 +27,7 @@ def openaboutwindow(
     global about_window
 
     # Defines the path to config.ini and opens it for reading/writing
-    config_file = "Runtime/config.ini"  # Creates (if doesn't exist) and defines location of config.ini
+    config_file = "runtime/config.ini"  # Creates (if doesn't exist) and defines location of config.ini
     config = ConfigParser()
     config.read(config_file)
 
