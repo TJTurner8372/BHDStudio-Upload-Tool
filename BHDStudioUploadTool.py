@@ -5150,7 +5150,7 @@ def auto_screen_shot_status_window():
         )
 
         # update queue with information
-        ss_queue.put("\n\nGenerating Screenshots, please wait...")
+        ss_queue.put("\n\nGenerating Screenshots, please wait...\n")
 
         def screen_gen_callback(sg_call_back):
             """define callback function for screen gen"""
