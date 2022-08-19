@@ -136,7 +136,7 @@ class QBittorrentWindow:
             "uploading your torrent to BeyondHD",
         )
 
-        # define options label frame
+        # define frame
         self.injection_frame = Frame(
             self.qbit_window,
             bd=0,
