@@ -136,6 +136,8 @@ if not config.has_option("qbit_client", "qbit_user"):
     config.set("qbit_client", "qbit_user", "admin")
 if not config.has_option("qbit_client", "qbit_password"):
     config.set("qbit_client", "qbit_password", "password")
+if not config.has_option("qbit_client", "qbit_category"):
+    config.set("qbit_client", "qbit_category", "")
 
 # encoder name
 if not config.has_section("encoder_name"):
