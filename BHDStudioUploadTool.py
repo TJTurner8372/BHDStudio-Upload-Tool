@@ -129,21 +129,13 @@ if not config.has_section("qbit_client"):
 if not config.has_option("qbit_client", "qbit_injection_toggle"):
     config.set("qbit_client", "qbit_injection_toggle", "false")
 if not config.has_option("qbit_client", "qbit_url"):
-    config.set("qbit_client", "qbit_url", "")
+    config.set("qbit_client", "qbit_url", "localhost")
 if not config.has_option("qbit_client", "qbit_port"):
-    config.set("qbit_client", "qbit_port", "")
+    config.set("qbit_client", "qbit_port", "8080")
 if not config.has_option("qbit_client", "qbit_user"):
-    config.set("qbit_client", "qbit_user", "")
+    config.set("qbit_client", "qbit_user", "admin")
 if not config.has_option("qbit_client", "qbit_password"):
-    config.set("qbit_client", "qbit_password", "")
-if not config.has_option("qbit_client", "qbit_injection_type"):
-    config.set("qbit_client", "qbit_injection_type", "webui")
-if not config.has_option("qbit_client", "qbit_path"):
-    config.set("qbit_client", "qbit_path", "")
-if not config.has_option("qbit_client", "qbit_cli_paused"):
-    config.set("qbit_client", "qbit_cli_paused", "false")
-if not config.has_option("qbit_client", "qbit_cli_skip_check"):
-    config.set("qbit_client", "qbit_cli_skip_check", "true")
+    config.set("qbit_client", "qbit_password", "password")
 
 # encoder name
 if not config.has_section("encoder_name"):
@@ -8520,21 +8512,18 @@ def open_uploader_window(job_mode):
                 )
 
                 # inject torrent to qBittorrent if injection is enabled
-                if config["qbit_client"]["qbit_injection_toggle"] == "true":
+                if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
                     # create Clients() instance
                     injection_client = Clients()
 
                     # use qBittorrent method
-                    injection_client.qbittorrent(
+                    auto_injection = injection_client.qbittorrent(
                         encode_file_path=encode_file_path.get(),
                         torrent_file_path=torrent_file_path.get(),
                     )
 
                     # update status window
-                    upload_status_info.insert(
-                        END,
-                        "\n\nTorrent was automatically injected into qBittorrent",
-                    )
+                    upload_status_info.insert(END, f"\n\n{auto_injection}")
             else:
                 upload_status_info.insert(
                     END,
