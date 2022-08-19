@@ -322,8 +322,8 @@ class QBittorrentWindow:
             background=custom_window_bg_color,
             foreground=self.custom_label_frame_color_dict["foreground"],
             font=(self.font, self.font_size, "bold"),
-            text="If injecting remotely, you must first setup a category\nin qBittorrent and define the category here"
-            "\n\nOtherwise leave this blank",
+            text="If injecting remotely, you must first setup a category\nin qBittorrent and define the category "
+            "here\n\nOtherwise leave this blank\n\nNOTE: Case Sensitive",
         )
 
         # cancel button
