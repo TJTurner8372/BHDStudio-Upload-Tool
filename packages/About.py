@@ -113,7 +113,8 @@ def openaboutwindow(
     about_window_text.insert(INSERT, "\n")
     about_window_text.insert(
         INSERT,
-        "Development: jlw4049, thesb3\n\n\n\n\n"
+        "Development:  jlw4049, thesb3\n"
+        "Contributors: pilot538\n\n\n\n\n"
         "This product uses the TMDB API but is not endorsed or certified by TMDB.",
     )
     about_window_text.configure(state=DISABLED)
