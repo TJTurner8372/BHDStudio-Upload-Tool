@@ -69,6 +69,10 @@ class QBittorrentWindow:
         self.pass_word_var = StringVar()
         self.pass_word_var.set(self.qbit_config["qbit_client"]["qbit_password"])
 
+        # category var
+        self.category_var = StringVar()
+        self.category_var.set(self.qbit_config["qbit_client"]["qbit_category"])
+
         # disable menu option
         self.options_menu.entryconfig("qBittorrent Injection", state="disabled")
 
@@ -82,7 +86,7 @@ class QBittorrentWindow:
         )  # window background color
         self.qbit_window.title("qBittorrent Injection")  # set window title
         self.qbit_window.geometry(
-            f'{600}x{340}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
+            f'{600}x{360}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
             f'{str(int(self.master.geometry().split("+")[2]) + 120)}'
         )
         self.qbit_window.protocol(
@@ -146,7 +150,7 @@ class QBittorrentWindow:
             row=1, column=0, columnspan=3, padx=5, pady=(5, 3), sticky=W + E + N + S
         )
 
-        for i_f in range(8):
+        for i_f in range(10):
             self.injection_frame.grid_rowconfigure(i_f, weight=1)
         for i_f_1 in range(3):
             self.injection_frame.grid_columnconfigure(i_f_1, weight=1)
@@ -161,7 +165,7 @@ class QBittorrentWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.host_label.grid(row=1, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.host_label.grid(row=0, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # host entry
         self.host_name = Entry(
@@ -174,7 +178,7 @@ class QBittorrentWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.host_name.grid(
-            row=2, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=1, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # host tooltip label
@@ -184,7 +188,8 @@ class QBittorrentWindow:
             background=custom_window_bg_color,
             foreground=self.custom_label_frame_color_dict["foreground"],
             font=(self.font, self.font_size, "bold"),
-            text="If qBittorrent is ran locally:\n'localhost'\n\nDefine host-name IP address:\n'192.168.1.1'",
+            text="If qBittorrent is ran locally:\n'localhost' or '127.0.0.1'\n\nDefine host-name IP "
+            "address:\ne.g. '8.8.8.8'",
         )
 
         # host port
@@ -197,7 +202,7 @@ class QBittorrentWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.host_port.grid(row=3, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.host_port.grid(row=2, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # host port entry
         self.host_port_name = Entry(
@@ -210,7 +215,7 @@ class QBittorrentWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.host_port_name.grid(
-            row=4, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=3, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # host tooltip label
@@ -233,7 +238,7 @@ class QBittorrentWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.user_name.grid(row=5, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.user_name.grid(row=4, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # username entry
         self.host_port_name = Entry(
@@ -246,7 +251,7 @@ class QBittorrentWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.host_port_name.grid(
-            row=6, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=5, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # password label
@@ -259,7 +264,7 @@ class QBittorrentWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.password_label.grid(row=7, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.password_label.grid(row=6, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # password entry
         self.pass_word_entry = Entry(
@@ -273,7 +278,7 @@ class QBittorrentWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.pass_word_entry.grid(
-            row=8, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=7, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # show password when mouse hovers over password entry box
@@ -282,6 +287,43 @@ class QBittorrentWindow:
         )
         self.pass_word_entry.bind(
             "<Leave>", lambda event: self.pass_word_entry.config(show="*")
+        )
+
+        # category label
+        self.category_label = Label(
+            self.injection_frame,
+            text="Category:",
+            bd=0,
+            relief=SUNKEN,
+            background=self.custom_label_colors_dict["background"],
+            fg=self.custom_button_color_dict["activeforeground"],
+            font=(self.font, self.font_size, "bold"),
+        )
+        self.category_label.grid(row=8, column=0, padx=5, pady=(5, 0), sticky=S + W)
+
+        # category entry
+        self.category_entry = Entry(
+            self.injection_frame,
+            borderwidth=4,
+            textvariable=self.category_var,
+            fg=self.custom_entry_colors_dict["foreground"],
+            bg=self.custom_entry_colors_dict["background"],
+            disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
+            disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
+        )
+        self.category_entry.grid(
+            row=9, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+        )
+
+        # host tooltip label
+        CustomTooltipLabel(
+            anchor_widget=self.category_entry,
+            hover_delay=400,
+            background=custom_window_bg_color,
+            foreground=self.custom_label_frame_color_dict["foreground"],
+            font=(self.font, self.font_size, "bold"),
+            text="If injecting remotely, you must first setup a category\nin qBittorrent and define the category here"
+            "\n\nOtherwise leave this blank",
         )
 
         # cancel button
@@ -328,11 +370,11 @@ class QBittorrentWindow:
         """run when apply button is selected"""
 
         # check for host name
-        if self.host_name_var.get() == "":
+        if self.host_name_var.get().strip() == "":
             self.host_name_var.set("localhost")
 
         # check for port
-        if self.host_port_var.get() == "":
+        if self.host_port_var.get().strip() == "":
             self.host_port_var.set("8080")
         else:
             check_for_only_digits = re.search(r"\D", self.host_port_var.get())
@@ -343,28 +385,51 @@ class QBittorrentWindow:
                 return
 
         # check for username
-        if self.user_name_var.get() == "":
+        if self.user_name_var.get().strip() == "":
             self.show_error(
                 "You must setup a user name in qBittorrent's WebUI settings and enter it here"
             )
             return
 
         # check for password
-        if self.pass_word_var.get() == "":
+        if self.pass_word_var.get().strip() == "":
             self.show_error(
                 "You must setup a password in the qBittorrent's WebUI settings and enter it here"
             )
             return
+
+        # check for category
+        if (
+            self.host_name_var.get().strip() != "localhost"
+            or self.host_name_var.get().strip() != "127.0.0.1"
+        ):
+            if self.category_var.get().strip() == "":
+                self.show_error(
+                    "When injecting remotely you MUST set-up a category within qBittorrent and define "
+                    "that category in the Category entry box"
+                )
+                return
 
         # define parser for apply
         apply_btn_parser = ConfigParser()
         apply_btn_parser.read(self.configfile)
 
         # define all settings for config file
-        apply_btn_parser.set("qbit_client", "qbit_url", self.host_name_var.get())
-        apply_btn_parser.set("qbit_client", "qbit_port", self.host_port_var.get())
-        apply_btn_parser.set("qbit_client", "qbit_user", self.user_name_var.get())
-        apply_btn_parser.set("qbit_client", "qbit_password", self.pass_word_var.get())
+        apply_btn_parser.set(
+            "qbit_client", "qbit_url", self.host_name_var.get().strip()
+        )
+        apply_btn_parser.set(
+            "qbit_client", "qbit_port", self.host_port_var.get().strip()
+        )
+        apply_btn_parser.set(
+            "qbit_client", "qbit_user", self.user_name_var.get().strip()
+        )
+        apply_btn_parser.set(
+            "qbit_client", "qbit_password", self.pass_word_var.get().strip()
+        )
+        apply_btn_parser.set(
+            "qbit_client", "qbit_category", self.category_var.get().strip()
+        )
 
         # save all settings in config file
         with open(self.configfile, "w") as apply_cfg:
