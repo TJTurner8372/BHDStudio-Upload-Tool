@@ -1,6 +1,10 @@
 import qbittorrentapi
 import pathlib
 from configparser import ConfigParser
+from deluge_client import DelugeRPCClient, client
+import deluge_client
+import torf
+import base64
 
 
 class Clients:
@@ -62,3 +66,6 @@ class Clients:
             return "qBittorrent torrent injection successful!"
         elif add_torrent == "Fails.":
             return "qBittorrent torrent injection was not successful"
+
+    def deluge(self):
+        pass
