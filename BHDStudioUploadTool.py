@@ -79,6 +79,7 @@ from packages.icon import (
     bhd_upload_icon_disabled,
 )
 from packages.qbittorrent_window import QBittorrentWindow
+from packages.deluge_window import DelugeWindow
 from packages.show_streams import stream_menu
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
@@ -9510,6 +9511,38 @@ options_menu.add_command(
     accelerator="[Ctrl+T]",
 )
 root.bind("<Control-t>", torrent_path_window_function)
+
+options_menu.add_command(
+    label="Deluge Injection",
+    command=lambda: DelugeWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
+    accelerator="[Ctrl+D]",
+)
+root.bind(
+    "<Control-d>",
+    lambda event: DelugeWindow(
+        master=root,
+        options_menu=options_menu,
+        custom_window_bg_color=custom_window_bg_color,
+        font=set_font,
+        font_size=set_font_size,
+        custom_label_frame_color_dict=custom_label_frame_colors,
+        custom_frame_color_dict=custom_frame_bg_colors,
+        custom_button_color_dict=custom_button_colors,
+        custom_entry_colors_dict=custom_entry_colors,
+        custom_label_colors_dict=custom_label_colors,
+    ),
+)
 
 options_menu.add_command(
     label="qBittorrent Injection",
