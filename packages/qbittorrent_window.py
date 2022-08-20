@@ -360,6 +360,13 @@ class QBittorrentWindow:
         """update config file with injection enabled/disable"""
         injection_enable_disable_parser = ConfigParser()
         injection_enable_disable_parser.read(self.configfile)
+
+        # check if deluge injection is enabled
+        if injection_enable_disable_parser["deluge_client"]["deluge_injection_toggle"] == "true":
+            messagebox.showinfo(parent=self.qbit_window, title="Information",
+                                message="This will disable Deluge automatic injection")
+            injection_enable_disable_parser.set("deluge_client", "deluge_injection_toggle", "false")
+
         injection_enable_disable_parser.set(
             "qbit_client", "qbit_injection_toggle", self.injection_enable.get()
         )
