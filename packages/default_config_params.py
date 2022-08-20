@@ -29,6 +29,24 @@ if not config.has_option("qbit_client", "qbit_password"):
 if not config.has_option("qbit_client", "qbit_category"):
     config.set("qbit_client", "qbit_category", "")
 
+# deluge client settings
+if not config.has_section("deluge_client"):
+    config.add_section("deluge_client")
+if not config.has_option("deluge_client", "deluge_injection_toggle"):
+    config.set("deluge_client", "deluge_injection_toggle", "false")
+if not config.has_option("deluge_client", "deluge_url"):
+    config.set("deluge_client", "deluge_url", "127.0.0.1")
+if not config.has_option("deluge_client", "deluge_daemon_port"):
+    config.set("deluge_client", "deluge_daemon_port", "58846")
+if not config.has_option("deluge_client", "deluge_webui_port"):
+    config.set("deluge_client", "deluge_webui_port", "8112")
+if not config.has_option("deluge_client", "deluge_user"):
+    config.set("deluge_client", "deluge_user", "")
+if not config.has_option("deluge_client", "deluge_password"):
+    config.set("deluge_client", "deluge_password", "")
+if not config.has_option("deluge_client", "deluge_remote_path"):
+    config.set("deluge_client", "deluge_remote_path", "")
+
 # encoder name
 if not config.has_section("encoder_name"):
     config.add_section("encoder_name")
