@@ -4762,23 +4762,23 @@ def auto_screen_shot_status_window():
 
         # load needed plugins
         try:
-            core.std.LoadPlugin("runtime/Apps/image_comparison/SubText.dll")
+            core.std.LoadPlugin("runtime/apps/image_comparison/SubText.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("runtime/Apps/image_comparison/libimwri.dll")
+            core.std.LoadPlugin("runtime/apps/image_comparison/libimwri.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("runtime/Apps/image_comparison/libvslsmashsource.dll")
+            core.std.LoadPlugin("runtime/apps/image_comparison/libvslsmashsource.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("runtime/Apps/image_comparison/libfpng.dll")
+            core.std.LoadPlugin("runtime/apps/image_comparison/libfpng.dll")
         except vs.Error:
             pass
         try:
-            core.std.LoadPlugin("runtime/Apps/image_comparison/ffms2.dll")
+            core.std.LoadPlugin("runtime/apps/image_comparison/ffms2.dll")
         except vs.Error:
             pass
 
@@ -8420,15 +8420,27 @@ def open_uploader_window(job_mode):
                 )
 
                 # inject torrent to qBittorrent if injection is enabled
-                if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
+                if (
+                    api_parser["qbit_client"]["qbit_injection_toggle"] == "true"
+                    or api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
+                ):
                     # create Clients() instance
                     injection_client = Clients()
 
-                    # use qBittorrent method
-                    auto_injection = injection_client.qbittorrent(
-                        encode_file_path=encode_file_path.get(),
-                        torrent_file_path=torrent_file_path.get(),
-                    )
+                    if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
+                        # use qBittorrent method
+                        auto_injection = injection_client.qbittorrent(
+                            encode_file_path=encode_file_path.get(),
+                            torrent_file_path=torrent_file_path.get(),
+                        )
+
+                    elif (
+                        api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
+                    ):
+                        # use Deluge method
+                        auto_injection = injection_client.deluge(
+                            torrent_file_path=torrent_file_path.get()
+                        )
 
                     # update status window
                     upload_status_info.insert(END, f"\n\n{auto_injection}")
