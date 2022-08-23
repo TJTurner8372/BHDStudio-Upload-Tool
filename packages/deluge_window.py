@@ -18,6 +18,7 @@ from tkinter import (
 from custom_hovertip import CustomTooltipLabel
 
 from packages.hoverbutton import HoverButton
+from packages.torrent_clients import Clients
 
 
 class DelugeWindow:
@@ -63,12 +64,6 @@ class DelugeWindow:
             self.deluge_config["deluge_client"]["deluge_daemon_port"]
         )
 
-        # webui port var
-        self.web_ui_port_var = StringVar()
-        self.web_ui_port_var.set(
-            self.deluge_config["deluge_client"]["deluge_webui_port"]
-        )
-
         # username var
         self.user_name_var = StringVar()
         self.user_name_var.set(self.deluge_config["deluge_client"]["deluge_user"])
@@ -96,7 +91,7 @@ class DelugeWindow:
         )  # window background color
         self.deluge_window.title("Deluge Injection")  # set window title
         self.deluge_window.geometry(
-            f'{600}x{400}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
+            f'{600}x{360}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
             f'{str(int(self.master.geometry().split("+")[2]) + 120)}'
         )
         self.deluge_window.protocol(
@@ -162,7 +157,7 @@ class DelugeWindow:
             row=1, column=0, columnspan=3, padx=5, pady=(5, 3), sticky=W + E + N + S
         )
 
-        for i_f in range(12):
+        for i_f in range(10):
             self.injection_frame.grid_rowconfigure(i_f, weight=1)
         for i_f_1 in range(3):
             self.injection_frame.grid_columnconfigure(i_f_1, weight=1)
@@ -239,42 +234,6 @@ class DelugeWindow:
             text="e.g. '58846'",
         )
 
-        # web ui port
-        self.web_ui_port = Label(
-            self.injection_frame,
-            text="WebUI Port:",
-            bd=0,
-            relief=SUNKEN,
-            background=self.custom_label_colors_dict["background"],
-            fg=self.custom_button_color_dict["activeforeground"],
-            font=(self.font, self.font_size, "bold"),
-        )
-        self.web_ui_port.grid(row=4, column=0, padx=5, pady=(5, 0), sticky=S + W)
-
-        # web ui port entry
-        self.web_ui_port_name = Entry(
-            self.injection_frame,
-            borderwidth=4,
-            textvariable=self.web_ui_port_var,
-            fg=self.custom_entry_colors_dict["foreground"],
-            bg=self.custom_entry_colors_dict["background"],
-            disabledforeground=self.custom_entry_colors_dict["disabledforeground"],
-            disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
-        )
-        self.web_ui_port_name.grid(
-            row=5, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
-        )
-
-        # host tooltip label
-        CustomTooltipLabel(
-            anchor_widget=self.web_ui_port_name,
-            hover_delay=400,
-            background=custom_window_bg_color,
-            foreground=self.custom_label_frame_color_dict["foreground"],
-            font=(self.font, self.font_size, "bold"),
-            text="e.g. '58846'",
-        )
-
         # username label
         self.user_name = Label(
             self.injection_frame,
@@ -285,7 +244,7 @@ class DelugeWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.user_name.grid(row=6, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.user_name.grid(row=4, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # username entry
         self.host_port_name = Entry(
@@ -298,7 +257,7 @@ class DelugeWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.host_port_name.grid(
-            row=7, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=5, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # password label
@@ -311,7 +270,7 @@ class DelugeWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.password_label.grid(row=8, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.password_label.grid(row=6, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # password entry
         self.pass_word_entry = Entry(
@@ -325,7 +284,7 @@ class DelugeWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.pass_word_entry.grid(
-            row=9, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=7, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # show password when mouse hovers over password entry box
@@ -346,7 +305,7 @@ class DelugeWindow:
             fg=self.custom_button_color_dict["activeforeground"],
             font=(self.font, self.font_size, "bold"),
         )
-        self.remote_path_label.grid(row=10, column=0, padx=5, pady=(5, 0), sticky=S + W)
+        self.remote_path_label.grid(row=8, column=0, padx=5, pady=(5, 0), sticky=S + W)
 
         # remote_path entry
         self.remote_path_entry = Entry(
@@ -359,7 +318,7 @@ class DelugeWindow:
             disabledbackground=self.custom_entry_colors_dict["disabledbackground"],
         )
         self.remote_path_entry.grid(
-            row=11, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
+            row=9, column=0, columnspan=3, padx=5, pady=(2, 2), sticky=W + E + N
         )
 
         # host tooltip label
@@ -386,6 +345,23 @@ class DelugeWindow:
             disabledforeground=self.custom_button_color_dict["disabledforeground"],
         )
         self.cancel_button.grid(row=2, column=0, padx=5, pady=(5, 3), sticky=W + S + N)
+
+        # check button
+        self.check_button = HoverButton(
+            self.deluge_window,
+            text="Check Login",
+            command=self.check_login_function,
+            borderwidth="3",
+            width=12,
+            foreground=self.custom_button_color_dict["foreground"],
+            background=self.custom_button_color_dict["background"],
+            activeforeground=self.custom_button_color_dict["activeforeground"],
+            activebackground=self.custom_button_color_dict["activebackground"],
+            disabledforeground=self.custom_button_color_dict["disabledforeground"],
+        )
+        self.check_button.grid(
+            row=2, column=1, padx=5, pady=(5, 3), sticky=E + S + N + W
+        )
 
         # apply button
         self.apply_button = HoverButton(
@@ -448,6 +424,20 @@ class DelugeWindow:
     def apply_button_function(self):
         """run when apply button is selected"""
 
+        # do a quick login check
+        check_login = self.check_login_function(show_prompt=False)
+        if "connected to client!" not in check_login.lower():
+            check_prompt = messagebox.askyesno(
+                parent=self.deluge_window,
+                title="Error",
+                message="Could not access client. You can ignore this if you think "
+                "your settings are correct and Deluge is not running right "
+                "now.\n\nWould you like to ignore this and continue saving?",
+            )
+
+            if not check_prompt:
+                return
+
         # check for host name
         if self.host_name_var.get().strip() == "":
             self.host_name_var.set("127.0.0.1")
@@ -457,16 +447,6 @@ class DelugeWindow:
             self.host_port_var.set("58846")
         else:
             check_for_only_digits = re.search(r"\D", self.host_port_var.get())
-            if check_for_only_digits:
-                self.show_error(
-                    "Port entry box should only be numerical digits... e.g. 8080"
-                )
-                return
-
-        if self.web_ui_port_var.get().strip() == "":
-            self.web_ui_port_var.set("8114")
-        else:
-            check_for_only_digits = re.search(r"\D", self.web_ui_port_var.get())
             if check_for_only_digits:
                 self.show_error(
                     "Port entry box should only be numerical digits... e.g. 8080"
@@ -508,9 +488,6 @@ class DelugeWindow:
         )
         apply_btn_parser.set(
             "deluge_client", "deluge_daemon_port", self.host_port_var.get().strip()
-        )
-        apply_btn_parser.set(
-            "deluge_client", "deluge_webui_port", self.web_ui_port_var.get().strip()
         )
         apply_btn_parser.set(
             "deluge_client", "deluge_user", self.user_name_var.get().strip()
@@ -559,6 +536,30 @@ class DelugeWindow:
         self.deluge_window.destroy()
 
     def show_error(self, error_message):
+        """send general errors to tkinter messagebox"""
         messagebox.showerror(
             parent=self.deluge_window, title="Error", message=error_message
         )
+
+    def check_login_function(self, show_prompt=True):
+        """check to see if client is reachable"""
+        check_deluge = Clients()
+
+        # pass arguments to deluge_test method
+        returned_check = check_deluge.deluge_test(
+            host=self.host_name_var.get().strip(),
+            port=int(self.host_port_var.get().strip()),
+            username=self.user_name_var.get().strip(),
+            password=self.pass_word_var.get().strip(),
+        )
+
+        if show_prompt:
+            # show the returned output to the user via a messagebox
+            messagebox.showinfo(
+                parent=self.deluge_window,
+                title="Information",
+                message=returned_check,
+            )
+
+        elif not show_prompt:
+            return returned_check
