@@ -18,6 +18,7 @@ from tkinter import (
 from custom_hovertip import CustomTooltipLabel
 
 from packages.hoverbutton import HoverButton
+from packages.torrent_clients import Clients
 
 
 class QBittorrentWindow:
@@ -341,6 +342,23 @@ class QBittorrentWindow:
         )
         self.cancel_button.grid(row=2, column=0, padx=5, pady=(5, 3), sticky=W + S + N)
 
+        # check button
+        self.check_button = HoverButton(
+            self.qbit_window,
+            text="Check Login",
+            command=self.check_login_function,
+            borderwidth="3",
+            width=12,
+            foreground=self.custom_button_color_dict["foreground"],
+            background=self.custom_button_color_dict["background"],
+            activeforeground=self.custom_button_color_dict["activeforeground"],
+            activebackground=self.custom_button_color_dict["activebackground"],
+            disabledforeground=self.custom_button_color_dict["disabledforeground"],
+        )
+        self.check_button.grid(
+            row=2, column=1, padx=5, pady=(5, 3), sticky=E + S + N + W
+        )
+
         # apply button
         self.apply_button = HoverButton(
             self.qbit_window,
@@ -383,6 +401,20 @@ class QBittorrentWindow:
 
     def apply_button_function(self):
         """run when apply button is selected"""
+
+        # do a quick login check
+        check_login = self.check_login_function(show_prompt=False)
+        if "successful" not in check_login.lower():
+            check_prompt = messagebox.askyesno(
+                parent=self.qbit_window,
+                title="Error",
+                message="Could not access client. You can ignore this if you think "
+                "your settings are correct and qBittorrent is not running right "
+                "now.\n\nWould you like to ignore this and continue saving?",
+            )
+
+            if not check_prompt:
+                return
 
         # check for host name
         if self.host_name_var.get().strip() == "":
@@ -495,3 +527,26 @@ class QBittorrentWindow:
         messagebox.showerror(
             parent=self.qbit_window, title="Error", message=error_message
         )
+
+    def check_login_function(self, show_prompt=True):
+        """check to see if client is reachable"""
+        check_qbit = Clients()
+
+        # pass arguments to deluge_test method
+        returned_check = check_qbit.qbittorrent_test(
+            host=self.host_name_var.get().strip(),
+            port=int(self.host_port_var.get().strip()),
+            username=self.user_name_var.get().strip(),
+            password=self.pass_word_var.get().strip(),
+        )
+
+        if show_prompt:
+            # show the returned output to the user via a messagebox
+            messagebox.showinfo(
+                parent=self.qbit_window,
+                title="Information",
+                message=returned_check,
+            )
+
+        elif not show_prompt:
+            return returned_check
