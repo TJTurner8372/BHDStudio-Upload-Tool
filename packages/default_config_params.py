@@ -38,8 +38,6 @@ if not config.has_option("deluge_client", "deluge_url"):
     config.set("deluge_client", "deluge_url", "127.0.0.1")
 if not config.has_option("deluge_client", "deluge_daemon_port"):
     config.set("deluge_client", "deluge_daemon_port", "58846")
-if not config.has_option("deluge_client", "deluge_webui_port"):
-    config.set("deluge_client", "deluge_webui_port", "8112")
 if not config.has_option("deluge_client", "deluge_user"):
     config.set("deluge_client", "deluge_user", "")
 if not config.has_option("deluge_client", "deluge_password"):
