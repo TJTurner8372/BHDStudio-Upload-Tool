@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.45"
+main_root_title = "BHDStudio Upload Tool v1.46"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1405,7 +1405,6 @@ def source_input_function(*args):
             search_file = encode_script.read()
             get_source_file = re.search(r'FFVideoSource\("(.+?)",', search_file)
             get_crop = re.search(r"Crop\((.+)\)", search_file)
-            get_resize = re.search(r"Spline\d\d.*\((.+)\)", search_file)
 
             # load search file to global string var to be used by encode function
             loaded_script_info.set(search_file)
@@ -1419,7 +1418,6 @@ def source_input_function(*args):
                 r'else core\.ffms2\.Source\(r"(.+?)",', search_file
             )
             get_crop = re.search(r"Crop\(clip,\s(.+)\)", search_file)
-            get_resize = re.search(r"Spline\d\d\(clip,\s(.+)\)", search_file)
 
             # load search file to global string var to be used by encode function
             loaded_script_info.set(search_file)
@@ -1717,12 +1715,6 @@ def source_input_function(*args):
     if not get_crop:
         source_file_information.update({"crop": "None"})
 
-    # resize
-    if get_resize:
-        source_file_information.update({"resize": f"{str(get_resize.group(1))}"})
-    else:
-        source_file_information.update({"resize": "None"})
-
     # hdr
     if hdr_string != "":
         source_file_information.update({"hdr": "True"})
@@ -1895,28 +1887,13 @@ def encode_input_function(*args):
                 f"Bit rate for 1080p encodes should be 8000 kbps"
             )
             return  # exit function
-        if source_file_information["resize"] != "None":
-            messagebox.showinfo(
-                parent=root,
-                title="Incorrect resolution",
-                message="Source script indicates that the encode file was resized.\n\nYou must either "
-                "open a 720p encode or open a new source script",
-            )
-            return  # exit function
+
     elif video_track.width <= 3840:  # 2160p
         encoded_source_resolution = "2160p"
         if encode_settings_used_bit_rate != 16000:
             resolution_bit_rate_miss_match_error(
                 f"Input bit rate: {str(encode_settings_used_bit_rate)} kbps\n\n"
                 f"Bit rate for 2160p encodes should be 16000 kbps"
-            )
-            return  # exit function
-        if source_file_information["resize"] != "None":
-            messagebox.showinfo(
-                parent=root,
-                title="Incorrect resolution",
-                message="Source script indicates that the encode file was resized.\n\nYou must either "
-                "open a 720p encode or open a new source script",
             )
             return  # exit function
 
