@@ -8253,7 +8253,7 @@ def open_uploader_window(job_mode):
         upload_status_window = Toplevel()
         upload_status_window.configure(background=custom_window_bg_color)
         upload_status_window.geometry(
-            f'{460}x{200}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
+            f'{460}x{300}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
             f'{str(int(upload_window.geometry().split("+")[2]) + 230)}'
         )
         upload_status_window.resizable(False, False)
@@ -8385,6 +8385,8 @@ def open_uploader_window(job_mode):
 
         # if upload returns a status code '200', assume success
         if upload_job.status_code == 200:
+
+            # if upload is saved to drafts
             if (
                 upload_job.json()["status_code"] == 1
                 and "saved" in upload_job.json()["status_message"]
@@ -8396,31 +8398,47 @@ def open_uploader_window(job_mode):
                     "saved as a draft on site",
                 )
 
-                # inject torrent to qBittorrent if injection is enabled
-                if (
-                    api_parser["qbit_client"]["qbit_injection_toggle"] == "true"
-                    or api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
-                ):
-                    # create Clients() instance
-                    injection_client = Clients()
+            # if upload is released live on site
+            elif upload_job.json()["status_code"] == 2 and upload_job.json()["success"]:
+                upload_status_info.insert(
+                    END,
+                    "Upload is successful!\nUpload has been successfully "
+                    f"released live on site\n\nDownload URL:\n{upload_job.json()['status_message']}",
+                )
 
-                    if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
-                        # use qBittorrent method
-                        auto_injection = injection_client.qbittorrent(
-                            encode_file_path=encode_file_path.get(),
-                            torrent_file_path=torrent_file_path.get(),
-                        )
+            # if there was an error
+            elif upload_job.json()["status_code"] == 0:
+                upload_status_info.insert(
+                    END,
+                    f"Upload failed!\n\nError:\n{upload_job.json()['status_message']}",
+                )
 
-                    elif (
-                        api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
-                    ):
-                        # use Deluge method
-                        auto_injection = injection_client.deluge(
-                            torrent_file_path=torrent_file_path.get()
-                        )
+                # if there was an error exit this function
+                return
 
-                    # update status window
-                    upload_status_info.insert(END, f"\n\n{auto_injection}")
+            # inject torrent to qBittorrent if injection is enabled
+            if (
+                api_parser["qbit_client"]["qbit_injection_toggle"] == "true"
+                or api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
+            ):
+                # create Clients() instance
+                injection_client = Clients()
+
+                if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
+                    # use qBittorrent method
+                    auto_injection = injection_client.qbittorrent(
+                        encode_file_path=encode_file_path.get(),
+                        torrent_file_path=torrent_file_path.get(),
+                    )
+
+                elif api_parser["deluge_client"]["deluge_injection_toggle"] == "true":
+                    # use Deluge method
+                    auto_injection = injection_client.deluge(
+                        torrent_file_path=torrent_file_path.get()
+                    )
+
+                # update status window
+                upload_status_info.insert(END, f"\n\n{auto_injection}")
             else:
                 upload_status_info.insert(
                     END,
