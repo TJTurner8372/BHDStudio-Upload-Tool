@@ -5404,14 +5404,17 @@ def upload_to_beyond_hd_co_window():
         highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
     upload_ss_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
-    for e_n_f in range(3):
-        upload_ss_frame.grid_columnconfigure(e_n_f, weight=1)
-        upload_ss_frame.grid_rowconfigure(e_n_f, weight=1)
+    upload_ss_frame.grid_columnconfigure(0, weight=1)
+    upload_ss_frame.grid_columnconfigure(1, weight=1)
+    upload_ss_frame.grid_columnconfigure(2, weight=1)
+    upload_ss_frame.grid_rowconfigure(0, weight=100)
+    upload_ss_frame.grid_rowconfigure(1, weight=1)
 
     # create scrolled window
     upload_ss_info = scrolledtextwidget.ScrolledText(
         upload_ss_frame,
-        height=9,
+        height=1,
+        width=1,
         state=DISABLED,
         bd=4,
         wrap=WORD,
@@ -5419,7 +5422,7 @@ def upload_to_beyond_hd_co_window():
         fg=custom_scrolled_text_widget_color["foreground"],
     )
     upload_ss_info.grid(
-        row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
+        row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W + N + S
     )
 
     # create 'OK' button
@@ -5435,7 +5438,7 @@ def upload_to_beyond_hd_co_window():
         activebackground=custom_button_colors["activebackground"],
         disabledforeground=custom_button_colors["disabledforeground"],
     )
-    ss_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
+    ss_okay_btn.grid(row=1, column=2, padx=7, pady=5, sticky=E)
 
     # ensure error is set to False
     upload_error.set(False)
