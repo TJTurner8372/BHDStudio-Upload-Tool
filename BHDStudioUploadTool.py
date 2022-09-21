@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.47"
+main_root_title = "BHDStudio Upload Tool v1.48"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -4974,11 +4974,22 @@ def auto_screen_shot_status_window():
 
         # collect a range of random b frames from encode and put them in a list
         b_frames = []
-        while len(b_frames) < int(comparison_img_count):
+        while len(b_frames) < int(500):
             random_frame = random.randint(5000, num_source_frames - 10000)
-            if encode_file.get_frame(random_frame).props["_PictType"].decode() == "B":
-                b_frames.append(random_frame)
-                root.update_idletasks()
+            try:
+                if (
+                    encode_file.get_frame(random_frame).props["_PictType"].decode()
+                    == "B"
+                ):
+                    b_frames.append(random_frame)
+                    root.update_idletasks()
+            except ValueError:
+                ss_queue.put(
+                    f"\n\nError, encode does not have {str(comparison_img_count)} of "
+                    f"b-frames in the random range. Lower the amount of desired screenshots to prevent this "
+                    f"error."
+                )
+                return None
 
         # update queue with information
         ss_queue.put(
@@ -5104,7 +5115,19 @@ def auto_screen_shot_status_window():
 
                 # exit this loop
                 return
-            # if ss_queue_data is anything other than "Completed"
+
+            # If there is an error print the error to the message box and exit this loop
+            elif "Error" in ss_queue_data:
+                # update screenshot status window
+                update_status(ss_queue_data)
+
+                # call queue done
+                ss_status_queue.task_done()
+
+                # exit this loop
+                return
+
+            # if ss_queue_data is anything other than "Completed" or "Error"
             else:
                 # update screenshot status window
                 update_status(ss_queue_data)
