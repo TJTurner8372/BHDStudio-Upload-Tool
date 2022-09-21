@@ -70,6 +70,7 @@ from torf import Torrent
 
 from packages.About import openaboutwindow
 from packages.default_config_params import *
+from packages.deluge_window import DelugeWindow
 from packages.hoverbutton import HoverButton
 from packages.icon import (
     base_64_icon,
@@ -79,7 +80,6 @@ from packages.icon import (
     bhd_upload_icon_disabled,
 )
 from packages.qbittorrent_window import QBittorrentWindow
-from packages.deluge_window import DelugeWindow
 from packages.show_streams import stream_menu
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
@@ -1868,9 +1868,21 @@ def encode_input_function(*args):
         delete_encode_entry()
 
     # detect resolution and check miss match bit rates
-    encode_settings_used_bit_rate = int(
-        str(video_track.encoding_settings).split("bitrate=")[1].split("/")[0].strip()
-    )
+    try:
+        encode_settings_used_bit_rate = int(
+            str(video_track.encoding_settings)
+            .split("bitrate=")[1]
+            .split("/")[0]
+            .strip()
+        )
+    except IndexError:
+        messagebox.showerror(
+            parent=root,
+            title="Error",
+            message="File was likely encoded with incorrect settings. As it's missing the 2-pass bitrate string.",
+        )
+        return  # exit the function
+
     if video_track.width <= 1280:  # 720p
         encoded_source_resolution = "720p"
         if encode_settings_used_bit_rate != 4000:
@@ -2194,6 +2206,30 @@ def encode_input_function(*args):
     encode_entry_box.delete(0, END)
     encode_entry_box.insert(END, pathlib.Path(*args).name)
     encode_entry_box.config(state=DISABLED)
+
+    # check for unsupported tagged chapters
+    try:
+        encode_chapter = media_info.menu_tracks[0].to_data()
+    except IndexError:
+        messagebox.showerror(
+            parent=root,
+            title="Error",
+            message="Missing chapters. You need to re-mux the file with chapters.",
+        )
+        return  # exit the function
+
+    if re.search(r"\d+:\d+:\d+\.\d+", list(encode_chapter.values())[-1]):
+        nfo_pad.destroy()
+        messagebox.showerror(
+            parent=root,
+            title="Error",
+            message="Chapters appear to be 'Tagged'.\n\nBHDStudio encodes only support "
+            "'Numbered' and 'Named' chapters. You will need to re-create the "
+            "chapters via MeGui/StaxRip included chapter creator or download them "
+            "from the ChapterDB.\n\nYou can then re-mux the encoded file via "
+            "Mp4-Mux-Tool.",
+        )
+        return  # exit the function
 
     # ensure encode file is named correctly to BHDStudio standards based off of source file input
     if encode_hdr_string.get() != "":
@@ -5797,23 +5833,10 @@ def open_nfo_viewer():
                 re.IGNORECASE,
             ).group(1)
             chapter_type = f'Numbered ({chapters_start_numbered.lstrip("0")}-{chapters_end_numbered.lstrip("0")})'
+
+        # if chapters are not numbered assume Named (since we check for tagged chapters on dropped encode input)
         except AttributeError:
-            # check for tagged chapters
-            if re.search(r"\d+:\d+:\d+\.\d+", list(encode_chapter.values())[-1]):
-                nfo_pad.destroy()
-                messagebox.showerror(
-                    parent=root,
-                    title="Error",
-                    message="Chapters appear to be 'Tagged'.\n\nBHDStudio encodes only support "
-                    "'Numbered' and 'Named' chapters. You will need to re-create the "
-                    "chapters via MeGui/StaxRip included chapter creator or download them "
-                    "from the ChapterDB.\n\nYou can then re-mux the encoded file via "
-                    "Mp4-Mux-Tool.",
-                )
-                return  # exit the function
-            # if chapters are not numbered or tagged
-            else:
-                chapter_type = "Named"
+            chapter_type = "Named"
 
         # file size
         encode_file_size = encode_general_track.other_file_size[0]
