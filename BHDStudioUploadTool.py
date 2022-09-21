@@ -60,7 +60,6 @@ import requests
 import torf
 import vapoursynth as vs
 from PIL import Image, ImageTk
-from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
 from custom_hovertip import CustomTooltipLabel
 from imdb import Cinemagoer
@@ -71,6 +70,7 @@ from torf import Torrent
 from packages.About import openaboutwindow
 from packages.default_config_params import *
 from packages.deluge_window import DelugeWindow
+from packages.github_token import github_token
 from packages.hoverbutton import HoverButton
 from packages.icon import (
     base_64_icon,
@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.48"
+main_root_title = "BHDStudio Upload Tool v1.49"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -9913,54 +9913,35 @@ def check_for_latest_program_updates():
     if check_for_update_parser["check_for_updates"]["value"] == "False":
         return  # exit function
 
-    release_link = "https://github.com/jlw4049/BHDStudio-Upload-Tool/releases"
+    # if GitHub token is not supplied exit this update function
+    if github_token == "":
+        return  # exit function
+
+    # repo release link
+    release_link = (
+        "https://api.github.com/repos/jlw4049/BHDStudio-Upload-Tool/releases/latest"
+    )
+
+    # header to be sent with the token
+    headers = {"Authorization": "token " + github_token}
 
     # parse release page without GitHub api
     try:
-        parse_release_page = requests.get(release_link, timeout=60)
+        parse_release_page = requests.get(release_link, headers=headers, timeout=60)
     except requests.exceptions.ConnectionError:
         error_message_open_browser()
         return  # exit function
 
-    # split program json string up to get the latest release version
-    search_for_version = re.search(
-        r'class="Link--primary">(.*?)</a></h1>', parse_release_page.text, re.MULTILINE
-    )
-    if search_for_version:
-        parsed_version = search_for_version.group(1)
-    elif not search_for_version:
-        error_message_open_browser()
-        return  # exit function
-
     # if extracted version is equal to current version exit this function
-    if parsed_version == main_root_title:
+    if parse_release_page.json()["name"] == main_root_title:
         return  # program is up-to-date, exit the function
 
     # if extracted version is the same as skipped version exit this function
-    if check_for_update_parser["check_for_updates"]["ignore_version"] == parsed_version:
+    if (
+        check_for_update_parser["check_for_updates"]["ignore_version"]
+        == parse_release_page.json()["name"]
+    ):
         return  # newest version is set to be skipped
-
-    # search for update link
-    find_update_link = re.search(r'"(.*?\.zip)"', parse_release_page.text, re.MULTILINE)
-    if find_update_link:
-        update_download_link = find_update_link.group(1)
-    elif not find_update_link:
-        error_message_open_browser()
-        return  # exit the function
-
-    # search for latest patch notes
-    get_release_notes = re.search(
-        r'<div data-pjax="true" data-test-selector="body-content" data-view-component="true" '
-        r'class="markdown-body(?s:.*?)<div data-view-component="true" class="Box-footer">',
-        parse_release_page.text,
-        re.MULTILINE,
-    )
-    if get_release_notes:
-        convert_release_notes = re.search(
-            r"<.*>(.*)<.*>", get_release_notes.group(), re.MULTILINE
-        )
-    elif not get_release_notes:
-        convert_release_notes = "Could not parse release notes"
 
     # updater window
     update_window = Toplevel()
@@ -9980,7 +9961,7 @@ def check_for_latest_program_updates():
     # basic update label to show parsed version
     update_label = Label(
         update_window,
-        text=parsed_version,
+        text=parse_release_page.json()["name"],
         bd=0,
         relief=SUNKEN,
         background=custom_label_colors["background"],
@@ -10016,7 +9997,7 @@ def check_for_latest_program_updates():
     )
     update_scrolled.insert(
         END,
-        f"Current version: {main_root_title}\nVersion found: {parsed_version}\n\n",
+        f"Current version: {main_root_title}\nVersion found: {parse_release_page.json()['name']}\n\n",
         "version_color",
     )
     update_scrolled.insert(END, "Patch Notes\n", "bold_color")
@@ -10026,8 +10007,7 @@ def check_for_latest_program_updates():
         foreground=custom_button_colors["foreground"],
         font=(set_fixed_font, set_font_size),
     )
-    html_to_string = BeautifulSoup(get_release_notes.group(), features="lxml")
-    update_scrolled.insert(END, html_to_string.get_text(), "highlight_color")
+    update_scrolled.insert(END, parse_release_page.json()["body"], "highlight_color")
     update_scrolled.config(state=DISABLED)
 
     # update button frame
@@ -10092,9 +10072,12 @@ def check_for_latest_program_updates():
         skip_version_parser.read(config_file)
 
         # write the version to skip
-        if skip_version_parser["check_for_updates"]["ignore_version"] != parsed_version:
+        if (
+            skip_version_parser["check_for_updates"]["ignore_version"]
+            != parse_release_page.json()["name"]
+        ):
             skip_version_parser.set(
-                "check_for_updates", "ignore_version", parsed_version
+                "check_for_updates", "ignore_version", parse_release_page.json()["name"]
             )
             with open(config_file, "w") as version_config:
                 skip_version_parser.write(version_config)
@@ -10122,7 +10105,8 @@ def check_for_latest_program_updates():
         # get bhdstudio upload tool download
         try:
             request_download = requests.get(
-                f"https://github.com{update_download_link}", timeout=60
+                parse_release_page.json()["assets"][0]["browser_download_url"],
+                timeout=60,
             )
         except requests.exceptions.ConnectionError:
             messagebox.showerror(
@@ -10202,7 +10186,7 @@ def check_for_latest_program_updates():
                 message="Update failed! Opening link to manual update",
             )
             webbrowser.open(
-                f"https://github.com{update_download_link}"
+                parse_release_page.json()["assets"][0]["browser_download_url"]
             )  # open browser for manual download
             return  # exit function
 
