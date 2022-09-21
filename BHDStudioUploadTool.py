@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.49"
+main_root_title = "BHDStudio Upload Tool v1.5"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -4974,7 +4974,7 @@ def auto_screen_shot_status_window():
 
         # collect a range of random b frames from encode and put them in a list
         b_frames = []
-        while len(b_frames) < int(500):
+        while len(b_frames) < int(comparison_img_count):
             random_frame = random.randint(5000, num_source_frames - 10000)
             try:
                 if (
