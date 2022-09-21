@@ -7,3 +7,4 @@ packages/user_pw_key.py
 *.bin
 *.exe
 *.zip
+packages/github_token.py
