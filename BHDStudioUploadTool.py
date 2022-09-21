@@ -5158,7 +5158,7 @@ def upload_to_beyond_hd_co_window():
         # get raw text of web page
         upload_bhdco_queue.put("Getting auth token from beyondhd.co\n\n")
         try:
-            auth_raw = session.get("https://beyondhd.co/login", timeout=30).text
+            auth_raw = session.get("https://beyondhd.co/login", timeout=60).text
         except requests.exceptions.ConnectionError:
             upload_bhdco_queue.put("No internet connection")
             return  # exit the function
@@ -5200,7 +5200,7 @@ def upload_to_beyond_hd_co_window():
         )
         try:
             login_post = session.post(
-                "https://beyondhd.co/login", data=login_payload, timeout=30
+                "https://beyondhd.co/login", data=login_payload, timeout=60
             )
         except requests.exceptions.ConnectionError:
             upload_bhdco_queue.put("No internet connection")
@@ -5263,7 +5263,7 @@ def upload_to_beyond_hd_co_window():
         upload_bhdco_queue.put(f"Creating album:\n{generated_album_name}")
         try:
             album_post = session.post(
-                "https://beyondhd.co/json", data=album_payload, timeout=30
+                "https://beyondhd.co/json", data=album_payload, timeout=60
             )
         except requests.exceptions.ConnectionError:
             upload_bhdco_queue.put("No internet connection")
@@ -9173,7 +9173,7 @@ def bhd_co_login_window():
 
         # get raw text of web page
         try:
-            auth_raw = session.get("https://beyondhd.co/login", timeout=30).text
+            auth_raw = session.get("https://beyondhd.co/login", timeout=60).text
         except requests.exceptions.ConnectionError:
             messagebox.showerror(
                 parent=bhd_login_win, title="Error", message="No internet connection"
@@ -9214,7 +9214,7 @@ def bhd_co_login_window():
         # login post
         try:
             login_post = session.post(
-                "https://beyondhd.co/login", data=login_payload, timeout=30
+                "https://beyondhd.co/login", data=login_payload, timeout=60
             )
         except requests.exceptions.ConnectionError:
             session.close()  # end session
@@ -9871,7 +9871,7 @@ def check_for_latest_program_updates():
 
     # parse release page without GitHub api
     try:
-        parse_release_page = requests.get(release_link, timeout=30)
+        parse_release_page = requests.get(release_link, timeout=60)
     except requests.exceptions.ConnectionError:
         error_message_open_browser()
         return  # exit function
@@ -10076,7 +10076,7 @@ def check_for_latest_program_updates():
         # get bhdstudio upload tool download
         try:
             request_download = requests.get(
-                f"https://github.com{update_download_link}", timeout=30
+                f"https://github.com{update_download_link}", timeout=60
             )
         except requests.exceptions.ConnectionError:
             messagebox.showerror(
