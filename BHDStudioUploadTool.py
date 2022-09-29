@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.5"
+main_root_title = "BHDStudio Upload Tool v1.51"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -2157,7 +2157,7 @@ def encode_input_function(*args):
                 break
 
         # check for hard coded subs
-        hard_code_subs = re.search(r"textsub", str(script_info_list), re.IGNORECASE)
+        hard_code_subs = re.search(r"textsub|vobsub", str(script_info_list), re.IGNORECASE)
         # if hard code subs are found update forced sub var
         if hard_code_subs:
             forced_subtitles_burned_var.set("on")
