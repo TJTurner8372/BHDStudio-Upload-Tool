@@ -106,7 +106,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.52"
+main_root_title = "BHDStudio Upload Tool v1.53"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -2219,7 +2219,6 @@ def encode_input_function(*args):
         return  # exit the function
 
     if re.search(r"\d+:\d+:\d+\.\d+", list(encode_chapter.values())[-1]):
-        nfo_pad.destroy()
         messagebox.showerror(
             parent=root,
             title="Error",
