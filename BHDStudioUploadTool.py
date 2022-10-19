@@ -641,6 +641,15 @@ def edition_title_extractor(name_to_check):
     if "bluray" in movie_input_filtered:
         search_index = movie_input_filtered.find("bluray")
         movie_input_filtered = movie_input_filtered[:search_index]
+    else:
+        # attempt to get only the movie title year
+        collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", movie_input_filtered)
+
+        # if any 4 digits are detected in the string
+        if collect_year:
+            # get only the last set of digits
+            search_index = movie_input_filtered.find(str(collect_year[-1]))
+            movie_input_filtered = movie_input_filtered[:search_index + 4]
 
     # split string
     movie_input_filtered = movie_input_filtered.split(".")
