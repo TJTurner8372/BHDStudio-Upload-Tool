@@ -5129,7 +5129,7 @@ def auto_screen_shot_status_window():
 
         # update queue with information
         ss_queue.put(
-            f"\n\nCollecting {str(comparison_img_count)} random 'B' frames to generate "
+            f"\n\nCollecting {str(comparison_img_count)} 'B' frames to generate "
             "comparison images from..."
         )
 
