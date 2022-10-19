@@ -51,6 +51,7 @@ from tkinter import (
     WORD,
     LEFT,
     Spinbox,
+    IntVar,
 )
 
 import awsmfunc
@@ -515,6 +516,7 @@ source_file_path = StringVar()
 source_loaded = StringVar()
 source_file_information = {}
 encode_file_path = StringVar()
+encode_file_rename = BooleanVar()
 encode_file_resolution = StringVar()
 encode_media_info = StringVar()
 encode_file_audio = StringVar()
@@ -543,6 +545,7 @@ def clear_all_variables():
     source_loaded.set("")
     source_file_information.clear()
     encode_file_path.set("")
+    encode_file_rename.set(False)
     encode_file_resolution.set("")
     encode_media_info.set("")
     encode_file_audio.set("")
@@ -649,7 +652,7 @@ def edition_title_extractor(name_to_check):
         if collect_year:
             # get only the last set of digits
             search_index = movie_input_filtered.find(str(collect_year[-1]))
-            movie_input_filtered = movie_input_filtered[:search_index + 4]
+            movie_input_filtered = movie_input_filtered[: search_index + 4]
 
     # split string
     movie_input_filtered = movie_input_filtered.split(".")
@@ -2267,182 +2270,328 @@ def encode_input_function(*args):
     # remove multiple '.'s from file name
     suggested_bhd_filename = re.sub(r"\.{2,}", ".", suggested_bhd_filename)
 
-    if str(pathlib.Path(*args).name) != suggested_bhd_filename:
-        # rename encode window
-        rename_encode_window = Toplevel()
-        rename_encode_window.title("Confirm Filename")
-        rename_encode_window.configure(background=custom_window_bg_color)
-        rename_encode_window.geometry(
-            f'{600}x{300}+{str(int(root.geometry().split("+")[1]) + 60)}+'
-            f'{str(int(root.geometry().split("+")[2]) + 230)}'
-        )
-        rename_encode_window.resizable(False, False)
-        rename_encode_window.grab_set()
-        rename_encode_window.protocol(
-            "WM_DELETE_WINDOW",
-            lambda: [rename_encode_window.destroy(), root.wm_attributes("-alpha", 1.0)],
-        )
-        root.wm_attributes(
-            "-alpha", 0.90
-        )  # set parent window to be slightly transparent
-        rename_encode_window.grid_rowconfigure(0, weight=1)
-        rename_encode_window.grid_columnconfigure(0, weight=1)
+    # if program has already renamed the file ignore this block of code
+    if not encode_file_rename.get():
+        if str(pathlib.Path(*args).name) != suggested_bhd_filename:
+            # rename encode window
+            rename_encode_window = Toplevel()
+            rename_encode_window.title("Confirm Filename")
+            rename_encode_window.configure(background=custom_window_bg_color)
+            rename_encode_window.geometry(
+                f'{600}x{360}+{str(int(root.geometry().split("+")[1]) + 60)}+'
+                f'{str(int(root.geometry().split("+")[2]) + 230)}'
+            )
+            rename_encode_window.resizable(False, False)
+            rename_encode_window.grab_set()
+            rename_encode_window.protocol(
+                "WM_DELETE_WINDOW",
+                lambda: [
+                    rename_encode_window.destroy(),
+                    root.wm_attributes("-alpha", 1.0),
+                ],
+            )
+            root.wm_attributes(
+                "-alpha", 0.90
+            )  # set parent window to be slightly transparent
+            rename_encode_window.grid_rowconfigure(0, weight=1)
+            rename_encode_window.grid_columnconfigure(0, weight=1)
 
-        # rename encode frame
-        rename_enc_frame = Frame(
-            rename_encode_window,
-            highlightbackground=custom_frame_bg_colors["highlightcolor"],
-            highlightthickness=2,
-            bg=custom_frame_bg_colors["background"],
-            highlightcolor=custom_frame_bg_colors["highlightcolor"],
-        )
-        rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
-        for col_e_f in range(3):
-            rename_enc_frame.grid_columnconfigure(col_e_f, weight=1)
-        for row_e_f in range(7):
-            rename_enc_frame.grid_rowconfigure(row_e_f, weight=1)
+            # rename encode frame
+            rename_enc_frame = Frame(
+                rename_encode_window,
+                highlightbackground=custom_frame_bg_colors["highlightcolor"],
+                highlightthickness=2,
+                bg=custom_frame_bg_colors["background"],
+                highlightcolor=custom_frame_bg_colors["highlightcolor"],
+            )
+            rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+            for col_e_f in range(3):
+                rename_enc_frame.grid_columnconfigure(col_e_f, weight=1)
+            for row_e_f in range(7):
+                rename_enc_frame.grid_rowconfigure(row_e_f, weight=1)
 
-        # create label
-        rename_info_lbl = Label(
-            rename_enc_frame,
-            text=f"Source Name:",
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size, "bold"),
-        )
-        rename_info_lbl.grid(
-            row=0, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0)
-        )
+            # create label
+            rename_info_lbl = Label(
+                rename_enc_frame,
+                text=f"Source Name:",
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_font, set_font_size, "bold"),
+            )
+            rename_info_lbl.grid(
+                row=0, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0)
+            )
 
-        # create label
-        rename_info_lbl1 = Label(
-            rename_enc_frame,
-            wraplength=598,
-            text=str(pathlib.Path(source_file_information["source_path"]).name),
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_fixed_font, set_font_size),
-        )
-        rename_info_lbl1.grid(
-            row=1, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0)
-        )
+            # create label
+            rename_info_lbl1 = Label(
+                rename_enc_frame,
+                wraplength=598,
+                text=str(pathlib.Path(source_file_information["source_path"]).name),
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_fixed_font, set_font_size),
+            )
+            rename_info_lbl1.grid(
+                row=1, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0)
+            )
 
-        # create label
-        rename_info_lbl2 = Label(
-            rename_enc_frame,
-            text="Encode Name:",
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size, "bold"),
-        )
-        rename_info_lbl2.grid(
-            row=2, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0)
-        )
+            # create label
+            rename_info_lbl2 = Label(
+                rename_enc_frame,
+                text="Encode Name:",
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_font, set_font_size, "bold"),
+            )
+            rename_info_lbl2.grid(
+                row=2, column=0, columnspan=3, sticky=W + S + E, padx=5, pady=(2, 0)
+            )
 
-        # create label
-        rename_info_lbl2 = Label(
-            rename_enc_frame,
-            wraplength=598,
-            text=str(pathlib.Path(*args).name),
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_fixed_font, set_font_size),
-        )
-        rename_info_lbl2.grid(
-            row=3, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0)
-        )
+            # create label
+            rename_info_lbl2 = Label(
+                rename_enc_frame,
+                wraplength=598,
+                text=str(pathlib.Path(*args).name),
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_fixed_font, set_font_size),
+            )
+            rename_info_lbl2.grid(
+                row=3, column=0, columnspan=3, sticky=W + N + E, padx=5, pady=(2, 0)
+            )
 
-        # create label
-        rename_info_lbl3 = Label(
-            rename_enc_frame,
-            text="Suggested Name:",
-            background=custom_label_colors["background"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size, "bold"),
-        )
-        rename_info_lbl3.grid(row=4, column=0, sticky=W + S, padx=5, pady=(2, 0))
+            def injection_point(x):
+                """find the point to inject dubbed/subbed/imax after movie year"""
+                # attempt to get only the movie title year
+                collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", x)
 
-        # create entry box
-        custom_entry_box = Entry(
-            rename_enc_frame,
-            borderwidth=4,
-            fg=custom_entry_colors["foreground"],
-            bg=custom_entry_colors["background"],
-        )
-        custom_entry_box.grid(
-            row=5, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
-        )
-        custom_entry_box.insert(END, str(suggested_bhd_filename))
+                # if any 4 digits are detected in the string
+                if collect_year:
+                    # get only the last set of digits
+                    search_index = int(x.find(str(collect_year[-1]))) + 5
 
-        def rename_file_func():
-            """Rename encode input to the correct name"""
-            if not custom_entry_box.get().strip().endswith(".mp4"):
-                messagebox.showerror(
-                    parent=rename_encode_window,
-                    title="Missing Suffix",
-                    message='Filename must have ".mp4" suffix!\n\ne.g. "MovieName.mp4"',
-                )
-                return  # exit function
+                    return search_index
 
-            # rename the file
-            try:
-                renamed_enc = pathlib.Path(*args).rename(
-                    pathlib.Path(*args).parent / custom_entry_box.get().strip()
-                )
-            # if file exists delete old file and rename
-            except FileExistsError:
-                pathlib.Path(
-                    pathlib.Path(*args).parent / custom_entry_box.get().strip()
-                ).unlink(missing_ok=True)
-                renamed_enc = pathlib.Path(*args).rename(
-                    pathlib.Path(*args).parent / custom_entry_box.get().strip()
-                )
+            def update_generated_name(chk_btn):
+                """determine which check button was pressed and update the title based on the selction"""
+                nonlocal custom_entry_box, suggested_bhd_filename, imax_var, subbed_var, dubbed_var
 
-            root.wm_attributes("-alpha", 1.0)  # restore transparency
-            rename_encode_window.destroy()  # close window
-            encode_file_path.set(str(renamed_enc))  # update global variable
-            encode_input_function(
-                pathlib.Path(renamed_enc)
-            )  # re-run encode input with the renamed file
+                # if check button is IMAX
+                if chk_btn == "imax":
+                    if imax_var.get():
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "IMAX."
+                            + suggested_bhd_filename[inject_index:]
+                        )
 
-        # create 'Rename' button
-        rename_okay_btn = HoverButton(
-            rename_enc_frame,
-            text="Rename",
-            command=rename_file_func,
-            borderwidth="3",
-            width=8,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
-        )
-        rename_okay_btn.grid(
-            row=6, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
-        )
+                    elif not imax_var.get():
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "IMAX.", ""
+                        )
 
-        # create 'Cancel' button
-        rename_cancel_btn = HoverButton(
-            rename_enc_frame,
-            text="Cancel",
-            width=8,
-            command=lambda: [
-                rename_encode_window.destroy(),
-                root.wm_attributes("-alpha", 1.0),
-            ],
-            borderwidth="3",
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
-        )
-        rename_cancel_btn.grid(
-            row=6, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
-        )
+                # if check button is Subbed
+                elif chk_btn == "subbed":
+                    if subbed_var.get():
+                        dubbed_var.set(0)
+                        dubbed_check_button.config(state=DISABLED)
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Dubbed.", ""
+                        )
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Subbed."
+                            + suggested_bhd_filename[inject_index:]
+                        )
 
-        rename_encode_window.wait_window()  # wait for window to be closed
+                    elif not subbed_var.get():
+                        dubbed_check_button.config(state=NORMAL)
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Subbed.", ""
+                        )
+
+                # If check button is Dubbed
+                elif chk_btn == "dubbed":
+                    if dubbed_var.get():
+                        subbed_var.set(0)
+                        subbed_check_button.config(state=DISABLED)
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Subbed.", ""
+                        )
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Dubbed."
+                            + suggested_bhd_filename[inject_index:]
+                        )
+
+                    elif not dubbed_var.get():
+                        subbed_check_button.config(state=NORMAL)
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Dubbed.", ""
+                        )
+
+                custom_entry_box.delete(0, END)
+                custom_entry_box.insert(END, suggested_bhd_filename)
+
+            # imax check button
+            imax_var = IntVar()
+            imax_check_button = Checkbutton(
+                rename_enc_frame,
+                text="IMAX",
+                takefocus=False,
+                variable=imax_var,
+                command=lambda: update_generated_name("imax"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            imax_check_button.grid(
+                row=4, column=0, padx=5, pady=0, sticky=S + E + W + N
+            )
+
+            # subbed check button
+            subbed_var = IntVar()
+            subbed_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Subbed",
+                takefocus=False,
+                variable=subbed_var,
+                command=lambda: update_generated_name("subbed"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            subbed_check_button.grid(
+                row=4, column=1, padx=5, pady=0, sticky=S + E + W + N
+            )
+
+            # dubbed check button
+            dubbed_var = IntVar()
+            dubbed_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Dubbed",
+                takefocus=False,
+                variable=dubbed_var,
+                command=lambda: update_generated_name("dubbed"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            dubbed_check_button.grid(
+                row=4, column=2, padx=5, pady=0, sticky=S + E + W + N
+            )
+            #
+
+            # create label
+            rename_info_lbl3 = Label(
+                rename_enc_frame,
+                text="Suggested Name:",
+                background=custom_label_colors["background"],
+                fg=custom_label_colors["foreground"],
+                font=(set_font, set_font_size, "bold"),
+            )
+            rename_info_lbl3.grid(row=5, column=0, sticky=W + S, padx=5, pady=(2, 0))
+
+            # create entry box
+            custom_entry_box = Entry(
+                rename_enc_frame,
+                borderwidth=4,
+                fg=custom_entry_colors["foreground"],
+                bg=custom_entry_colors["background"],
+            )
+            custom_entry_box.grid(
+                row=6, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
+            )
+            custom_entry_box.insert(END, str(suggested_bhd_filename))
+
+            def rename_file_func():
+                """Rename encode input to the correct name"""
+                if not custom_entry_box.get().strip().endswith(".mp4"):
+                    messagebox.showerror(
+                        parent=rename_encode_window,
+                        title="Missing Suffix",
+                        message='Filename must have ".mp4" suffix!\n\ne.g. "MovieName.mp4"',
+                    )
+                    return  # exit function
+
+                # rename the file
+                try:
+                    renamed_enc = pathlib.Path(*args).rename(
+                        pathlib.Path(*args).parent / custom_entry_box.get().strip()
+                    )
+                # if file exists delete old file and rename
+                except FileExistsError:
+                    pathlib.Path(
+                        pathlib.Path(*args).parent / custom_entry_box.get().strip()
+                    ).unlink(missing_ok=True)
+                    renamed_enc = pathlib.Path(*args).rename(
+                        pathlib.Path(*args).parent / custom_entry_box.get().strip()
+                    )
+
+                root.wm_attributes("-alpha", 1.0)  # restore transparency
+                rename_encode_window.destroy()  # close window
+                encode_file_path.set(str(renamed_enc))  # update global variable
+                # bypass rename function on next loop
+                encode_file_rename.set(True)
+                # re-run encode input with the renamed file
+                encode_input_function(pathlib.Path(renamed_enc))
+
+            # create 'Rename' button
+            rename_okay_btn = HoverButton(
+                rename_enc_frame,
+                text="Rename",
+                command=rename_file_func,
+                borderwidth="3",
+                width=8,
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
+            )
+            rename_okay_btn.grid(
+                row=7, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
+            )
+
+            # create 'Cancel' button
+            rename_cancel_btn = HoverButton(
+                rename_enc_frame,
+                text="Cancel",
+                width=8,
+                command=lambda: [
+                    rename_encode_window.destroy(),
+                    root.wm_attributes("-alpha", 1.0),
+                ],
+                borderwidth="3",
+                foreground=custom_button_colors["foreground"],
+                background=custom_button_colors["background"],
+                activeforeground=custom_button_colors["activeforeground"],
+                activebackground=custom_button_colors["activebackground"],
+                disabledforeground=custom_button_colors["disabledforeground"],
+            )
+            rename_cancel_btn.grid(
+                row=7, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
+            )
+
+            rename_encode_window.wait_window()  # wait for window to be closed
 
 
 def drop_function(event):
@@ -2460,6 +2609,7 @@ def drop_function(event):
             source_input_function(file_input)
         # if the widget is in encode frame run encode input function
         elif "encode" in widget_source.lower():
+            encode_file_rename.set(False)
             encode_input_function(file_input)
 
 
@@ -2677,6 +2827,7 @@ def manual_encode_input():
         filetypes=[("Media Files", "*.*")],
     )
     if encode_file_input:
+        encode_file_rename.set(False)
         encode_input_function(encode_file_input)
 
 
@@ -5472,7 +5623,7 @@ def upload_to_beyond_hd_co_window():
     upload_ss_frame.grid_columnconfigure(0, weight=1)
     upload_ss_frame.grid_columnconfigure(1, weight=1)
     upload_ss_frame.grid_columnconfigure(2, weight=1)
-    upload_ss_frame.grid_rowconfigure(0, weight=100)
+    upload_ss_frame.grid_rowconfigure(0, weight=200)
     upload_ss_frame.grid_rowconfigure(1, weight=1)
 
     # create scrolled window
