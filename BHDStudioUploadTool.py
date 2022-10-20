@@ -8480,14 +8480,17 @@ def open_uploader_window(job_mode):
             highlightcolor=custom_frame_bg_colors["highlightcolor"],
         )
         upload_output_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+
         for e_n_f in range(3):
             upload_output_frame.grid_columnconfigure(e_n_f, weight=1)
             upload_output_frame.grid_rowconfigure(e_n_f, weight=1)
+        upload_output_frame.grid_rowconfigure(0, weight=100)
 
         # create window
         upload_status_info = scrolledtextwidget.ScrolledText(
             upload_output_frame,
-            height=7,
+            height=1,
+            width=1,
             bg=custom_scrolled_text_widget_color["background"],
             fg=custom_scrolled_text_widget_color["foreground"],
             bd=4,
