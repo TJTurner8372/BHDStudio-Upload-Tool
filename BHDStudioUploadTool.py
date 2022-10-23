@@ -7270,10 +7270,14 @@ def torrent_function_window():
     # create queue instance
     torrent_queue = Queue()
 
+    # variable to update if there is an error and to cancel torrent generation safely
+    torrent_error = BooleanVar()
+
     def create_torrent(tor_queue):
+        nonlocal torrent_error
         """create torrent in a separate thread"""
 
-        error = False  # set temporary error variable
+        torrent_error.set(False)  # set temporary torrent_error variable
         try:
             build_torrent = Torrent(
                 path=pathlib.Path(encode_file_path.get()),
@@ -7284,15 +7288,15 @@ def torrent_function_window():
             )
         except torf.URLError:  # if tracker url is invalid
             tor_queue.put("Error Tracker URL is invalid, exiting")
-            error = True  # set error to true
+            torrent_error.set(True)  # set torrent_error to true
         except torf.PathError:  # if path to encoded file is invalid
             tor_queue.put("Error Path to encoded file is invalid, exiting")
-            error = True  # set error to true
+            torrent_error.set(True)  # set torrent_error to true
         except torf.PieceSizeError:  # if piece size is incorrect
             tor_queue.put("Error Piece size is incorrect, exiting")
-            error = True  # set error to true
+            torrent_error.set(True)  # set torrent_error to true
 
-        if error:  # if error is true
+        if torrent_error.get():  # if torrent_error is true
             return  # exit the function
 
         class WaitForTorrent:
@@ -7323,6 +7327,9 @@ def torrent_function_window():
                 check_for_tor = WaitForTorrent()
                 check_for_tor.wait_for_torrent_output()
 
+            if torrent_error.get():
+                return "exit!"
+
         # if callback torrent_progress returns anything other than None, exit the function
         if not build_torrent.generate(callback=torrent_progress):
             return  # exit function
@@ -7344,6 +7351,7 @@ def torrent_function_window():
 
     def torrent_queue_loop():
         """constantly check the torrent queue data for updates"""
+        nonlocal torrent_thread
 
         # if there is data set it to a variables
         try:
@@ -7392,9 +7400,18 @@ def torrent_function_window():
 
             # if the data has Complete sent to it, confirm that the torrent file is there and call the exit function
             elif str(torrent_queue_data) == "Complete":
-                # call task done and exit queue
-                torrent_queue.task_done()
-                torrent_queue.join()
+
+                # check if thread is alive and then join it
+                if torrent_thread.is_alive():
+                    torrent_thread.join()
+
+                # in case user hits cancel after torrent internally "Completes" empty queue
+                while torrent_queue.qsize() > 0:
+                    try:
+                        torrent_queue.task_done()
+                    except ValueError:
+                        torrent_queue.join()
+                        break
 
                 # call the torrent window exit function
                 torrent_window_exit_function()
@@ -7402,11 +7419,43 @@ def torrent_function_window():
                 # exit this loop
                 return
 
+            # if cancel is selected
+            elif str(torrent_queue_data) == "Cancel":
+
+                # check if thread is alive and then join it
+                if torrent_thread.is_alive():
+                    torrent_thread.join()
+
+                # in case user hits cancel after torrent internally "Completes" empty queue
+                while torrent_queue.qsize() > 0:
+                    try:
+                        torrent_queue.task_done()
+                    except ValueError:
+                        torrent_queue.join()
+                        break
+
+                # reset progressbar
+                app_progress_bar["value"] = 0
+                custom_style.configure(
+                    "text.Horizontal.TProgressbar",
+                    text="",
+                )
+
+                # re-enable torrent create button
+                create_torrent_button.config(state=NORMAL)
+
+                # exit this loop
+                return
+
         # keep polling data every millisecond
         root.after(1, torrent_queue_loop)
 
+    # create a non-local variable to kill the thread if canceled is pressed
+    torrent_thread = threading.Thread()
+
     def create_torrent_btn_func():
         """function ran when create torrent is selected"""
+        nonlocal torrent_thread
 
         # if file already exists
         if pathlib.Path(torrent_file_path.get()).is_file():
@@ -7440,7 +7489,10 @@ def torrent_function_window():
                         return  # exit this function
 
         # after 500 milliseconds start the torrent queue loop
-        root.after(500, torrent_queue_loop)
+        root.after(50, torrent_queue_loop)
+
+        # disable create torrent button once program starts
+        create_torrent_button.config(state=DISABLED)
 
         # define a torrent thread
         torrent_thread = threading.Thread(
@@ -7473,7 +7525,8 @@ def torrent_function_window():
         text="Cancel",
         command=lambda: [
             automatic_workflow_boolean.set(False),
-            torrent_window_exit_function(),
+            torrent_queue.put("Cancel"),
+            torrent_error.set(True),
         ],
         borderwidth="3",
         width=12,
