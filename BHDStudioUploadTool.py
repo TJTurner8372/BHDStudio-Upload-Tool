@@ -7642,10 +7642,6 @@ def open_uploader_window(job_mode):
         release_date_var.set("")
         rating_var.set("")
 
-    # if job type is custom_advanced, reset the entire GUI for a clean and empty uploader window
-    elif job_mode == "custom_advanced":
-        reset_gui()
-
     # update id variables
     try:
         tmdb_id_var.set(source_file_information["tmdb_id"])
@@ -10016,15 +10012,6 @@ options_theme.add_radiobutton(
 options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
-
-tools_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
-my_menu_bar.add_cascade(label="Tools", menu=tools_menu)
-tools_menu.add_command(
-    label="Manual Uploader",
-    accelerator="[Ctrl+U]",
-    command=lambda: open_uploader_window("custom_advanced"),
-)
-root.bind("<Control-u>", lambda event: open_uploader_window("custom_advanced"))
 
 help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Help", menu=help_menu)
