@@ -87,7 +87,7 @@ class QBittorrentWindow:
         )  # window background color
         self.qbit_window.title("qBittorrent Injection")  # set window title
         self.qbit_window.geometry(
-            f'{600}x{360}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
+            f'+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
             f'{str(int(self.master.geometry().split("+")[2]) + 120)}'
         )
         self.qbit_window.protocol(

@@ -91,7 +91,7 @@ class DelugeWindow:
         )  # window background color
         self.deluge_window.title("Deluge Injection")  # set window title
         self.deluge_window.geometry(
-            f'{600}x{360}+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
+            f'+{str(int(self.master.geometry().split("+")[1]) + 60)}+'
             f'{str(int(self.master.geometry().split("+")[2]) + 120)}'
         )
         self.deluge_window.protocol(
