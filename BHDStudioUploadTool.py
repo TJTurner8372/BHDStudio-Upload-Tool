@@ -173,16 +173,11 @@ def root_exit_function():
                 root_exit_parser["save_window_locations"]["bhdstudiotool"]
                 != root.geometry()
             ):
-                if (
-                    int(root.geometry().split("x")[0]) >= root_window_width
-                    or int(root.geometry().split("x")[1].split("+")[0])
-                    >= root_window_height
-                ):
-                    root_exit_parser.set(
-                        "save_window_locations", "bhdstudiotool", root.geometry()
-                    )
-                    with open(config_file, "w") as root_exit_config_file:
-                        root_exit_parser.write(root_exit_config_file)
+                root_exit_parser.set(
+                    "save_window_locations", "bhdstudiotool", root.geometry()
+                )
+                with open(config_file, "w") as root_exit_config_file:
+                    root_exit_parser.write(root_exit_config_file)
 
     # check for opened windows before closing
     open_tops = False  # Set variable for open toplevel windows
@@ -279,19 +274,10 @@ if config["themes"]["selected_theme"] == "system_theme":
 
 # root window configuration
 root.title(main_root_title)
+root.title(main_root_title)
 root.iconphoto(True, PhotoImage(data=base_64_icon))
 root.configure(background=custom_window_bg_color)
-root_window_height = 760
-root_window_width = 720
-if config["save_window_locations"]["bhdstudiotool"] == "":
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x_coordinate = int((screen_width / 2) - (root_window_width / 2))
-    y_coordinate = int((screen_height / 2) - (root_window_height / 2))
-    root.geometry(
-        f"{root_window_width}x{root_window_height}+{x_coordinate}+{y_coordinate}"
-    )
-elif config["save_window_locations"]["bhdstudiotool"] != "":
+if config["save_window_locations"]["bhdstudiotool"] != "":
     root.geometry(config["save_window_locations"]["bhdstudiotool"])
 root.protocol("WM_DELETE_WINDOW", root_exit_function)
 
@@ -311,7 +297,11 @@ detect_font = font.nametofont(
     "TkDefaultFont"
 )  # Get default font value into Font object
 set_font = detect_font.actual().get("family")
-set_font_size = detect_font.actual().get("size")
+default_font_size = detect_font.actual().get("size")
+if config["ui_scale"]["value"] != "":
+    set_font_size = int(config["ui_scale"]["value"])
+else:
+    set_font_size = default_font_size
 detect_fixed_font = font.nametofont("TkFixedFont")
 set_fixed_font = detect_fixed_font.actual().get("family")
 
@@ -697,19 +687,13 @@ def search_movie_global_function(*args):
                 exit_movie_window_parser["save_window_locations"]["movie_info"]
                 != movie_info_window.geometry()
             ):
-                if (
-                    int(movie_info_window.geometry().split("x")[0])
-                    >= movie_window_width
-                    or int(movie_info_window.geometry().split("x")[1].split("+")[0])
-                    >= movie_window_height
-                ):
-                    exit_movie_window_parser.set(
-                        "save_window_locations",
-                        "movie_info",
-                        movie_info_window.geometry(),
-                    )
-                    with open(config_file, "w") as root_exit_config_file:
-                        exit_movie_window_parser.write(root_exit_config_file)
+                exit_movie_window_parser.set(
+                    "save_window_locations",
+                    "movie_info",
+                    movie_info_window.geometry(),
+                )
+                with open(config_file, "w") as root_exit_config_file:
+                    exit_movie_window_parser.write(root_exit_config_file)
 
         # close movie info window
         movie_info_window.destroy()
@@ -757,18 +741,7 @@ def search_movie_global_function(*args):
         background=custom_window_bg_color
     )  # Set's the background color
     movie_info_window.title("Movie Selection")  # Toplevel Title
-    movie_window_height = 600
-    movie_window_width = 1000
-    if movie_window_parser["save_window_locations"]["movie_info"] == "":
-        movie_screen_width = movie_info_window.winfo_screenwidth()
-        movie_screen_height = movie_info_window.winfo_screenheight()
-        movie_x_coordinate = int((movie_screen_width / 2) - (movie_window_width / 2))
-        movie_y_coordinate = int((movie_screen_height / 2) - (movie_window_height / 2))
-        movie_info_window.geometry(
-            f"{movie_window_width}x{movie_window_height}+"
-            f"{movie_x_coordinate}+{movie_y_coordinate}"
-        )
-    elif movie_window_parser["save_window_locations"]["movie_info"] != "":
+    if movie_window_parser["save_window_locations"]["movie_info"] != "":
         movie_info_window.geometry(
             movie_window_parser["save_window_locations"]["movie_info"]
         )
@@ -1055,7 +1028,7 @@ def search_movie_global_function(*args):
         text=" Plot ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -1083,7 +1056,7 @@ def search_movie_global_function(*args):
         text=" Search ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -1576,9 +1549,10 @@ def source_input_function(*args):
             audio_track_win.title("Audio Track Selection")
             # Open on top left of root window
             audio_track_win.geometry(
-                f'{480}x{160}+{str(int(root.geometry().split("+")[1]) + 108)}+'
+                f'+{str(int(root.geometry().split("+")[1]) + 108)}+'
                 f'{str(int(root.geometry().split("+")[2]) + 80)}'
             )
+            # audio_track_win.wm_transient(root)
             audio_track_win.resizable(False, False)  # makes window not resizable
             audio_track_win.grab_set()  # forces audio_track_win to stay on top of root
             audio_track_win.wm_overrideredirect(True)
@@ -1633,6 +1607,7 @@ def source_input_function(*args):
                 activeforeground=custom_button_colors["activeforeground"],
                 background=custom_button_colors["background"],
                 foreground=custom_button_colors["foreground"],
+                font=(set_font, set_font_size - 1),
             )
             audio_pop_up_menu.grid(
                 row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
@@ -1642,6 +1617,7 @@ def source_input_function(*args):
                 activeforeground=custom_button_colors["activeforeground"],
                 background=custom_button_colors["background"],
                 foreground=custom_button_colors["foreground"],
+                font=(set_font, set_font_size - 1),
             )
 
             # create 'OK' button
@@ -2619,7 +2595,7 @@ source_frame = LabelFrame(
     text=" Source (*.avs / *.vpy / StaxRip Temp Directory) ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 10, "bold"),
+    font=(set_font, set_font_size + 1, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -2636,7 +2612,7 @@ CustomTooltipLabel(
     hover_delay=400,
     background=custom_window_bg_color,
     foreground=custom_label_frame_colors["foreground"],
-    font=(set_fixed_font, 9, "bold"),
+    font=(set_fixed_font, set_font_size, "bold"),
     text="Select Open\nor\nDrag and Drop either the StaxRip Temp Dir or the *.avs/*.vpy script",
 )
 source_frame.drop_target_register(DND_FILES)
@@ -2743,6 +2719,7 @@ source_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
+    font=(set_font, set_font_size - 2)
 )
 source_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W)
 source_hdr_label = Label(
@@ -2752,6 +2729,7 @@ source_hdr_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
+    font=(set_font, set_font_size - 2)
 )
 source_hdr_label.grid(column=0, row=1, columnspan=4, pady=3, padx=3, sticky=W)
 
@@ -2790,7 +2768,7 @@ encode_frame = LabelFrame(
     text=" Encode (*.mp4) ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 10, "bold"),
+    font=(set_font, set_font_size + 1, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -2880,6 +2858,7 @@ encode_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
+    font=(set_font, set_font_size - 2)
 )
 encode_label.grid(column=0, row=0, columnspan=1, pady=3, padx=3, sticky=W)
 encode_hdr_label = Label(
@@ -2889,6 +2868,7 @@ encode_hdr_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
+    font=(set_font, set_font_size - 2)
 )
 encode_hdr_label.grid(column=0, row=1, columnspan=1, pady=3, padx=3, sticky=W)
 
@@ -3187,7 +3167,7 @@ release_notes_frame = LabelFrame(
     text=" Release Notes ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 10, "bold"),
+    font=(set_font, set_font_size + 1, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -3334,7 +3314,7 @@ CustomTooltipLabel(
     hover_delay=400,
     background=custom_window_bg_color,
     foreground=custom_label_frame_colors["foreground"],
-    font=(set_fixed_font, 9, "bold"),
+    font=(set_fixed_font, set_font_size, "bold"),
     text="Right click for more options",
 )
 
@@ -3399,7 +3379,7 @@ screenshot_frame = LabelFrame(
     text=" Sreenshots ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 10, "bold"),
+    font=(set_font, set_font_size + 1, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -3678,17 +3658,7 @@ def automatic_screenshot_generator():
     image_viewer = Toplevel()
     image_viewer.title("Image Viewer")
     image_viewer.configure(background=custom_window_bg_color)
-    iv_window_height = 720
-    iv_window_width = 1400
-    if auto_screenshot_parser["save_window_locations"]["image_viewer"] == "":
-        iv_screen_width = root.winfo_screenwidth()
-        iv_screen_height = root.winfo_screenheight()
-        iv_x_coordinate = int((iv_screen_width / 2) - (iv_window_width / 2))
-        iv_y_coordinate = int((iv_screen_height / 2) - (iv_window_height / 2))
-        image_viewer.geometry(
-            f"{iv_window_width}x{iv_window_height}+{iv_x_coordinate}+{iv_y_coordinate}"
-        )
-    elif auto_screenshot_parser["save_window_locations"]["image_viewer"] != "":
+    if auto_screenshot_parser["save_window_locations"]["image_viewer"] != "":
         image_viewer.geometry(
             auto_screenshot_parser["save_window_locations"]["image_viewer"]
         )
@@ -3705,7 +3675,7 @@ def automatic_screenshot_generator():
         text=" Image Info ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -3754,7 +3724,7 @@ def automatic_screenshot_generator():
         text=" Image Preview ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -3935,7 +3905,7 @@ def automatic_screenshot_generator():
         text=" Info ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -4001,6 +3971,7 @@ def automatic_screenshot_generator():
         selectmode=SINGLE,
         bd=4,
         activestyle="none",
+        font=(set_fixed_font, set_font_size - 2)
     )
     img_viewer_listbox.grid(
         row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0)
@@ -4016,7 +3987,7 @@ def automatic_screenshot_generator():
         text=" Preview ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -4307,16 +4278,11 @@ def automatic_screenshot_generator():
                 add_img_exit_parser["save_window_locations"]["image_viewer"]
                 != image_viewer.geometry()
             ):
-                if (
-                    int(image_viewer.geometry().split("x")[0]) >= iv_window_width
-                    or int(image_viewer.geometry().split("x")[1].split("+")[0])
-                    >= iv_window_height
-                ):
-                    add_img_exit_parser.set(
-                        "save_window_locations", "image_viewer", image_viewer.geometry()
-                    )
-                    with open(config_file, "w") as nfo_configfile:
-                        add_img_exit_parser.write(nfo_configfile)
+                add_img_exit_parser.set(
+                    "save_window_locations", "image_viewer", image_viewer.geometry()
+                )
+                with open(config_file, "w") as nfo_configfile:
+                    add_img_exit_parser.write(nfo_configfile)
 
         # re-open root and all top levels
         advanced_root_deiconify()
@@ -4401,7 +4367,7 @@ def choose_indexer_func():
     index_selection_win.title("Index")
     index_selection_win.configure(background=custom_window_bg_color)
     index_selection_win.geometry(
-        f'{350}x{350}+{str(int(root.geometry().split("+")[1]) + 180)}+'
+        f'+{str(int(root.geometry().split("+")[1]) + 180)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
     index_selection_win.resizable(False, False)
@@ -4571,7 +4537,7 @@ def check_crop_values():
         check_crop_win,
         text=" Crop: ",
         bd=0,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -4863,7 +4829,7 @@ def auto_screen_shot_status_window():
     screenshot_status_window.configure(background=custom_window_bg_color)
     screenshot_status_window.title("Screenshot Status")
     screenshot_status_window.geometry(
-        f'{500}x{400}+{str(int(root.geometry().split("+")[1]) + 126)}+'
+        f'+{str(int(root.geometry().split("+")[1]) + 126)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
     screenshot_status_window.resizable(False, False)
@@ -4893,6 +4859,7 @@ def auto_screen_shot_status_window():
         bd=4,
         wrap=WORD,
         state=DISABLED,
+        font=(set_fixed_font, set_font_size - 1)
     )
     ss_status_info.grid(
         row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
@@ -5928,7 +5895,7 @@ manual_workflow = LabelFrame(
     text=" Manual Workflow ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 10, "bold"),
+    font=(set_font, set_font_size + 1, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -6156,16 +6123,11 @@ def open_nfo_viewer():
                 nfo_pad_exit_parser["save_window_locations"]["nfo_pad"]
                 != nfo_pad.geometry()
             ):
-                if (
-                    int(nfo_pad.geometry().split("x")[0]) >= nfo_pad_window_width
-                    or int(nfo_pad.geometry().split("x")[1].split("+")[0])
-                    >= nfo_pad_window_height
-                ):
-                    nfo_pad_exit_parser.set(
-                        "save_window_locations", "nfo_pad", nfo_pad.geometry()
-                    )
-                    with open(config_file, "w") as nfo_configfile:
-                        nfo_pad_exit_parser.write(nfo_configfile)
+                nfo_pad_exit_parser.set(
+                    "save_window_locations", "nfo_pad", nfo_pad.geometry()
+                )
+                with open(config_file, "w") as nfo_configfile:
+                    nfo_pad_exit_parser.write(nfo_configfile)
 
         # update nfo var
         nfo_info_var.set(nfo_pad_text_box.get("1.0", "end-1c"))
@@ -6179,18 +6141,8 @@ def open_nfo_viewer():
 
     nfo_pad = Toplevel()
     nfo_pad.title("BHDStudioUploadTool - NFO Pad")
-    nfo_pad_window_height = 600
-    nfo_pad_window_width = 1000
     nfo_pad.config(bg=custom_window_bg_color)
-    if nfo_pad_parser["save_window_locations"]["nfo_pad"] == "":
-        nfo_screen_width = nfo_pad.winfo_screenwidth()
-        nfo_screen_height = nfo_pad.winfo_screenheight()
-        nfo_x_coordinate = int((nfo_screen_width / 2) - (nfo_pad_window_width / 2))
-        nfo_y_coordinate = int((nfo_screen_height / 2) - (nfo_pad_window_height / 2))
-        nfo_pad.geometry(
-            f"{nfo_pad_window_width}x{nfo_pad_window_height}+{nfo_x_coordinate}+{nfo_y_coordinate}"
-        )
-    elif nfo_pad_parser["save_window_locations"]["nfo_pad"] != "":
+    if nfo_pad_parser["save_window_locations"]["nfo_pad"] != "":
         nfo_pad.geometry(nfo_pad_parser["save_window_locations"]["nfo_pad"])
     nfo_pad.protocol(
         "WM_DELETE_WINDOW",
@@ -6451,7 +6403,7 @@ def open_nfo_viewer():
             text=" Fonts ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, 10, "bold"),
+            font=(set_font, set_font_size + 1, "bold"),
             fg=custom_label_frame_colors["foreground"],
             bg=custom_label_frame_colors["background"],
         )
@@ -6495,7 +6447,7 @@ def open_nfo_viewer():
             text=" Style ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, 10, "bold"),
+            font=(set_font, set_font_size + 1, "bold"),
             fg=custom_label_frame_colors["foreground"],
             bg=custom_label_frame_colors["background"],
         )
@@ -6528,7 +6480,7 @@ def open_nfo_viewer():
             text=" Size ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, 10, "bold"),
+            font=(set_font, set_font_size + 1, "bold"),
             fg=custom_label_frame_colors["foreground"],
             bg=custom_label_frame_colors["background"],
         )
@@ -6926,18 +6878,13 @@ def torrent_function_window():
                 torrent_parser["save_window_locations"]["torrent_window"]
                 != torrent_window.geometry()
             ):
-                if (
-                    int(torrent_window.geometry().split("x")[0]) >= tor_window_width
-                    or int(torrent_window.geometry().split("x")[1].split("+")[0])
-                    >= tor_window_height
-                ):
-                    torrent_parser.set(
-                        "save_window_locations",
-                        "torrent_window",
-                        torrent_window.geometry(),
-                    )
-                    with open(config_file, "w") as torrent_configfile:
-                        torrent_parser.write(torrent_configfile)
+                torrent_parser.set(
+                    "save_window_locations",
+                    "torrent_window",
+                    torrent_window.geometry(),
+                )
+                with open(config_file, "w") as torrent_configfile:
+                    torrent_parser.write(torrent_configfile)
 
         if not automatic_workflow_boolean.get():
             torrent_window.destroy()  # destroy torrent window
@@ -6953,16 +6900,7 @@ def torrent_function_window():
     torrent_window = Toplevel()
     torrent_window.configure(background=custom_window_bg_color)
     torrent_window.title("BHDStudio Torrent Creator")
-    tor_window_height = 330  # win height
-    tor_window_width = 520  # win width
-    if torrent_config["save_window_locations"]["torrent_window"] == "":
-        # open near the center of root
-        torrent_window.geometry(
-            f"{tor_window_width}x{tor_window_height}+"
-            f'{str(int(root.geometry().split("+")[1]) + 100)}+'
-            f'{str(int(root.geometry().split("+")[2]) + 210)}'
-        )
-    elif torrent_config["save_window_locations"]["torrent_window"] != "":
+    if torrent_config["save_window_locations"]["torrent_window"] != "":
         torrent_window.geometry(
             torrent_config["save_window_locations"]["torrent_window"]
         )
@@ -6983,7 +6921,7 @@ def torrent_function_window():
         text=" Path ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -7031,7 +6969,7 @@ def torrent_function_window():
         disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_button.grid(
-        row=0, column=0, columnspan=1, padx=5, pady=(7, 5), sticky=N + S + E + W
+        row=0, column=0, columnspan=1, ipadx=5, padx=5, pady=(7, 5), sticky=N + S + E + W
     )
 
     # torrent path entry box
@@ -7042,6 +6980,7 @@ def torrent_function_window():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        width=60,
     )
     torrent_entry_box.grid(
         row=0, column=1, columnspan=9, padx=5, pady=(5, 5), sticky=N + S + E + W
@@ -7055,7 +6994,7 @@ def torrent_function_window():
         text=" Settings ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -7134,6 +7073,7 @@ def torrent_function_window():
         activeforeground=custom_button_colors["activeforeground"],
         background=custom_button_colors["background"],
         foreground=custom_button_colors["foreground"],
+        font=(set_font, set_font_size - 1),
     )
     torrent_piece_menu.grid(
         row=0, column=1, columnspan=1, pady=(7, 5), padx=(10, 5), sticky=W
@@ -7143,6 +7083,7 @@ def torrent_function_window():
         activeforeground=custom_button_colors["activeforeground"],
         background=custom_button_colors["background"],
         foreground=custom_button_colors["foreground"],
+        font=(set_font, set_font_size - 2)
     )
 
     # piece size label
@@ -7182,7 +7123,7 @@ def torrent_function_window():
         text=" Fields ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -7587,7 +7528,7 @@ automatic_workflow = LabelFrame(
     text=" Automatic Workflow ",
     labelanchor="nw",
     bd=3,
-    font=(set_font, 9, "bold"),
+    font=(set_font, set_font_size, "bold"),
     fg=custom_label_frame_colors["foreground"],
     bg=custom_label_frame_colors["background"],
 )
@@ -7661,16 +7602,11 @@ def open_uploader_window(job_mode):
                 uploader_exit_parser["save_window_locations"]["uploader"]
                 != upload_window.geometry()
             ):
-                if (
-                    int(upload_window.geometry().split("x")[0]) >= upload_window_width
-                    or int(upload_window.geometry().split("x")[1].split("+")[0])
-                    >= upload_window_height
-                ):
-                    uploader_exit_parser.set(
-                        "save_window_locations", "uploader", upload_window.geometry()
-                    )
-                    with open(config_file, "w") as uploader_exit_config_file:
-                        uploader_exit_parser.write(uploader_exit_config_file)
+                uploader_exit_parser.set(
+                    "save_window_locations", "uploader", upload_window.geometry()
+                )
+                with open(config_file, "w") as uploader_exit_config_file:
+                    uploader_exit_parser.write(uploader_exit_config_file)
 
         # close window, re-open root, re-open all top level windows if they exist
         upload_window.destroy()
@@ -7686,22 +7622,7 @@ def open_uploader_window(job_mode):
     upload_window.title("BHDStudio - Uploader")
     upload_window.iconphoto(True, PhotoImage(data=base_64_icon))
     upload_window.configure(background=custom_window_bg_color)
-    upload_window_height = 660
-    upload_window_width = 720
-    if uploader_window_config_parser["save_window_locations"]["uploader"] == "":
-        uploader_screen_width = upload_window.winfo_screenwidth()
-        uploader_screen_height = upload_window.winfo_screenheight()
-        uploader_x_coordinate = int(
-            (uploader_screen_width / 2) - (upload_window_width / 2)
-        )
-        uploader_y_coordinate = int(
-            (uploader_screen_height / 2) - (upload_window_height / 2)
-        )
-        upload_window.geometry(
-            f"{upload_window_width}x{upload_window_height}+"
-            f"{uploader_x_coordinate}+{uploader_y_coordinate}"
-        )
-    elif uploader_window_config_parser["save_window_locations"]["uploader"] != "":
+    if uploader_window_config_parser["save_window_locations"]["uploader"] != "":
         upload_window.geometry(
             uploader_window_config_parser["save_window_locations"]["uploader"]
         )
@@ -7719,7 +7640,7 @@ def open_uploader_window(job_mode):
         text=" Torrent Input ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -7806,7 +7727,7 @@ def open_uploader_window(job_mode):
         text=" Title ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -7846,7 +7767,7 @@ def open_uploader_window(job_mode):
         text=" Options ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -8055,7 +7976,7 @@ def open_uploader_window(job_mode):
         text=" IMDB / TMDB ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -8066,7 +7987,7 @@ def open_uploader_window(job_mode):
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
     )
     imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
     imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
@@ -8080,7 +8001,7 @@ def open_uploader_window(job_mode):
         text=" Search ",
         labelanchor="n",
         bd=3,
-        font=(set_font, 9, "bold"),
+        font=(set_font, set_font_size, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -8235,7 +8156,7 @@ def open_uploader_window(job_mode):
         text=" Info ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -8424,7 +8345,7 @@ def open_uploader_window(job_mode):
         text=" Upload Options ",
         labelanchor="nw",
         bd=3,
-        font=(set_font, 10, "bold"),
+        font=(set_font, set_font_size + 1, "bold"),
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
@@ -8507,8 +8428,8 @@ def open_uploader_window(job_mode):
         upload_status_window = Toplevel()
         upload_status_window.configure(background=custom_window_bg_color)
         upload_status_window.geometry(
-            f'{460}x{300}+{str(int(upload_window.geometry().split("+")[1]) + 156)}+'
-            f'{str(int(upload_window.geometry().split("+")[2]) + 230)}'
+            f'+{str(int(upload_window.geometry().split("+")[1]) + 10)}+'
+            f'{str(int(upload_window.geometry().split("+")[2]) + 180)}'
         )
         upload_status_window.resizable(False, False)
         upload_status_window.grab_set()
@@ -8537,8 +8458,6 @@ def open_uploader_window(job_mode):
         # create window
         upload_status_info = scrolledtextwidget.ScrolledText(
             upload_output_frame,
-            height=1,
-            width=1,
             bg=custom_scrolled_text_widget_color["background"],
             fg=custom_scrolled_text_widget_color["foreground"],
             bd=4,
@@ -8981,7 +8900,7 @@ def custom_input_prompt(
     custom_input_window.title("")
     custom_input_window.configure(background=custom_window_bg_color)
     custom_input_window.geometry(
-        f'{260}x{140}+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
+        f'+{str(int(parent_window.geometry().split("+")[1]) + 220)}+'
         f'{str(int(parent_window.geometry().split("+")[2]) + 230)}'
     )
     custom_input_window.resizable(False, False)
@@ -9024,6 +8943,7 @@ def custom_input_prompt(
         borderwidth=4,
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
+        width=30,
     )
     custom_entry_box.grid(
         row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W
@@ -9143,7 +9063,7 @@ def torrent_path_window_function(*t_args):
     torrent_path_window.title("")
     torrent_path_window.configure(background=custom_window_bg_color)
     torrent_path_window.geometry(
-        f'{460}x{160}+{str(int(root.geometry().split("+")[1]) + 156)}+'
+        f'+{str(int(root.geometry().split("+")[1]) + 156)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
     torrent_path_window.resizable(False, False)
@@ -9241,9 +9161,10 @@ def torrent_path_window_function(*t_args):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        width=30,
     )
     torrent_path_entry_box.grid(
-        row=1, column=1, columnspan=2, padx=0, pady=5, sticky=E + W
+        row=1, column=1, columnspan=2, padx=5, pady=5, sticky=E + W
     )
     torrent_path_entry_box.insert(
         END, torrent_window_path_parser["torrent_settings"]["default_path"]
@@ -9349,7 +9270,7 @@ def bhd_co_login_window():
     bhd_login_win.title("")
     bhd_login_win.configure(background=custom_window_bg_color)
     bhd_login_win.geometry(
-        f'{300}x{210}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+        f'+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
     bhd_login_win.resizable(False, False)
@@ -9388,6 +9309,7 @@ def bhd_co_login_window():
         borderwidth=4,
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
+        width=30
     )
     user_entry_box.grid(
         row=1, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -9410,6 +9332,7 @@ def bhd_co_login_window():
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
         show="*",
+        width=30
     )
     pass_entry_box.grid(
         row=3, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -9573,7 +9496,7 @@ def screen_shot_count_spinbox(*e_hotkey):
     ss_count_win.title("SS Count")
     ss_count_win.configure(background=custom_window_bg_color)
     ss_count_win.geometry(
-        f'{280}x{140}+{str(int(root.geometry().split("+")[1]) + 220)}+'
+        f'+{str(int(root.geometry().split("+")[1]) + 220)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
     ss_count_win.resizable(False, False)
@@ -9635,7 +9558,7 @@ def screen_shot_count_spinbox(*e_hotkey):
             hover_delay=200,
             background=custom_window_bg_color,
             foreground=custom_label_frame_colors["foreground"],
-            font=(set_fixed_font, 9, "bold"),
+            font=(set_fixed_font, set_font_size, "bold"),
             text="Right click to quickly select amount",
         )
 
@@ -9665,9 +9588,10 @@ def screen_shot_count_spinbox(*e_hotkey):
         highlightthickness=1,
         buttonbackground=custom_spinbox_color["buttonbackground"],
         readonlybackground=custom_spinbox_color["readonlybackground"],
+        font=(set_font, set_font_size - 1),
     )
     ss_spinbox.grid(
-        row=1, column=0, columnspan=3, padx=10, pady=3, sticky=N + S + E + W
+        row=1, column=0, columnspan=3, padx=40, pady=10, sticky=N + S + E + W
     )
     spinbox_right_click_options()
 
@@ -10008,6 +9932,80 @@ options_theme.add_radiobutton(
     command=lambda: theme_selection_func(start_up=False),
 )
 
+
+# ui scale menu
+def ui_scale_func():
+    """function to save UI scale to config"""
+
+    # prompt
+    check_message = messagebox.askyesno(parent=root, title="Prompt!",
+                                        message="This will clear all of your previous saved window position data. "
+                                                "Would you like to continue?\n\nNote: The program will remember new "
+                                                "closed window positions as you use it.\n\n")
+
+    if not check_message:
+        return
+
+    # parser
+    ui_parser = ConfigParser()
+    ui_parser.read(config_file)
+
+    # wipe saved window position data
+    ui_parser.remove_section("save_window_locations")
+
+    # set new scale
+    ui_parser.set("ui_scale", "value", str(int(ui_var.get()) + int(default_font_size)))
+
+    # write
+    with open(config_file, "w") as ui_config_file:
+        ui_parser.write(ui_config_file)
+
+    messagebox.showinfo(parent=root, title="Info", message="Please restart the program")
+
+    root.destroy()
+
+
+ui_var = StringVar()
+ui_var.set(str(int(config["ui_scale"]["value"]) - int(default_font_size)))
+scale_menu = Menu(root, tearoff=0, activebackground="dim grey")
+options_menu.add_cascade(label="UI Scale", menu=scale_menu)
+scale_menu.add_radiobutton(
+    label="Default",
+    variable=ui_var,
+    value="0",
+    command=ui_scale_func,
+)
+scale_menu.add_radiobutton(
+    label="+10%",
+    variable=ui_var,
+    value="1",
+    command=ui_scale_func,
+)
+scale_menu.add_radiobutton(
+    label="+20%",
+    variable=ui_var,
+    value="2",
+    command=ui_scale_func,
+)
+scale_menu.add_radiobutton(
+    label="+30%",
+    variable=ui_var,
+    value="3",
+    command=ui_scale_func,
+)
+scale_menu.add_radiobutton(
+    label="+40%",
+    variable=ui_var,
+    value="4",
+    command=ui_scale_func,
+)
+scale_menu.add_radiobutton(
+    label="+50%",
+    variable=ui_var,
+    value="5",
+    command=ui_scale_func,
+)
+
 options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
@@ -10052,6 +10050,7 @@ help_menu.add_command(
         custom_label_frame_colors["foreground"],
         custom_text_color["foreground"],
         custom_text_color["background"],
+        set_font_size,
     ),
 )  # Opens about window
 
