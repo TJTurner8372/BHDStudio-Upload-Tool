@@ -640,19 +640,19 @@ def edition_title_extractor(name_to_check):
     # remove extra '.'s
     movie_input_filtered = re.sub(r"\.{2,}", ".", movie_input_filtered)
 
+    # attempt to get only the movie title year
+    collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", movie_input_filtered)
+
+    # if any 4 digits are detected in the string
+    if collect_year:
+        # get only the last set of digits
+        search_index = movie_input_filtered.find(str(collect_year[-1]))
+        movie_input_filtered = movie_input_filtered[: search_index + 4]
+
     # search for bluray string and get everything to the left of it
-    if "bluray" in movie_input_filtered:
+    elif "bluray" in movie_input_filtered:
         search_index = movie_input_filtered.find("bluray")
         movie_input_filtered = movie_input_filtered[:search_index]
-    else:
-        # attempt to get only the movie title year
-        collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", movie_input_filtered)
-
-        # if any 4 digits are detected in the string
-        if collect_year:
-            # get only the last set of digits
-            search_index = movie_input_filtered.find(str(collect_year[-1]))
-            movie_input_filtered = movie_input_filtered[: search_index + 4]
 
     # split string
     movie_input_filtered = movie_input_filtered.split(".")
@@ -7833,12 +7833,11 @@ def open_uploader_window(job_mode):
     if encode_file_path.get() != "":
         title_input_entry_box.insert(
             END,
-            str(source_file_information["suggested_bhd_title"])
+            str(pathlib.Path(pathlib.Path(encode_file_path.get()).name).with_suffix(""))
             .replace(".", " ")
-            .replace("DD1 0", "DD1.0")
-            .replace("DD2 0", "DD2.0")
-            .replace("DD5 1", "DD5.1")
-            .replace("mp4", "")
+            .replace("DD 1 0", "DD1.0")
+            .replace("DD 2 0", "DD2.0")
+            .replace("DD 5 1", "DD5.1")
             .strip(),
         )
 
