@@ -3345,7 +3345,7 @@ enable_edits_menu.add_command(
 enable_edits_menu.add_separator()
 enable_edits_menu.add_command(
     label="Open Script In Default Viewer",
-    command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
+    command=lambda: open_script_in_viewer(pathlib.Path(input_script_path.get())),
 )
 release_notes_scrolled.bind(
     "<Button-3>", popup_auto_e_b_menu
@@ -4738,7 +4738,7 @@ def check_crop_values():
         crop_btn_frame,
         text="View Script",
         width=8,
-        command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
+        command=lambda: open_script_in_viewer(pathlib.Path(input_script_path.get())),
         borderwidth="3",
         foreground=custom_button_colors["foreground"],
         background=custom_button_colors["background"],
@@ -7509,7 +7509,7 @@ view_loaded_script = HoverButton(
     root,
     text="View Script",
     state=DISABLED,
-    command=lambda: os.startfile(pathlib.Path(input_script_path.get())),
+    command=lambda: open_script_in_viewer(pathlib.Path(input_script_path.get())),
     borderwidth="3",
     width=10,
     foreground=custom_button_colors["foreground"],
@@ -10406,6 +10406,15 @@ def check_for_latest_program_updates():
     )
 
     update_window.grab_set()  # Brings attention to this window until it's closed
+
+
+def open_script_in_viewer(filename):
+    """open script file"""
+    if sys.platform == "win32":
+        subprocess.run(["cmd", "/c", pathlib.Path(filename)])
+    else:
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, pathlib.Path(filename)])
 
 
 # start check for updates function in a new thread
