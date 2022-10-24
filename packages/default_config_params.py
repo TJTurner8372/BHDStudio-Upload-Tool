@@ -109,6 +109,12 @@ if not config.has_option("save_window_locations", "about_window"):
 if not config.has_option("save_window_locations", "image_viewer"):
     config.set("save_window_locations", "image_viewer", "")
 
+# UI scale
+if not config.has_section("ui_scale"):
+    config.add_section("ui_scale")
+if not config.has_option("ui_scale", "value"):
+    config.set("ui_scale", "value", "0")
+
 # screenshot settings
 if not config.has_section("screenshot_settings"):
     config.add_section("screenshot_settings")
