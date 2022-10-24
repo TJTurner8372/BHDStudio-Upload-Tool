@@ -107,7 +107,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.54"
+main_root_title = "BHDStudio Upload Tool v1.55"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -2719,7 +2719,7 @@ source_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
-    font=(set_font, set_font_size - 2)
+    font=(set_font, set_font_size - 2),
 )
 source_label.grid(column=0, row=0, columnspan=4, pady=3, padx=3, sticky=W)
 source_hdr_label = Label(
@@ -2729,7 +2729,7 @@ source_hdr_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
-    font=(set_font, set_font_size - 2)
+    font=(set_font, set_font_size - 2),
 )
 source_hdr_label.grid(column=0, row=1, columnspan=4, pady=3, padx=3, sticky=W)
 
@@ -2858,7 +2858,7 @@ encode_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
-    font=(set_font, set_font_size - 2)
+    font=(set_font, set_font_size - 2),
 )
 encode_label.grid(column=0, row=0, columnspan=1, pady=3, padx=3, sticky=W)
 encode_hdr_label = Label(
@@ -2868,7 +2868,7 @@ encode_hdr_label = Label(
     relief=SUNKEN,
     background=custom_label_colors["background"],
     fg=custom_label_colors["foreground"],
-    font=(set_font, set_font_size - 2)
+    font=(set_font, set_font_size - 2),
 )
 encode_hdr_label.grid(column=0, row=1, columnspan=1, pady=3, padx=3, sticky=W)
 
@@ -3971,7 +3971,7 @@ def automatic_screenshot_generator():
         selectmode=SINGLE,
         bd=4,
         activestyle="none",
-        font=(set_fixed_font, set_font_size - 2)
+        font=(set_fixed_font, set_font_size - 2),
     )
     img_viewer_listbox.grid(
         row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0)
@@ -4859,7 +4859,7 @@ def auto_screen_shot_status_window():
         bd=4,
         wrap=WORD,
         state=DISABLED,
-        font=(set_fixed_font, set_font_size - 1)
+        font=(set_fixed_font, set_font_size - 1),
     )
     ss_status_info.grid(
         row=0, column=0, columnspan=3, pady=(2, 0), padx=5, sticky=E + W
@@ -6969,7 +6969,13 @@ def torrent_function_window():
         disabledforeground=custom_button_colors["disabledforeground"],
     )
     torrent_button.grid(
-        row=0, column=0, columnspan=1, ipadx=5, padx=5, pady=(7, 5), sticky=N + S + E + W
+        row=0,
+        column=0,
+        columnspan=1,
+        ipadx=5,
+        padx=5,
+        pady=(7, 5),
+        sticky=N + S + E + W,
     )
 
     # torrent path entry box
@@ -7083,7 +7089,7 @@ def torrent_function_window():
         activeforeground=custom_button_colors["activeforeground"],
         background=custom_button_colors["background"],
         foreground=custom_button_colors["foreground"],
-        font=(set_font, set_font_size - 2)
+        font=(set_font, set_font_size - 2),
     )
 
     # piece size label
@@ -9309,7 +9315,7 @@ def bhd_co_login_window():
         borderwidth=4,
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
-        width=30
+        width=30,
     )
     user_entry_box.grid(
         row=1, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -9332,7 +9338,7 @@ def bhd_co_login_window():
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
         show="*",
-        width=30
+        width=30,
     )
     pass_entry_box.grid(
         row=3, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -9938,10 +9944,13 @@ def ui_scale_func():
     """function to save UI scale to config"""
 
     # prompt
-    check_message = messagebox.askyesno(parent=root, title="Prompt!",
-                                        message="This will clear all of your previous saved window position data. "
-                                                "Would you like to continue?\n\nNote: The program will remember new "
-                                                "closed window positions as you use it.\n\n")
+    check_message = messagebox.askyesno(
+        parent=root,
+        title="Prompt!",
+        message="This will clear all of your previous saved window position data. "
+        "Would you like to continue?\n\nNote: The program will remember new "
+        "closed window positions as you use it.\n\n",
+    )
 
     if not check_message:
         return
