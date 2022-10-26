@@ -13,6 +13,7 @@ import zipfile
 from ctypes import windll
 from io import BytesIO
 from queue import Queue, Empty
+from random import choice
 from tkinter import (
     filedialog,
     StringVar,
@@ -80,9 +81,9 @@ from packages.icon import (
     bhd_upload_icon,
     bhd_upload_icon_disabled,
 )
+from packages.image_viewer import ImageViewer
 from packages.qbittorrent_window import QBittorrentWindow
 from packages.show_streams import stream_menu
-from packages.image_viewer import ImageViewer
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
 from packages.user_pw_key import crypto_key
@@ -108,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.55"
+main_root_title = "BHDStudio Upload Tool v1.56"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -525,6 +526,7 @@ release_date_var = StringVar()
 rating_var = StringVar()
 screenshot_comparison_var = StringVar()
 screenshot_selected_var = StringVar()
+screenshot_sync_var = StringVar()
 loaded_script_info = StringVar()
 script_mode = StringVar()
 input_script_path = StringVar()
@@ -554,6 +556,7 @@ def clear_all_variables():
     rating_var.set("")
     screenshot_comparison_var.set("")
     screenshot_selected_var.set("")
+    screenshot_sync_var.set("")
     loaded_script_info.set("")
     script_mode.set("")
     input_script_path.set("")
@@ -4095,7 +4098,7 @@ def check_crop_values():
     return crop_var
 
 
-def auto_screen_shot_status_window():
+def auto_screen_shot_status_window(re_sync=0, operator=None):
     """auto screenshot function"""
 
     # select desired amount of screenshots
@@ -4446,6 +4449,21 @@ def auto_screen_shot_status_window():
             str(pathlib.Path(pathlib.Path(image_output_dir) / "img_selected"))
         )
 
+        # create sync image directory and define it as variable
+        pathlib.Path(pathlib.Path(image_output_dir) / "img_sync").mkdir(exist_ok=True)
+        screenshot_sync_var.set(
+            str(pathlib.Path(pathlib.Path(image_output_dir) / "img_sync"))
+        )
+
+        # create sub directories
+        pathlib.Path(pathlib.Path(image_output_dir) / "img_sync/sync1").mkdir(
+            exist_ok=True
+        )
+
+        pathlib.Path(pathlib.Path(image_output_dir) / "img_sync/sync2").mkdir(
+            exist_ok=True
+        )
+
         # crop
         if str(source_file_information["crop"]) != "None":
             source_file = core.std.Crop(
@@ -4481,66 +4499,110 @@ def auto_screen_shot_status_window():
             clip=encode_file, title="BHDStudio", style=selected_sub_style
         )
 
-        # # check for sync
-        # sync_path = pathlib.Path(r"C:\Users\jlw_4\Desktop\FIX SYNC\sync_fold")
-        #
-        # sync_b_frame_list = [b_frames[0] - 5, b_frames[0] - 4, b_frames[0] - 3, b_frames[0] - 2, b_frames[0] - 1,
-        #                      b_frames[0], b_frames[0] + 1, b_frames[0] + 2, b_frames[0] + 3, b_frames[0] + 4,
-        #                      b_frames[0] + 5]
-        #
-        # awsmfunc.ScreenGen(
-        #     vs_encode_info,
-        #     frame_numbers=[b_frames[0]],
-        #     fpng_compression=2,
-        #     folder=sync_path,
-        #     suffix="b_encode__%d",
-        # )
-        #
-        # awsmfunc.ScreenGen(
-        #     vs_source_info,
-        #     frame_numbers=sync_b_frame_list,
-        #     fpng_compression=2,
-        #     folder=sync_path,
-        #     suffix="a_source__%d",
-        # )
-        # #
-        # exit()
-        # update queue with information
         ss_queue.put("\n\nGenerating Screenshots, please wait...\n")
 
         def screen_gen_callback(sg_call_back):
             """define callback function for screen gen"""
             ss_queue.put("\n" + str(sg_call_back).replace("ScreenGen: ", ""))
 
-        # generate screenshots with awsmfunc screen gen
+        # change b_frames with rsync offset
+        sync_frames = []
+        if re_sync:
+            for x_frames in b_frames:
+                if operator == "+":
+                    sync_frames.append(int(x_frames) + re_sync)
+                elif operator == "-":
+                    sync_frames.append(int(x_frames) - re_sync)
+        else:
+            sync_frames = b_frames
+
+        # generate source images
         awsmfunc.ScreenGen(
-            [vs_source_info, vs_encode_info],
-            frame_numbers=b_frames,
+            vs_source_info,
+            frame_numbers=sync_frames,
             fpng_compression=2,
             folder=screenshot_comparison_var.get(),
-            suffix=["a_source__%d", "b_encode__%d"],
+            suffix="a_source__%d",
             callback=screen_gen_callback,
         )
 
-        # awsmfunc.ScreenGen(
-        #     vs_encode_info,
-        #     frame_numbers=[b_frames[0]],
-        #     fpng_compression=2,
-        #     folder=screenshot_comparison_var.get(),
-        #     suffix="b_encode__%d",
-        # )
-        #
-        # synced_b_frames = []
-        # for x in b_frames:
-        #     synced_b_frames.append(int(x) - 1)
-        #
-        # awsmfunc.ScreenGen(
-        #     vs_source_info,
-        #     frame_numbers=synced_b_frames,
-        #     fpng_compression=2,
-        #     folder=screenshot_comparison_var.get(),
-        #     suffix="a_source__%d",
-        # )
+        # generate encode images
+        awsmfunc.ScreenGen(
+            vs_encode_info,
+            frame_numbers=b_frames,
+            fpng_compression=2,
+            folder=screenshot_comparison_var.get(),
+            suffix="b_encode__%d",
+            callback=screen_gen_callback,
+        )
+
+        # generate some sync frames
+        ss_queue.put("\n\nGenerating a few sync frames...\n\n")
+
+        # select two frames randomly from list
+        sync_1 = choice(b_frames)
+        sync_2 = choice(b_frames)
+
+        # reference subs
+        reference_sub_style = (
+            "Segoe UI,26,&H000ac7f5,&H00000000,&H00000000,&H00000000,"
+            "1,0,0,0,100,100,0,0,1,1,0,7,5,0,0,1"
+        )
+        vs_source_ref_info = core.sub.Subtitle(
+            clip=source_file, text="Sync", style=reference_sub_style
+        )
+        vs_encode_ref_info = core.sub.Subtitle(
+            clip=encode_file, text="Reference", style=reference_sub_style
+        )
+
+        # generate screens for the two reference frames
+        awsmfunc.ScreenGen(
+            vs_encode_ref_info,
+            frame_numbers=[sync_1, sync_2],
+            fpng_compression=2,
+            folder=screenshot_sync_var.get(),
+            suffix="b_encode__%d",
+            callback=screen_gen_callback,
+        )
+
+        # generate 10 source frames around those reference frames
+        awsmfunc.ScreenGen(
+            vs_source_ref_info,
+            frame_numbers=[
+                sync_1 - 4,
+                sync_1 - 3,
+                sync_1 - 2,
+                sync_1 - 1,
+                sync_1,
+                sync_1 + 1,
+                sync_1 + 2,
+                sync_1 + 3,
+                sync_1 + 4,
+            ],
+            fpng_compression=2,
+            folder=pathlib.Path(pathlib.Path(screenshot_sync_var.get()) / "sync1"),
+            suffix="a_source__%d",
+            callback=screen_gen_callback,
+        )
+
+        awsmfunc.ScreenGen(
+            vs_source_ref_info,
+            frame_numbers=[
+                sync_2 - 4,
+                sync_2 - 3,
+                sync_2 - 2,
+                sync_2 - 1,
+                sync_2,
+                sync_2 + 1,
+                sync_2 + 2,
+                sync_2 + 3,
+                sync_2 + 4,
+            ],
+            fpng_compression=2,
+            folder=pathlib.Path(pathlib.Path(screenshot_sync_var.get()) / "sync2"),
+            suffix="a_source__%d",
+            callback=screen_gen_callback,
+        )
 
         # update queue with information
         ss_queue.put("Completed")
@@ -4579,17 +4641,36 @@ def auto_screen_shot_status_window():
                 root.wm_withdraw()
 
                 # open automatic screenshot generator window
-                list_of_selected_images = ImageViewer(custom_window_bg_color, custom_frame_bg_colors, set_font,
-                                                      set_font_size, custom_label_frame_colors, custom_label_colors,
-                                                      custom_button_colors, custom_listbox_color, set_fixed_font,
-                                                      screenshot_selected_var.get(), screenshot_comparison_var.get())
+                selected_images = ImageViewer(
+                    custom_window_bg_color,
+                    custom_frame_bg_colors,
+                    set_font,
+                    set_font_size,
+                    custom_label_frame_colors,
+                    custom_label_colors,
+                    custom_button_colors,
+                    custom_listbox_color,
+                    set_fixed_font,
+                    screenshot_selected_var.get(),
+                    screenshot_comparison_var.get(),
+                    screenshot_sync_var.get(),
+                )
+
+                image_viewer_output = selected_images.get_dict()
+
+                if not image_viewer_output["synced"]:
+                    auto_screen_shot_status_window(
+                        re_sync=image_viewer_output["offset"],
+                        operator=image_viewer_output["operator"],
+                    )
+                    return
 
                 # re-open windows/root
                 advanced_root_deiconify()
                 open_all_toplevels()
 
                 # update image list box with returned output from ImageViewer class
-                update_image_listbox(list_of_selected_images)
+                update_image_listbox(image_viewer_output["images"])
 
                 # exit this loop
                 return
