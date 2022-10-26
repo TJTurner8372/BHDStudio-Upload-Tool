@@ -82,6 +82,7 @@ from packages.icon import (
 )
 from packages.qbittorrent_window import QBittorrentWindow
 from packages.show_streams import stream_menu
+from packages.image_viewer import ImageViewer
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
 from packages.user_pw_key import crypto_key
@@ -3648,711 +3649,6 @@ clear_ss_win_btn = HoverButton(
 clear_ss_win_btn.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=N + E)
 
 
-# function to automatically generate screenshots
-def automatic_screenshot_generator():
-    # define parser
-    auto_screenshot_parser = ConfigParser()
-    auto_screenshot_parser.read(config_file)
-
-    # create image viewer
-    image_viewer = Toplevel()
-    image_viewer.title("Image Viewer")
-    image_viewer.configure(background=custom_window_bg_color)
-    if auto_screenshot_parser["save_window_locations"]["image_viewer"] != "":
-        image_viewer.geometry(
-            auto_screenshot_parser["save_window_locations"]["image_viewer"]
-        )
-
-    # row and column configure
-    for i_v_r in range(3):
-        image_viewer.grid_rowconfigure(i_v_r, weight=1)
-    for i_v_c in range(5):
-        image_viewer.grid_columnconfigure(i_v_c, weight=1)
-
-    # image info frame
-    image_info_frame = LabelFrame(
-        image_viewer,
-        text=" Image Info ",
-        labelanchor="nw",
-        bd=3,
-        font=(set_font, set_font_size + 1, "bold"),
-        fg=custom_label_frame_colors["foreground"],
-        bg=custom_label_frame_colors["background"],
-    )
-    image_info_frame.grid(
-        column=0, row=0, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
-    )
-    image_info_frame.grid_columnconfigure(0, weight=1)
-    image_info_frame.grid_columnconfigure(1, weight=100)
-    image_info_frame.grid_columnconfigure(2, weight=1)
-    image_info_frame.grid_rowconfigure(0, weight=1)
-
-    # create name label
-    image_name_label = Label(
-        image_info_frame,
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size - 1),
-    )
-    image_name_label.grid(row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0))
-
-    # create image resolution label
-    image_resolution_label = Label(
-        image_info_frame,
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size - 1),
-    )
-    image_resolution_label.grid(
-        row=0, column=1, columnspan=1, sticky=E, padx=10, pady=(2, 0)
-    )
-
-    # create image number label
-    image_number_label = Label(
-        image_info_frame,
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size - 1),
-    )
-    image_number_label.grid(
-        row=0, column=2, columnspan=1, sticky=E, padx=5, pady=(2, 0)
-    )
-
-    # create image preview frame
-    image_preview_frame = LabelFrame(
-        image_viewer,
-        text=" Image Preview ",
-        labelanchor="nw",
-        bd=3,
-        font=(set_font, set_font_size + 1, "bold"),
-        fg=custom_label_frame_colors["foreground"],
-        bg=custom_label_frame_colors["background"],
-    )
-    image_preview_frame.grid(
-        column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
-    )
-    image_preview_frame.grid_columnconfigure(0, weight=1)
-    image_preview_frame.grid_rowconfigure(0, weight=1)
-
-    # create image list
-    comparison_img_list = sorted(
-        [x_img for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png")]
-    )
-
-    # set index variable
-    comparison_index = 0
-
-    # update image name label with first image from list
-    image_name_label.config(
-        text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}"
-    )
-
-    # parse first image from list to get resolution
-    media_info_img = MediaInfo.parse(
-        pathlib.Path(comparison_img_list[comparison_index])
-    )
-    image_track = media_info_img.image_tracks[0]
-
-    # update image resolution label
-    image_resolution_label.config(text=f"{image_track.width}x{image_track.height}")
-
-    # label to print what photo of amount of total photos you are on
-    image_number_label.config(
-        text=f"{comparison_index + 1} of {len(comparison_img_list)}"
-    )
-
-    # create image instance and resize the photo
-    loaded_image = Image.open(comparison_img_list[comparison_index])
-    loaded_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
-    resized_image = ImageTk.PhotoImage(loaded_image)
-
-    # put resized image into label
-    image_preview_label = Label(
-        image_preview_frame,
-        image=resized_image,
-        background=custom_label_colors["background"],
-        cursor="hand2",
-    )
-    image_preview_label.image = resized_image
-    image_preview_label.grid(column=0, row=0, columnspan=1)
-
-    # add a left click function to open the photo in your default os viewer
-    image_preview_label.bind(
-        "<Button-1>",
-        lambda event: Image.open(comparison_img_list[comparison_index]).show(),
-    )
-
-    # create image button frame
-    img_button_frame = Frame(image_viewer, bg=custom_frame_bg_colors["background"])
-    img_button_frame.grid(
-        column=0, row=2, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
-    )
-    img_button_frame.grid_columnconfigure(0, weight=1000)
-    img_button_frame.grid_columnconfigure(1, weight=1000)
-    img_button_frame.grid_rowconfigure(0, weight=1)
-
-    # function to load next image
-    def load_next_image(*e_right):
-        nonlocal image_preview_label, comparison_index
-        # if next image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
-        if next_img.cget("state") != DISABLED:
-            # increase the comparison index value by 1
-            comparison_index += 1
-
-            # open the image in the viewer
-            im = Image.open(comparison_img_list[comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(im)
-            image_preview_label.config(image=photo)
-            image_preview_label.image = photo
-
-            # update the left click photo to open in OS photo viewer
-            image_preview_label.bind(
-                "<Button-1>",
-                lambda event: Image.open(comparison_img_list[comparison_index]).show(),
-            )
-
-            # update all the labels
-            image_name_label.config(
-                text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}"
-            )
-            media_info_img_next = MediaInfo.parse(
-                pathlib.Path(comparison_img_list[comparison_index])
-            )
-            image_track_next = media_info_img_next.image_tracks[0]
-            image_resolution_label.config(
-                text=f"{image_track_next.width}x{image_track_next.height}"
-            )
-            image_number_label.config(
-                text=f"{comparison_index + 1} of {len(comparison_img_list)}"
-            )
-
-    # button to run next image function
-    next_img = HoverButton(
-        img_button_frame,
-        text=">>",
-        command=load_next_image,
-        borderwidth="3",
-        width=4,
-        foreground=custom_button_colors["foreground"],
-        background=custom_button_colors["background"],
-        activeforeground=custom_button_colors["activeforeground"],
-        activebackground=custom_button_colors["activebackground"],
-        disabledforeground=custom_button_colors["disabledforeground"],
-    )
-    next_img.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
-
-    # bind right arrow key (on key release) to load the next image
-    image_viewer.bind("<KeyRelease-Right>", load_next_image)
-
-    # function to load last image
-    def load_last_image(*e_left):
-        nonlocal image_preview_label, comparison_index
-        # if back image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
-        if back_img.cget("state") != DISABLED:
-            # subtract the comparison index by 1
-            comparison_index -= 1
-
-            # update the image in the image viewer
-            im = Image.open(comparison_img_list[comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(im)
-            image_preview_label.config(image=photo)
-            image_preview_label.image = photo
-
-            # load new image to be opened when left-clicked in OS native viewer
-            image_preview_label.bind(
-                "<Button-1>",
-                lambda event: Image.open(comparison_img_list[comparison_index]).show(),
-            )
-
-            # update all the labels
-            image_name_label.config(
-                text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}"
-            )
-            media_info_img_back = MediaInfo.parse(
-                pathlib.Path(comparison_img_list[comparison_index])
-            )
-            image_track_back = media_info_img_back.image_tracks[0]
-            image_resolution_label.config(
-                text=f"{image_track_back.width}x{image_track_back.height}"
-            )
-            image_number_label.config(
-                text=f"{comparison_index + 1} of {len(comparison_img_list)}"
-            )
-
-    # button to run last image function
-    back_img = HoverButton(
-        img_button_frame,
-        text="<<",
-        command=load_last_image,
-        borderwidth="3",
-        width=4,
-        foreground=custom_button_colors["foreground"],
-        background=custom_button_colors["background"],
-        activeforeground=custom_button_colors["activeforeground"],
-        activebackground=custom_button_colors["activebackground"],
-        disabledforeground=custom_button_colors["disabledforeground"],
-    )
-    back_img.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
-
-    # bind the left arrow key (on key release)
-    image_viewer.bind("<KeyRelease-Left>", load_last_image)
-
-    # info frame for the image viewer
-    set_info_frame = LabelFrame(
-        image_viewer,
-        text=" Info ",
-        labelanchor="nw",
-        bd=3,
-        font=(set_font, set_font_size + 1, "bold"),
-        fg=custom_label_frame_colors["foreground"],
-        bg=custom_label_frame_colors["background"],
-    )
-    set_info_frame.grid(
-        column=4, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
-    )
-    set_info_frame.grid_columnconfigure(0, weight=1)
-    set_info_frame.grid_columnconfigure(1, weight=100)
-    set_info_frame.grid_columnconfigure(2, weight=1)
-    set_info_frame.grid_rowconfigure(0, weight=1)
-
-    # image viewer frame
-    img_viewer_frame = Frame(
-        image_viewer, bg=custom_frame_bg_colors["background"], bd=0
-    )
-    img_viewer_frame.grid(
-        column=4,
-        columnspan=1,
-        row=1,
-        rowspan=1,
-        pady=(3, 2),
-        padx=4,
-        sticky=W + E + N + S,
-    )
-    img_viewer_frame.grid_columnconfigure(0, weight=1)
-    img_viewer_frame.grid_rowconfigure(0, weight=200)
-    img_viewer_frame.grid_rowconfigure(1, weight=200)
-    img_viewer_frame.grid_rowconfigure(2, weight=100)
-
-    # create image name label
-    image_name_label2 = Label(
-        set_info_frame,
-        text="0 sets (0 images)",
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size - 1),
-    )
-    image_name_label2.grid(row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0))
-
-    # create image info label
-    image_name1_label = Label(
-        set_info_frame,
-        text="6 sets (12 images) required",
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size - 1, "italic"),
-    )
-    image_name1_label.grid(row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0))
-
-    # right scroll bar for selected listbox
-    image_v_right_scrollbar = Scrollbar(img_viewer_frame, orient=VERTICAL)
-
-    # create selected list box
-    img_viewer_listbox = Listbox(
-        img_viewer_frame,
-        bg=custom_listbox_color["background"],
-        fg=custom_listbox_color["foreground"],
-        selectbackground=custom_listbox_color["selectbackground"],
-        selectforeground=custom_listbox_color["selectforeground"],
-        highlightthickness=0,
-        width=40,
-        yscrollcommand=image_v_right_scrollbar.set,
-        selectmode=SINGLE,
-        bd=4,
-        activestyle="none",
-        font=(set_fixed_font, set_font_size - 2),
-    )
-    img_viewer_listbox.grid(
-        row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0)
-    )
-    image_v_right_scrollbar.config(command=img_viewer_listbox.yview)
-    image_v_right_scrollbar.grid(
-        row=0, column=2, rowspan=2, sticky=N + W + S, pady=(8, 0)
-    )
-
-    # create mini preview frame
-    mini_preview_frame = LabelFrame(
-        img_viewer_frame,
-        text=" Preview ",
-        labelanchor="nw",
-        bd=3,
-        font=(set_font, set_font_size + 1, "bold"),
-        fg=custom_label_frame_colors["foreground"],
-        bg=custom_label_frame_colors["background"],
-    )
-    mini_preview_frame.grid(column=0, columnspan=3, row=2, sticky=N + S + E + W)
-    mini_preview_frame.grid_columnconfigure(0, weight=1)
-    mini_preview_frame.grid_rowconfigure(0, weight=1)
-
-    def update_thumbnail(event):
-        """update small thumbnail in image viewer window when something in the list box is selected"""
-
-        img_selection = event.widget.curselection()  # get current selection
-        # if there is a selection
-        if img_selection:
-            # define index of selection
-            cur_selection_index = img_selection[0]
-            img_data = event.widget.get(cur_selection_index)
-
-            # create image instance and resize the photo
-            thumbnail_img = Image.open(
-                pathlib.Path(pathlib.Path(screenshot_selected_var.get()) / img_data)
-            )
-            thumbnail_img.thumbnail((348, 158), Image.Resampling.LANCZOS)
-            resized_image1 = ImageTk.PhotoImage(thumbnail_img)
-
-            # update the label with the selected image
-            mini_image_preview_label.config(image=resized_image1)
-            mini_image_preview_label.image = resized_image1
-            mini_image_preview_label.bind(
-                "<Button-1>",
-                lambda b_event: Image.open(
-                    pathlib.Path(pathlib.Path(screenshot_selected_var.get()) / img_data)
-                ).show(),
-            )
-
-    # bind listbox select event to the thumbnail update function
-    img_viewer_listbox.bind("<<ListboxSelect>>", update_thumbnail)
-
-    # define zero image to fill label
-    zero_img = PhotoImage()
-
-    # put resized image into label
-    mini_image_preview_label = Label(
-        mini_preview_frame,
-        background=custom_label_colors["background"],
-        cursor="hand2",
-        image=zero_img,
-        width=348,
-        height=160,
-    )
-    mini_image_preview_label.image = zero_img
-    mini_image_preview_label.grid(column=0, row=0, sticky=N + S + E + W)
-
-    # image button frame for selected list box
-    img_button2_frame = Frame(image_viewer, bg=custom_frame_bg_colors["background"])
-    img_button2_frame.grid(
-        column=4, row=2, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
-    )
-    img_button2_frame.grid_columnconfigure(0, weight=100)
-    img_button2_frame.grid_columnconfigure(1, weight=100)
-    img_button2_frame.grid_columnconfigure(2, weight=1)
-    img_button2_frame.grid_rowconfigure(0, weight=1)
-
-    # create variable to be updated for index purposes
-    selected_index_var = 0
-
-    def remove_pair_from_listbox():
-        """remove pair from listbox function"""
-        nonlocal comparison_index, comparison_img_list, selected_index_var
-
-        # if something is selected in the list box
-        if img_viewer_listbox.curselection():
-            # get the selected item from list box
-            for i in img_viewer_listbox.curselection():
-                get_frame_number = re.search(r"__(\d+)", str(img_viewer_listbox.get(i)))
-
-            # get the frame number to match the pairs
-            for images_with_prefix in img_viewer_listbox.get(0, END):
-                get_pair = re.findall(
-                    rf".+__{get_frame_number.group(1)}\.png", images_with_prefix
-                )
-                # once pair is found
-                if get_pair:
-                    # use pathlib rename feature to move the file back to the comparison directory/out of the listbox
-                    pathlib.Path(
-                        pathlib.Path(screenshot_selected_var.get()) / get_pair[0]
-                    ).rename(
-                        pathlib.Path(
-                            pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]
-                        )
-                    )
-
-            # delete the list box and update it with what ever is left
-            img_viewer_listbox.delete(0, END)
-
-            # update the listbox
-            for x in sorted(pathlib.Path(screenshot_selected_var.get()).glob("*.png")):
-                img_viewer_listbox.insert(END, x.name)
-
-            # clear the comparison image list
-            comparison_img_list.clear()
-
-            # update the comparison image list with everything in the directory
-            comparison_img_list = sorted(
-                [
-                    x_img
-                    for x_img in pathlib.Path(screenshot_comparison_var.get()).glob(
-                        "*.png"
-                    )
-                ]
-            )
-
-            # if there is at least 1 item in the list
-            if comparison_img_list:
-                # find index of current item
-                # refresh the image viewer with the updated list while retaining current position
-                comparison_index = int(
-                    comparison_img_list.index(
-                        pathlib.Path(
-                            pathlib.Path(screenshot_comparison_var.get())
-                            / image_name_label.cget("text")
-                        )
-                    )
-                )
-                im = Image.open(comparison_img_list[comparison_index])
-                im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
-                photo = ImageTk.PhotoImage(im)
-                image_preview_label.grid()
-                image_preview_label.config(image=photo)
-                image_preview_label.image = photo
-                image_preview_label.bind(
-                    "<Button-1>",
-                    lambda event: Image.open(
-                        comparison_img_list[comparison_index]
-                    ).show(),
-                )
-
-                # update labels
-                image_name_label.config(
-                    text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}"
-                )
-                media_info_img_rem = MediaInfo.parse(
-                    pathlib.Path(comparison_img_list[comparison_index])
-                )
-                image_track_rem = media_info_img_rem.image_tracks[0]
-                image_resolution_label.config(
-                    text=f"{image_track_rem.width}x{image_track_rem.height}"
-                )
-                image_number_label.config(
-                    text=f"{comparison_index + 1} of {len(comparison_img_list)}"
-                )
-                image_name_label2.config(
-                    text=f"{int(img_viewer_listbox.size() * .5)} sets "
-                    f"({img_viewer_listbox.size()} images)"
-                )
-
-    # create minis/reverse button
-    minus_btn = HoverButton(
-        img_button2_frame,
-        text="<<<",
-        command=remove_pair_from_listbox,
-        borderwidth="3",
-        width=4,
-        foreground=custom_button_colors["foreground"],
-        background=custom_button_colors["background"],
-        activeforeground=custom_button_colors["activeforeground"],
-        activebackground=custom_button_colors["activebackground"],
-        disabledforeground=custom_button_colors["disabledforeground"],
-    )
-    minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
-
-    def add_pair_to_listbox():
-        """add pair to the selected listbox"""
-        nonlocal comparison_index, comparison_img_list, image_preview_label, selected_index_var
-
-        # find the frame number of the pair
-        get_frame_number = re.search(
-            r"__(\d+)", str(pathlib.Path(comparison_img_list[comparison_index]).name)
-        )
-        for full_name in comparison_img_list:
-            get_pair = re.findall(
-                rf".+__{get_frame_number.group(1)}\.png", full_name.name
-            )
-            # once a pair is found use pathlib rename to move them from the comparison list/dir to the selected dir/list
-            if get_pair:
-                pathlib.Path(
-                    pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]
-                ).rename(
-                    pathlib.Path(screenshot_selected_var.get())
-                    / pathlib.Path(get_pair[0]).name
-                )
-
-                # take the last item that is moved and update the selected index var
-                selected_index_var = (
-                    int(
-                        comparison_img_list.index(
-                            pathlib.Path(screenshot_comparison_var.get()) / get_pair[0]
-                        )
-                    )
-                    - 1
-                )
-
-        # clear the listbox
-        img_viewer_listbox.delete(0, END)
-
-        # update the listbox
-        for x_l in sorted(pathlib.Path(screenshot_selected_var.get()).glob("*.png")):
-            img_viewer_listbox.insert(END, x_l.name)
-
-        # clear the comparison image list
-        comparison_img_list.clear()
-
-        # update the comparison image list with everything in the directory
-        comparison_img_list = sorted(
-            [
-                x_img
-                for x_img in pathlib.Path(screenshot_comparison_var.get()).glob("*.png")
-            ]
-        )
-
-        # if there is anything left in the comparison img list
-        if comparison_img_list:
-            # attempt to use the same index (to keep position the same/close to the same) and update the image viewer
-            try:
-                comparison_index = selected_index_var
-                im = Image.open(comparison_img_list[comparison_index])
-            # if unable to use that index, subtract 2 from it (this prevents errors at the end of the list)
-            except IndexError:
-                comparison_index = selected_index_var - 2
-                im = Image.open(comparison_img_list[comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(im)
-            image_preview_label.config(image=photo)
-            image_preview_label.image = photo
-            image_preview_label.bind(
-                "<Button-1>",
-                lambda event: Image.open(comparison_img_list[comparison_index]).show(),
-            )
-
-            # update the labels
-            image_name_label.config(
-                text=f"{pathlib.Path(comparison_img_list[comparison_index]).name}"
-            )
-            media_info_img_add = MediaInfo.parse(
-                pathlib.Path(comparison_img_list[comparison_index])
-            )
-            image_track_add = media_info_img_add.image_tracks[0]
-            image_resolution_label.config(
-                text=f"{image_track_add.width}x{image_track_add.height}"
-            )
-            image_number_label.config(
-                text=f"{comparison_index + 1} of {len(comparison_img_list)}"
-            )
-            image_name_label2.config(
-                text=f"{int(img_viewer_listbox.size() * .5)} sets "
-                f"({img_viewer_listbox.size()} images)"
-            )
-        # if there is nothing left in the comparison image box, clear the box and all the labels
-        else:
-            image_preview_label.grid_forget()
-            image_name_label.config(text="")
-            image_resolution_label.config(text="")
-            image_number_label.config(text="")
-
-    # move right button
-    move_right = HoverButton(
-        img_button2_frame,
-        text=">>>",
-        command=add_pair_to_listbox,
-        borderwidth="3",
-        width=4,
-        foreground=custom_button_colors["foreground"],
-        background=custom_button_colors["background"],
-        activeforeground=custom_button_colors["activeforeground"],
-        activebackground=custom_button_colors["activebackground"],
-        disabledforeground=custom_button_colors["disabledforeground"],
-    )
-    move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
-
-    # add images to list box function
-    def add_images_to_listbox_func():
-        # define parser
-        add_img_exit_parser = ConfigParser()
-        add_img_exit_parser.read(config_file)
-
-        # save window position to config if different
-        if image_viewer.wm_state() == "normal":
-            if (
-                add_img_exit_parser["save_window_locations"]["image_viewer"]
-                != image_viewer.geometry()
-            ):
-                add_img_exit_parser.set(
-                    "save_window_locations", "image_viewer", image_viewer.geometry()
-                )
-                with open(config_file, "w") as nfo_configfile:
-                    add_img_exit_parser.write(nfo_configfile)
-
-        # re-open root and all top levels
-        advanced_root_deiconify()
-        open_all_toplevels()
-
-        # create list of images to autoload into the program
-        list_of_selected_images = []
-        for selected_img in pathlib.Path(screenshot_selected_var.get()).glob("*.png"):
-            list_of_selected_images.append(selected_img)
-
-        # run the function to load screenshots into the main gui
-        update_image_listbox(list_of_selected_images)
-
-        # close image viewer window
-        image_viewer.destroy()
-
-    # add to image list box button
-    add_images_to_listbox = HoverButton(
-        img_button2_frame,
-        text="Apply",
-        command=add_images_to_listbox_func,
-        state=DISABLED,
-        borderwidth="3",
-        width=10,
-        foreground=custom_button_colors["foreground"],
-        background=custom_button_colors["background"],
-        activeforeground=custom_button_colors["activeforeground"],
-        activebackground=custom_button_colors["activebackground"],
-        disabledforeground=custom_button_colors["disabledforeground"],
-    )
-    add_images_to_listbox.grid(row=0, column=2, padx=5, pady=(7, 0), sticky=E)
-
-    # change 'X' button on image viewer (use the Apply button function)
-    image_viewer.protocol("WM_DELETE_WINDOW", add_images_to_listbox_func)
-
-    # loop to enable/disable buttons depending on index
-    def enable_disable_buttons_by_index():
-        # disable both buttons if list is empty
-        if not comparison_img_list:
-            back_img.config(state=DISABLED)
-            next_img.config(state=DISABLED)
-        # enable back or next button depending on the list
-        elif comparison_img_list:
-            # enable or disable back button
-            if comparison_index == 0:
-                back_img.config(state=DISABLED)
-            else:
-                back_img.config(state=NORMAL)
-            # enable or disable next button
-            if comparison_index == len(comparison_img_list) - 1:
-                next_img.config(state=DISABLED)
-            else:
-                next_img.config(state=NORMAL)
-
-        # enable apply button (check label to see if required amount of sets are met)
-        if int(str(image_name_label2.cget("text"))[0]) >= 6:
-            add_images_to_listbox.config(state=NORMAL)
-        else:
-            add_images_to_listbox.config(state=DISABLED)
-
-        image_viewer.after(50, enable_disable_buttons_by_index)
-
-    # start loop for button checker
-    enable_disable_buttons_by_index()
-
-    # hide root
-    root.withdraw()
-
-
-# pop up window that allows the user to select which indexer they'd like to use
 def choose_indexer_func():
     # hide all top levels if they are opened
     hide_all_toplevels()
@@ -5185,6 +4481,30 @@ def auto_screen_shot_status_window():
             clip=encode_file, title="BHDStudio", style=selected_sub_style
         )
 
+        # # check for sync
+        # sync_path = pathlib.Path(r"C:\Users\jlw_4\Desktop\FIX SYNC\sync_fold")
+        #
+        # sync_b_frame_list = [b_frames[0] - 5, b_frames[0] - 4, b_frames[0] - 3, b_frames[0] - 2, b_frames[0] - 1,
+        #                      b_frames[0], b_frames[0] + 1, b_frames[0] + 2, b_frames[0] + 3, b_frames[0] + 4,
+        #                      b_frames[0] + 5]
+        #
+        # awsmfunc.ScreenGen(
+        #     vs_encode_info,
+        #     frame_numbers=[b_frames[0]],
+        #     fpng_compression=2,
+        #     folder=sync_path,
+        #     suffix="b_encode__%d",
+        # )
+        #
+        # awsmfunc.ScreenGen(
+        #     vs_source_info,
+        #     frame_numbers=sync_b_frame_list,
+        #     fpng_compression=2,
+        #     folder=sync_path,
+        #     suffix="a_source__%d",
+        # )
+        # #
+        # exit()
         # update queue with information
         ss_queue.put("\n\nGenerating Screenshots, please wait...\n")
 
@@ -5201,6 +4521,26 @@ def auto_screen_shot_status_window():
             suffix=["a_source__%d", "b_encode__%d"],
             callback=screen_gen_callback,
         )
+
+        # awsmfunc.ScreenGen(
+        #     vs_encode_info,
+        #     frame_numbers=[b_frames[0]],
+        #     fpng_compression=2,
+        #     folder=screenshot_comparison_var.get(),
+        #     suffix="b_encode__%d",
+        # )
+        #
+        # synced_b_frames = []
+        # for x in b_frames:
+        #     synced_b_frames.append(int(x) - 1)
+        #
+        # awsmfunc.ScreenGen(
+        #     vs_source_info,
+        #     frame_numbers=synced_b_frames,
+        #     fpng_compression=2,
+        #     folder=screenshot_comparison_var.get(),
+        #     suffix="a_source__%d",
+        # )
 
         # update queue with information
         ss_queue.put("Completed")
@@ -5234,8 +4574,22 @@ def auto_screen_shot_status_window():
                 # close screenshot status window
                 screenshot_status_window.destroy()
 
+                # root withdraw/top-levels
+                hide_all_toplevels()
+                root.wm_withdraw()
+
                 # open automatic screenshot generator window
-                automatic_screenshot_generator()
+                list_of_selected_images = ImageViewer(custom_window_bg_color, custom_frame_bg_colors, set_font,
+                                                      set_font_size, custom_label_frame_colors, custom_label_colors,
+                                                      custom_button_colors, custom_listbox_color, set_fixed_font,
+                                                      screenshot_selected_var.get(), screenshot_comparison_var.get())
+
+                # re-open windows/root
+                advanced_root_deiconify()
+                open_all_toplevels()
+
+                # update image list box with returned output from ImageViewer class
+                update_image_listbox(list_of_selected_images)
 
                 # exit this loop
                 return
