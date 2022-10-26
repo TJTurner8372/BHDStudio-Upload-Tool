@@ -41,13 +41,43 @@ class ImageViewer:
         set_fixed_font,
         screenshot_selected_var,
         screenshot_comparison_var,
+        screenshot_sync_var,
     ):
 
-        # define vars
+        # define ui vars
+        self.custom_window_bg_color = custom_window_bg_color
+        self.custom_frame_bg_colors = custom_frame_bg_colors
+        self.set_font = set_font
+        self.set_font_size = set_font_size
+        self.custom_label_frame_colors = custom_label_frame_colors
+        self.custom_label_colors = custom_label_colors
+        self.custom_button_colors = custom_button_colors
+        self.custom_listbox_color = custom_listbox_color
+        self.set_fixed_font = set_fixed_font
+
+        # define storage vars
         self.screenshot_selected_var = screenshot_selected_var
         self.screenshot_comparison_var = screenshot_comparison_var
+        self.screenshot_sync_var = screenshot_sync_var
+
+        # define global vars
         self.comparison_index = 0
         self.selected_index_var = 0
+        self.return_output = {
+            "synced": True,
+            "images": [],
+            "offset": None,
+            "operator": None,
+        }
+        self.media_info_img_next = None
+        self.image_track_next = None
+        self.media_info_img_back = None
+        self.image_track_back = None
+        self.resized_image1 = None
+        self.media_info_img_rem = None
+        self.image_track_rem = None
+        self.media_info_img_add = None
+        self.image_track_add = None
 
         # define parser
         self.auto_screenshot_parser = ConfigParser()
@@ -56,7 +86,7 @@ class ImageViewer:
         # create image viewer
         self.image_viewer = Toplevel()
         self.image_viewer.title("Image Viewer")
-        self.image_viewer.configure(background=custom_window_bg_color)
+        self.image_viewer.configure(background=self.custom_window_bg_color)
         if self.auto_screenshot_parser["save_window_locations"]["image_viewer"] != "":
             self.image_viewer.geometry(
                 self.auto_screenshot_parser["save_window_locations"]["image_viewer"]
@@ -75,7 +105,7 @@ class ImageViewer:
         self.tabs.grid_rowconfigure(0, weight=1)
 
         # image selection tab
-        self.image_tab = Frame(self.tabs, bg=custom_frame_bg_colors["specialbg"])
+        self.image_tab = Frame(self.tabs, bg=self.custom_frame_bg_colors["specialbg"])
         self.tabs.add(self.image_tab, text=" Images ")
 
         # row and column configure
@@ -85,11 +115,23 @@ class ImageViewer:
             self.image_tab.grid_columnconfigure(i_v_c, weight=1)
 
         # sync selection tab
-        # self.sync_tab = Frame(self.tabs, bg=custom_frame_bg_colors["specialbg"])
-        # self.tabs.add(self.sync_tab, text=" Sync ")
-        # image_tab.grid_rowconfigure(0, weight=1)
-        # image_tab.grid_columnconfigure(0, weight=100)
-        # image_tab.grid_columnconfigure(3, weight=1)
+        self.sync_tab = None
+        self.nested_sync_frame = None
+        self.sync_tabs = None
+        self.reference_tab_1 = None
+        self.reference_tab_2 = None
+        self.rf1_image = None
+        self.resized_rf1_image = None
+        self.image_sync_label1 = None
+        self.sync_images1 = []
+        self.sync_img_select = 0
+        self.sync_images2 = []
+        self.rf1_sync_image = None
+        self.rf2_image = None
+        self.rf2_sync_image = None
+        self.image_sync_label2 = None
+        self.resized_rf2_image = None
+        self._sync_tab_ui()
 
         # image info frame
         self.image_info_frame = LabelFrame(
@@ -97,9 +139,9 @@ class ImageViewer:
             text=" Image Info ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
-            fg=custom_label_frame_colors["foreground"],
-            bg=custom_frame_bg_colors["specialbg"],
+            font=(self.set_font, self.set_font_size + 1, "bold"),
+            fg=self.custom_label_frame_colors["foreground"],
+            bg=self.custom_frame_bg_colors["specialbg"],
         )
         self.image_info_frame.grid(
             column=0, row=0, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
@@ -112,9 +154,9 @@ class ImageViewer:
         # create name label
         self.image_name_label = Label(
             self.image_info_frame,
-            background=custom_frame_bg_colors["specialbg"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size - 1),
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1),
         )
         self.image_name_label.grid(
             row=0, column=0, columnspan=1, sticky=W, padx=5, pady=(2, 0)
@@ -123,9 +165,9 @@ class ImageViewer:
         # create image resolution label
         self.image_resolution_label = Label(
             self.image_info_frame,
-            background=custom_frame_bg_colors["specialbg"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size - 1),
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1),
         )
         self.image_resolution_label.grid(
             row=0, column=1, columnspan=1, sticky=E, padx=10, pady=(2, 0)
@@ -134,9 +176,9 @@ class ImageViewer:
         # create image number label
         self.image_number_label = Label(
             self.image_info_frame,
-            background=custom_frame_bg_colors["specialbg"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size - 1),
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1),
         )
         self.image_number_label.grid(
             row=0, column=2, columnspan=1, sticky=E, padx=5, pady=(2, 0)
@@ -148,9 +190,9 @@ class ImageViewer:
             text=" Image Preview ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
-            fg=custom_label_frame_colors["foreground"],
-            bg=custom_frame_bg_colors["specialbg"],
+            font=(self.set_font, self.set_font_size + 1, "bold"),
+            fg=self.custom_label_frame_colors["foreground"],
+            bg=self.custom_frame_bg_colors["specialbg"],
         )
         self.image_preview_frame.grid(
             column=0, row=1, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
@@ -196,7 +238,7 @@ class ImageViewer:
         self.image_preview_label = Label(
             self.image_preview_frame,
             image=self.resized_image,
-            background=custom_frame_bg_colors["specialbg"],
+            background=self.custom_frame_bg_colors["specialbg"],
             cursor="hand2",
         )
         self.image_preview_label.image = self.resized_image
@@ -212,7 +254,7 @@ class ImageViewer:
 
         # create image button frame
         self.img_button_frame = Frame(
-            self.image_tab, bg=custom_frame_bg_colors["specialbg"]
+            self.image_tab, bg=self.custom_frame_bg_colors["specialbg"]
         )
         self.img_button_frame.grid(
             column=0, row=2, columnspan=4, pady=2, padx=2, sticky=N + S + E + W
@@ -228,11 +270,11 @@ class ImageViewer:
             command=self.load_next_image,
             borderwidth="3",
             width=4,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.next_img.grid(row=0, column=1, columnspan=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -246,11 +288,11 @@ class ImageViewer:
             command=self.load_last_image,
             borderwidth="3",
             width=4,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.back_img.grid(row=0, column=0, columnspan=1, padx=5, pady=(7, 0), sticky=E)
 
@@ -263,9 +305,9 @@ class ImageViewer:
             text=" Info ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
-            fg=custom_label_frame_colors["foreground"],
-            bg=custom_frame_bg_colors["specialbg"],
+            font=(self.set_font, self.set_font_size + 1, "bold"),
+            fg=self.custom_label_frame_colors["foreground"],
+            bg=self.custom_frame_bg_colors["specialbg"],
         )
         self.set_info_frame.grid(
             column=4, row=0, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
@@ -277,7 +319,7 @@ class ImageViewer:
 
         # image viewer frame
         self.img_viewer_frame = Frame(
-            self.image_tab, bg=custom_frame_bg_colors["specialbg"], bd=0
+            self.image_tab, bg=self.custom_frame_bg_colors["specialbg"], bd=0
         )
         self.img_viewer_frame.grid(
             column=4,
@@ -297,9 +339,9 @@ class ImageViewer:
         self.image_name_label2 = Label(
             self.set_info_frame,
             text="0 sets (0 images)",
-            background=custom_frame_bg_colors["specialbg"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size - 1),
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1),
         )
         self.image_name_label2.grid(
             row=0, column=0, columnspan=1, sticky=E, padx=5, pady=(2, 0)
@@ -309,9 +351,9 @@ class ImageViewer:
         self.image_name1_label = Label(
             self.set_info_frame,
             text="6 sets (12 images) required",
-            background=custom_frame_bg_colors["specialbg"],
-            fg=custom_label_colors["foreground"],
-            font=(set_font, set_font_size - 1, "italic"),
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1, "italic"),
         )
         self.image_name1_label.grid(
             row=0, column=1, columnspan=1, sticky=E, padx=5, pady=(2, 0)
@@ -323,17 +365,17 @@ class ImageViewer:
         # create selected list box
         self.img_viewer_listbox = Listbox(
             self.img_viewer_frame,
-            bg=custom_listbox_color["background"],
-            fg=custom_listbox_color["foreground"],
-            selectbackground=custom_listbox_color["selectbackground"],
-            selectforeground=custom_listbox_color["selectforeground"],
+            bg=self.custom_listbox_color["background"],
+            fg=self.custom_listbox_color["foreground"],
+            selectbackground=self.custom_listbox_color["selectbackground"],
+            selectforeground=self.custom_listbox_color["selectforeground"],
             highlightthickness=0,
             width=40,
             yscrollcommand=self.image_v_right_scrollbar.set,
             selectmode=SINGLE,
             bd=4,
             activestyle="none",
-            font=(set_fixed_font, set_font_size - 2),
+            font=(self.set_fixed_font, self.set_font_size - 2),
         )
         self.img_viewer_listbox.grid(
             row=0, column=0, rowspan=2, sticky=N + E + S + W, pady=(8, 0)
@@ -349,9 +391,9 @@ class ImageViewer:
             text=" Preview ",
             labelanchor="nw",
             bd=3,
-            font=(set_font, set_font_size + 1, "bold"),
-            fg=custom_label_frame_colors["foreground"],
-            bg=custom_frame_bg_colors["specialbg"],
+            font=(self.set_font, self.set_font_size + 1, "bold"),
+            fg=self.custom_label_frame_colors["foreground"],
+            bg=self.custom_frame_bg_colors["specialbg"],
         )
         self.mini_preview_frame.grid(
             column=0, columnspan=3, row=2, sticky=N + S + E + W
@@ -368,7 +410,7 @@ class ImageViewer:
         # put resized image into label
         self.mini_image_preview_label = Label(
             self.mini_preview_frame,
-            background=custom_frame_bg_colors["specialbg"],
+            background=self.custom_frame_bg_colors["specialbg"],
             cursor="hand2",
             image=self.zero_img,
             width=348,
@@ -379,7 +421,7 @@ class ImageViewer:
 
         # image button frame for selected list box
         self.img_button2_frame = Frame(
-            self.image_tab, bg=custom_frame_bg_colors["specialbg"]
+            self.image_tab, bg=self.custom_frame_bg_colors["specialbg"]
         )
         self.img_button2_frame.grid(
             column=4, row=2, columnspan=1, pady=2, padx=2, sticky=N + S + E + W
@@ -396,11 +438,11 @@ class ImageViewer:
             command=self.remove_pair_from_listbox,
             borderwidth="3",
             width=4,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
 
@@ -411,11 +453,11 @@ class ImageViewer:
             command=self.add_pair_to_listbox,
             borderwidth="3",
             width=4,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
 
@@ -427,11 +469,11 @@ class ImageViewer:
             state=DISABLED,
             borderwidth="3",
             width=10,
-            foreground=custom_button_colors["foreground"],
-            background=custom_button_colors["background"],
-            activeforeground=custom_button_colors["activeforeground"],
-            activebackground=custom_button_colors["activebackground"],
-            disabledforeground=custom_button_colors["disabledforeground"],
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.add_images_to_listbox.grid(row=0, column=2, padx=5, pady=(7, 0), sticky=E)
 
@@ -447,7 +489,7 @@ class ImageViewer:
         # wait for image viewer to be closed
         self.image_viewer.wait_window()
 
-    def load_next_image(self, *e_right):
+    def load_next_image(self, *_):
         """function to load next image"""
 
         # if next image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
@@ -485,7 +527,7 @@ class ImageViewer:
                 text=f"{self.comparison_index + 1} of {len(self.comparison_img_list)}"
             )
 
-    def load_last_image(self, *e_left):
+    def load_last_image(self, *_):
         """function to load last image"""
 
         # if back image is not disabled (this prevents the keystrokes from doing anything when it should be disabled)
@@ -552,19 +594,21 @@ class ImageViewer:
 
     def remove_pair_from_listbox(self):
         """remove pair from listbox function"""
+        get_prefix_number = None
 
         # if something is selected in the list box
         if self.img_viewer_listbox.curselection():
             # get the selected item from list box
             for i in self.img_viewer_listbox.curselection():
-                get_frame_number = re.search(
-                    r"__(\d+)", str(self.img_viewer_listbox.get(i))
+                get_prefix_number = re.search(
+                    r"(\d{1,3})[a|b]_.+__.+", str(self.img_viewer_listbox.get(i))
                 )
 
             # get the frame number to match the pairs
             for images_with_prefix in self.img_viewer_listbox.get(0, END):
                 get_pair = re.findall(
-                    rf".+__{get_frame_number.group(1)}\.png", images_with_prefix
+                    rf"{get_prefix_number.group(1)}[a|b]_.+__.+\.png",
+                    images_with_prefix,
                 )
                 # once pair is found
                 if get_pair:
@@ -643,15 +687,16 @@ class ImageViewer:
 
     def add_pair_to_listbox(self):
         """add pair to the selected listbox"""
+        selected_index_var = None
 
-        # find the frame number of the pair
-        get_frame_number = re.search(
-            r"__(\d+)",
+        # find the prefix
+        get_file_prefix = re.search(
+            r"(\d{1,3})[a|b]_.+__.+",
             str(pathlib.Path(self.comparison_img_list[self.comparison_index]).name),
         )
         for full_name in self.comparison_img_list:
             get_pair = re.findall(
-                rf".+__{get_frame_number.group(1)}\.png", full_name.name
+                rf"{get_file_prefix.group(1)}[b|a]_.+__.+\.png", full_name.name
             )
             # once a pair is found use pathlib rename to move them from the comparison list/dir to the selected dir/list
             if get_pair:
@@ -764,8 +809,8 @@ class ImageViewer:
         # close image viewer window
         self.image_viewer.destroy()
 
-        # run the function to load screenshots into the main gui
-        return list_of_selected_images
+        # return list of selected screenshots to main script
+        self.return_output.update({"images": list_of_selected_images})
 
     # loop to enable/disable buttons depending on index
     def enable_disable_buttons_by_index(self):
@@ -793,3 +838,287 @@ class ImageViewer:
             self.add_images_to_listbox.config(state=DISABLED)
 
         self.image_viewer.after(50, self.enable_disable_buttons_by_index)
+
+    def _sync_tab_ui(self):
+        # generate list of sync images
+        self._generate_sync_images1()
+        self._generate_sync_images2()
+        self._select_next_sync_image()
+
+        # main sync tab
+        self.sync_tab = Frame(self.tabs, bg=self.custom_frame_bg_colors["specialbg"])
+        self.tabs.add(self.sync_tab, text=" Sync ")
+        self.sync_tab.grid_rowconfigure(0, weight=1)
+        self.sync_tab.grid_rowconfigure(1, weight=1)
+        self.sync_tab.grid_columnconfigure(0, weight=1)
+
+        # frame for nested notebook tabs
+        self.nested_sync_frame = Frame(self.sync_tab, bg=self.custom_window_bg_color)
+        self.nested_sync_frame.grid(
+            column=0,
+            row=0,
+            pady=(15, 5),
+            padx=15,
+            sticky=N + S + E + W,
+            columnspan=5,
+        )
+        self.nested_sync_frame.grid_columnconfigure(0, weight=1)
+        self.nested_sync_frame.grid_columnconfigure(1, weight=1)
+
+        # notebook tabs
+        self.sync_tabs = ttk.Notebook(self.nested_sync_frame)
+        self.sync_tabs.grid(
+            row=0, column=0, columnspan=5, sticky=E + W + N + S, padx=10, pady=10
+        )
+        self.sync_tabs.grid_columnconfigure(0, weight=1)
+        self.sync_tabs.grid_rowconfigure(0, weight=1)
+
+        # reference tab 1
+        self.reference_tab_1 = Frame(
+            self.sync_tabs, bg=self.custom_frame_bg_colors["specialbg"]
+        )
+        self.sync_tabs.add(self.reference_tab_1, text=" Reference 1 ")
+        self.reference_tab_1.grid_rowconfigure(0, weight=1)
+        self.reference_tab_1.grid_columnconfigure(0, weight=1)
+
+        # image label for tab 1
+        self.rf1_image = Image.open(self._locate_sync_img_encode(1))
+        self.rf1_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.resized_rf1_image = ImageTk.PhotoImage(self.rf1_image)
+
+        # put resized image into label
+        self.image_sync_label1 = Label(
+            self.reference_tab_1,
+            image=self.resized_rf1_image,
+            background=self.custom_frame_bg_colors["specialbg"],
+            cursor="hand2",
+        )
+        self.image_sync_label1.image = self.resized_rf1_image
+        self.image_sync_label1.grid(column=0, row=0, columnspan=5, sticky=N + S + E + W)
+
+        # bind mouse event to update images
+        self.image_sync_label1.bind("<Enter>", self._image_swap1)
+        self.image_sync_label1.bind("<Leave>", self._image_swap_out1)
+
+        # reference tab 2
+        self.reference_tab_2 = Frame(
+            self.sync_tabs, bg=self.custom_frame_bg_colors["specialbg"]
+        )
+        self.sync_tabs.add(self.reference_tab_2, text=" Reference 2 ")
+        self.reference_tab_2.grid_rowconfigure(0, weight=1)
+        self.reference_tab_2.grid_columnconfigure(0, weight=1)
+
+        # image label for tab 2
+        self.rf2_image = Image.open(self._locate_sync_img_encode(2))
+        self.rf2_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.resized_rf2_image = ImageTk.PhotoImage(self.rf2_image)
+
+        # put resized image into label
+        self.image_sync_label2 = Label(
+            self.reference_tab_2,
+            image=self.resized_rf2_image,
+            background=self.custom_frame_bg_colors["specialbg"],
+            cursor="hand2",
+        )
+        self.image_sync_label2.image = self.resized_rf2_image
+        self.image_sync_label2.grid(column=0, row=0, columnspan=5)
+
+        # bind mouse event to update images
+        self.image_sync_label2.bind("<Enter>", self._image_swap2)
+        self.image_sync_label2.bind("<Leave>", self._image_swap_out2)
+
+        # frame for buttons
+        self.sync_img_button_frame = Frame(
+            self.sync_tab, bg=self.custom_frame_bg_colors["specialbg"]
+        )
+        self.sync_img_button_frame.grid(
+            column=0, row=2, columnspan=5, pady=2, padx=2, sticky=N + S + E + W
+        )
+        for s_i_b_f in range(6):
+            self.sync_img_button_frame.grid_columnconfigure(s_i_b_f, weight=1000)
+        self.sync_img_button_frame.grid_rowconfigure(0, weight=1)
+
+        # next sync image
+        self.next_img = HoverButton(
+            self.sync_img_button_frame,
+            text=">>",
+            command=self._select_next_sync_image,
+            borderwidth="3",
+            width=4,
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
+        )
+        self.next_img.grid(row=1, column=3, columnspan=1, padx=5, pady=(7, 0), sticky=W)
+
+        # back sync image
+        self.back_img = HoverButton(
+            self.sync_img_button_frame,
+            text="<<",
+            command=self._select_back_sync_image,
+            borderwidth="3",
+            width=4,
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
+        )
+        self.back_img.grid(row=1, column=2, columnspan=1, padx=5, pady=(7, 0), sticky=E)
+
+        # apply sync
+        self.apply_sync = HoverButton(
+            self.sync_img_button_frame,
+            text="Apply Sync",
+            command=self._apply_sync,
+            borderwidth="3",
+            width=15,
+            foreground=self.custom_button_colors["foreground"],
+            background=self.custom_button_colors["background"],
+            activeforeground=self.custom_button_colors["activeforeground"],
+            activebackground=self.custom_button_colors["activebackground"],
+            disabledforeground=self.custom_button_colors["disabledforeground"],
+        )
+        self.apply_sync.grid(
+            row=1, column=5, columnspan=1, padx=5, pady=(7, 0), sticky=E
+        )
+
+        # sync position label
+        self.sync_position = Label(
+            self.sync_img_button_frame,
+            text=f"Sync Image #1",
+            background=self.custom_frame_bg_colors["specialbg"],
+            fg=self.custom_label_colors["foreground"],
+            font=(self.set_font, self.set_font_size - 1),
+        )
+        self.sync_position.grid(row=0, column=0, sticky=W, padx=5, pady=(7, 0))
+
+    def _apply_sync(self):
+        offset = 0
+        operator = None
+        reference_frame_number = re.search(
+            r".+__(\d+).png", str(pathlib.Path(self._locate_sync_img_encode(1)).name)
+        )
+        find_frame_offset = re.search(
+            r".+__(\d+).png",
+            str(pathlib.Path(self.sync_images1[self.sync_img_select]).name),
+        )
+
+        if int(reference_frame_number.group(1)) > int(find_frame_offset.group(1)):
+            offset = int(reference_frame_number.group(1)) - int(
+                find_frame_offset.group(1)
+            )
+            operator = "-"
+        elif int(reference_frame_number.group(1)) < int(find_frame_offset.group(1)):
+            offset = int(
+                find_frame_offset.group(1) - int(reference_frame_number.group(1))
+            )
+            operator = "+"
+
+        self.return_output.update(
+            {"synced": False, "images": None, "offset": offset, "operator": operator}
+        )
+        self.image_viewer.destroy()
+
+    def _generate_sync_images1(self):
+        sync_img_list = sorted(
+            [
+                x_img
+                for x_img in pathlib.Path(
+                    pathlib.Path(self.screenshot_sync_var) / "sync1"
+                ).glob("*.png")
+            ]
+        )
+
+        # get encode image
+        for sync_images in sync_img_list:
+            self.sync_images1.append(
+                pathlib.Path(
+                    pathlib.Path(self.screenshot_sync_var)
+                    / "sync1"
+                    / pathlib.Path(sync_images).name
+                )
+            )
+
+    def _generate_sync_images2(self):
+        sync_img_list = sorted(
+            [
+                x_img
+                for x_img in pathlib.Path(
+                    pathlib.Path(self.screenshot_sync_var) / "sync2"
+                ).glob("*.png")
+            ]
+        )
+
+        # get encode image
+        for sync_images in sync_img_list:
+            self.sync_images2.append(
+                pathlib.Path(
+                    pathlib.Path(self.screenshot_sync_var)
+                    / "sync2"
+                    / pathlib.Path(sync_images).name
+                )
+            )
+
+    def _select_next_sync_image(self):
+        if self.sync_img_select < len(self.sync_images1) - 1:
+            self.sync_img_select += 1
+            self.rf1_sync_image = self.sync_images1[self.sync_img_select]
+            self.rf2_sync_image = self.sync_images2[self.sync_img_select]
+            try:
+                self.sync_position.config(text=f"Sync Image #{self.sync_img_select}")
+            except AttributeError:
+                pass
+
+    def _select_back_sync_image(self):
+        if self.sync_img_select > 1:
+            self.sync_img_select -= 1
+            self.rf1_sync_image = self.sync_images1[self.sync_img_select]
+            self.rf2_sync_image = self.sync_images2[self.sync_img_select]
+            try:
+                self.sync_position.config(text=f"Sync Image #{self.sync_img_select}")
+            except AttributeError:
+                pass
+
+    def _image_swap1(self, _):
+        self.rf1_s_image = Image.open(self.rf1_sync_image)
+        self.rf1_s_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.resized_rf1_s_image = ImageTk.PhotoImage(self.rf1_s_image)
+
+        self.image_sync_label1.config(image=self.resized_rf1_s_image)
+        self.image_sync_label1.image = self.resized_rf1_s_image
+
+    def _image_swap_out1(self, _):
+        self.image_sync_label1.config(image=self.resized_rf1_image)
+        self.image_sync_label1.image = self.resized_rf1_image
+
+    def _image_swap2(self, _):
+        self.rf2_image = Image.open(self.rf2_sync_image)
+        self.rf2_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.resized_rf2_s_image = ImageTk.PhotoImage(self.rf2_image)
+
+        self.image_sync_label2.config(image=self.resized_rf2_s_image)
+        self.image_sync_label2.image = self.resized_rf2_s_image
+
+    def _image_swap_out2(self, _):
+        self.image_sync_label2.config(image=self.resized_rf2_image)
+        self.image_sync_label2.image = self.resized_rf2_image
+
+    def _locate_sync_img_encode(self, ref_num):
+        # create image list
+        sync_img_list = sorted(
+            [x_img for x_img in pathlib.Path(self.screenshot_sync_var).glob("*.png")]
+        )
+
+        # get encode image
+        for sync_images in sync_img_list:
+            sync_img = re.search(rf"0{str(ref_num)}b_encode_.+", str(sync_images))
+            if sync_img:
+                return pathlib.Path(
+                    pathlib.Path(self.screenshot_sync_var) / sync_img.group()
+                )
+
+    def get_dict(self):
+        return self.return_output
