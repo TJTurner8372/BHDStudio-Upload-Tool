@@ -4541,7 +4541,9 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
 
         # select two frames randomly from list
         sync_1 = choice(b_frames)
-        sync_2 = choice(b_frames)
+        remove_sync1 = b_frames.copy()
+        remove_sync1.remove(sync_1)
+        sync_2 = choice(remove_sync1)
 
         # reference subs
         reference_sub_style = (
