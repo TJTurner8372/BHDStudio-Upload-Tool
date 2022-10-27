@@ -109,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.56"
+main_root_title = "BHDStudio Upload Tool v1.57"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -300,7 +300,7 @@ detect_font = font.nametofont(
 )  # Get default font value into Font object
 set_font = detect_font.actual().get("family")
 default_font_size = detect_font.actual().get("size")
-if config["ui_scale"]["value"] != "":
+if config["ui_scale"]["value"] != "0":
     set_font_size = int(config["ui_scale"]["value"])
 else:
     set_font_size = default_font_size
