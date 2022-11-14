@@ -2342,13 +2342,13 @@ def encode_input_function(*args):
 
             def injection_point(x):
                 """find the point to inject dubbed/subbed/imax after movie year"""
-                # attempt to get only the movie title year
-                collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", x)
 
-                # if any 4 digits are detected in the string
-                if collect_year:
-                    # get only the last set of digits
-                    search_index = int(x.find(str(collect_year[-1]))) + 5
+                # get year from source input
+                if source_file_information["source_movie_year"] != "":
+                    search_index = (
+                        int(x.rindex(str(source_file_information["source_movie_year"])))
+                        + 5
+                    )
 
                     return search_index
 
