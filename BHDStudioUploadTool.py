@@ -2305,7 +2305,7 @@ def encode_input_function(*args):
             # create label
             rename_info_lbl1 = Label(
                 rename_enc_frame,
-                wraplength=598,
+                wraplength=590,
                 text=str(pathlib.Path(source_file_information["source_path"]).name),
                 background=custom_label_colors["background"],
                 fg=custom_label_colors["foreground"],
@@ -2330,7 +2330,7 @@ def encode_input_function(*args):
             # create label
             rename_info_lbl2 = Label(
                 rename_enc_frame,
-                wraplength=598,
+                wraplength=590,
                 text=str(pathlib.Path(*args).name),
                 background=custom_label_colors["background"],
                 fg=custom_label_colors["foreground"],
