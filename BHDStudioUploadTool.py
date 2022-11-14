@@ -4137,6 +4137,10 @@ def check_crop_values():
 def auto_screen_shot_status_window(re_sync=0, operator=None):
     """auto screenshot function"""
 
+    # define parser
+    img_path_parser = ConfigParser()
+    img_path_parser.read(config_file)
+
     # select desired amount of screenshots
     screen_amount_check = screen_shot_count_spinbox()
 
@@ -4456,11 +4460,23 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
             f"This depends on system storage speed..."
         )
 
-        # make temporary image folder
-        image_output_dir = pathlib.Path(
-            pathlib.Path(encode_file_path.get()).parent
-            / f"{pathlib.Path(encode_file_path.get()).stem}_images"
-        )
+        # make new temporary image folder
+        image_output_dir = None
+        if (
+            img_path_parser["image_generation_folder"]["path"] != ""
+            and pathlib.Path(
+                img_path_parser["image_generation_folder"]["path"]
+            ).is_dir()
+        ):
+            image_output_dir = pathlib.Path(
+                pathlib.Path(img_path_parser["image_generation_folder"]["path"])
+                / f"{pathlib.Path(encode_file_path.get()).stem}_images"
+            )
+        else:
+            image_output_dir = pathlib.Path(
+                pathlib.Path(encode_file_path.get()).parent
+                / f"{pathlib.Path(encode_file_path.get()).stem}_images"
+            )
 
         # check if temp image dir exists, if so delete it!
         if image_output_dir.exists():
@@ -6389,7 +6405,7 @@ def torrent_function_window():
         torrent_window.grid_rowconfigure(t_w, weight=1)
 
     # torrent path frame
-    torrent_path_frame = LabelFrame(
+    general_path_frame = LabelFrame(
         torrent_window,
         text=" Path ",
         labelanchor="nw",
@@ -6398,13 +6414,13 @@ def torrent_function_window():
         fg=custom_label_frame_colors["foreground"],
         bg=custom_label_frame_colors["background"],
     )
-    torrent_path_frame.grid(
+    general_path_frame.grid(
         column=0, row=0, columnspan=10, padx=5, pady=(0, 3), sticky=E + W + N + S
     )
 
-    torrent_path_frame.grid_rowconfigure(0, weight=1)
+    general_path_frame.grid_rowconfigure(0, weight=1)
     for t_f in range(10):
-        torrent_path_frame.grid_columnconfigure(t_f, weight=1)
+        general_path_frame.grid_columnconfigure(t_f, weight=1)
 
     # re-define torrent output if the user wants
     def torrent_save_output():
@@ -6431,7 +6447,7 @@ def torrent_function_window():
 
     # torrent set path button
     torrent_button = HoverButton(
-        torrent_path_frame,
+        general_path_frame,
         text="Set",
         command=torrent_save_output,
         borderwidth="3",
@@ -6453,7 +6469,7 @@ def torrent_function_window():
 
     # torrent path entry box
     torrent_entry_box = Entry(
-        torrent_path_frame,
+        general_path_frame,
         borderwidth=4,
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
@@ -8482,101 +8498,106 @@ def custom_input_prompt(
 
 
 # define default torrent path window
-def torrent_path_window_function(*t_args):
+def torrent_path_window_func(label_text, config_set_opt1, config_set_opt2):
     # hide all top levels if they are opened
     hide_all_toplevels()
     # define parser
-    torrent_window_path_parser = ConfigParser()
-    torrent_window_path_parser.read(config_file)
+    general_path_parser = ConfigParser()
+    general_path_parser.read(config_file)
 
     # function to exit torrent path window
-    def torrent_path_okay_func():
+    def general_path_okay_func():
         root.wm_attributes("-alpha", 1.0)  # restore transparency
-        torrent_path_window.destroy()  # close window
+        general_path_window.destroy()  # close window
 
     # torrent path window
-    torrent_path_window = Toplevel()
-    torrent_path_window.title("")
-    torrent_path_window.configure(background=custom_window_bg_color)
-    torrent_path_window.geometry(
+    general_path_window = Toplevel()
+    general_path_window.title("")
+    general_path_window.configure(background=custom_window_bg_color)
+    general_path_window.geometry(
         f'+{str(int(root.geometry().split("+")[1]) + 156)}+'
         f'{str(int(root.geometry().split("+")[2]) + 230)}'
     )
-    torrent_path_window.resizable(False, False)
-    torrent_path_window.grab_set()
-    torrent_path_window.protocol("WM_DELETE_WINDOW", torrent_path_okay_func)
+    general_path_window.resizable(False, False)
+    general_path_window.grab_set()
+    general_path_window.protocol("WM_DELETE_WINDOW", general_path_okay_func)
     root.wm_attributes("-alpha", 0.92)  # set parent window to be slightly transparent
-    torrent_path_window.grid_rowconfigure(0, weight=1)
-    torrent_path_window.grid_columnconfigure(0, weight=1)
+    general_path_window.grid_rowconfigure(0, weight=1)
+    general_path_window.grid_columnconfigure(0, weight=1)
 
     # encoder name frame
-    torrent_path_frame = Frame(
-        torrent_path_window,
+    general_path_frame = Frame(
+        general_path_window,
         highlightbackground=custom_frame_bg_colors["highlightcolor"],
         highlightthickness=2,
         bg=custom_frame_bg_colors["background"],
         highlightcolor=custom_frame_bg_colors["highlightcolor"],
     )
-    torrent_path_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
+    general_path_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
 
     # grid and row config
     for e_n_f in range(4):
-        torrent_path_frame.grid_columnconfigure(e_n_f, weight=1)
-        torrent_path_frame.grid_rowconfigure(e_n_f, weight=1)
-    torrent_path_frame.grid_columnconfigure(1, weight=100)
-    torrent_path_frame.grid_rowconfigure(2, weight=50)
+        general_path_frame.grid_columnconfigure(e_n_f, weight=1)
+        general_path_frame.grid_rowconfigure(e_n_f, weight=1)
+    general_path_frame.grid_columnconfigure(1, weight=100)
+    general_path_frame.grid_rowconfigure(2, weight=50)
 
     # create label
-    torrent_label = Label(
-        torrent_path_frame,
-        text="Torrent Output Path",
+    general_path_label = Label(
+        general_path_frame,
+        text=f"{label_text} Output Path",
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_font, set_font_size, "bold"),
     )
-    torrent_label.grid(row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 8))
+    general_path_label.grid(
+        row=0, column=0, columnspan=3, sticky=W + N, padx=5, pady=(2, 8)
+    )
 
     # set torrent default path function
     def save_default_torrent_path():
         # save directory dialog box
-        torrent_path_dialogue = filedialog.askdirectory(
-            parent=torrent_path_window, title="Set Default Path"
+        general_path_dialogue = filedialog.askdirectory(
+            parent=general_path_window, title="Set Default Path"
         )
         # if directory is defined
-        if torrent_path_dialogue:
+        if general_path_dialogue:
             # define parser/settings then write to config file
-            torrent_path_update_parser = ConfigParser()
-            torrent_path_update_parser.read(config_file)
-            torrent_path_update_parser.set(
-                "torrent_settings",
-                "default_path",
-                str(pathlib.Path(torrent_path_dialogue)),
+            general_path_update_parser = ConfigParser()
+            general_path_update_parser.read(config_file)
+            general_path_update_parser.set(
+                str(config_set_opt1),
+                str(config_set_opt2),
+                str(pathlib.Path(general_path_dialogue)),
             )
             with open(config_file, "w") as t_p_configfile:
-                torrent_path_update_parser.write(t_p_configfile)
+                general_path_update_parser.write(t_p_configfile)
+
             # update entry box
-            torrent_path_entry_box.config(state=NORMAL)
-            torrent_path_entry_box.delete(0, END)
-            torrent_path_entry_box.insert(END, str(pathlib.Path(torrent_path_dialogue)))
-            torrent_path_entry_box.config(state=DISABLED)
+            general_path_entry_box.config(state=NORMAL)
+            general_path_entry_box.delete(0, END)
+            general_path_entry_box.insert(END, str(pathlib.Path(general_path_dialogue)))
+            general_path_entry_box.config(state=DISABLED)
+
             # update torrent_file_path string var
-            if torrent_file_path.get() != "":
-                torrent_file_path.set(
-                    str(
-                        pathlib.Path(
-                            torrent_path_update_parser["torrent_settings"][
-                                "default_path"
-                            ]
+            if label_text == "Torrent":
+                if torrent_file_path.get() != "":
+                    torrent_file_path.set(
+                        str(
+                            pathlib.Path(
+                                general_path_update_parser[str(config_set_opt1)][
+                                    str(config_set_opt2)
+                                ]
+                            )
+                            / pathlib.Path(
+                                pathlib.Path(torrent_file_path.get()).stem
+                            ).with_suffix(".torrent")
                         )
-                        / pathlib.Path(
-                            pathlib.Path(torrent_file_path.get()).stem
-                        ).with_suffix(".torrent")
                     )
-                )
 
     # create torrent path button
-    torrent_path_btn = HoverButton(
-        torrent_path_frame,
+    general_path_btn = HoverButton(
+        general_path_frame,
         text="Path",
         command=save_default_torrent_path,
         borderwidth="3",
@@ -8587,11 +8608,11 @@ def torrent_path_window_function(*t_args):
         activebackground=custom_button_colors["activebackground"],
         disabledforeground=custom_button_colors["disabledforeground"],
     )
-    torrent_path_btn.grid(row=1, column=0, columnspan=1, padx=(5, 2), pady=5, sticky=W)
+    general_path_btn.grid(row=1, column=0, columnspan=1, padx=(5, 2), pady=5, sticky=W)
 
     # create entry box
-    torrent_path_entry_box = Entry(
-        torrent_path_frame,
+    general_path_entry_box = Entry(
+        general_path_frame,
         borderwidth=4,
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
@@ -8600,19 +8621,19 @@ def torrent_path_window_function(*t_args):
         width=30,
         font=(set_fixed_font, set_font_size),
     )
-    torrent_path_entry_box.grid(
+    general_path_entry_box.grid(
         row=1, column=1, columnspan=2, padx=5, pady=5, sticky=E + W
     )
-    torrent_path_entry_box.insert(
-        END, torrent_window_path_parser["torrent_settings"]["default_path"]
+    general_path_entry_box.insert(
+        END, general_path_parser[str(config_set_opt1)][str(config_set_opt2)]
     )
-    torrent_path_entry_box.config(state=DISABLED)
+    general_path_entry_box.config(state=DISABLED)
 
     # reset path function
     def reset_torrent_path_function():
         # confirm reset
         confirm_reset = messagebox.askyesno(
-            parent=torrent_path_window,
+            parent=general_path_window,
             title="Confirm",
             message="Are you sure you want to reset path back to default?\n"
             "(Encode file input path)",
@@ -8622,13 +8643,13 @@ def torrent_path_window_function(*t_args):
             # define parser/settings then write to config file
             reset_path_parser = ConfigParser()
             reset_path_parser.read(config_file)
-            reset_path_parser.set("torrent_settings", "default_path", "")
+            reset_path_parser.set(str(config_set_opt1), str(config_set_opt2), "")
             with open(config_file, "w") as t_r_configfile:
                 reset_path_parser.write(t_r_configfile)
             # update entry box
-            torrent_path_entry_box.config(state=NORMAL)
-            torrent_path_entry_box.delete(0, END)
-            torrent_path_entry_box.config(state=DISABLED)
+            general_path_entry_box.config(state=NORMAL)
+            general_path_entry_box.delete(0, END)
+            general_path_entry_box.config(state=DISABLED)
             # update torrent_file_path string var if encode_file_path is loaded
             if encode_file_path.get() != "":
                 torrent_file_path.set(
@@ -8636,8 +8657,8 @@ def torrent_path_window_function(*t_args):
                 )
 
     # create torrent reset path button
-    torrent_path_reset_btn = HoverButton(
-        torrent_path_frame,
+    general_path_reset_btn = HoverButton(
+        general_path_frame,
         text="X",
         command=reset_torrent_path_function,
         borderwidth="3",
@@ -8648,15 +8669,15 @@ def torrent_path_window_function(*t_args):
         activebackground=custom_button_colors["activebackground"],
         disabledforeground=custom_button_colors["disabledforeground"],
     )
-    torrent_path_reset_btn.grid(
+    general_path_reset_btn.grid(
         row=1, column=3, columnspan=1, padx=(2, 5), pady=5, sticky=E
     )
 
     # create 'OK' button
-    torrent_path_okay_btn = HoverButton(
-        torrent_path_frame,
+    general_path_okay_btn = HoverButton(
+        general_path_frame,
         text="OK",
-        command=torrent_path_okay_func,
+        command=general_path_okay_func,
         borderwidth="3",
         width=8,
         foreground=custom_button_colors["foreground"],
@@ -8665,11 +8686,11 @@ def torrent_path_window_function(*t_args):
         activebackground=custom_button_colors["activebackground"],
         disabledforeground=custom_button_colors["disabledforeground"],
     )
-    torrent_path_okay_btn.grid(
+    general_path_okay_btn.grid(
         row=2, column=2, columnspan=2, padx=7, pady=(5, 3), sticky=E + S
     )
 
-    torrent_path_window.wait_window()  # wait for window to be closed
+    general_path_window.wait_window()  # wait for window to be closed
     open_all_toplevels()  # re-open all top levels if they exist
 
 
@@ -9134,10 +9155,21 @@ root.bind(
 )
 options_menu.add_command(
     label="Torrent Output Path",
-    command=torrent_path_window_function,
+    command=lambda: torrent_path_window_func(
+        label_text="Torrent",
+        config_set_opt1="torrent_settings",
+        config_set_opt2="default_path",
+    ),
     accelerator="[Ctrl+T]",
 )
-root.bind("<Control-t>", torrent_path_window_function)
+root.bind(
+    "<Control-t>",
+    lambda event: torrent_path_window_func(
+        label_text="Torrent",
+        config_set_opt1="torrent_settings",
+        config_set_opt2="default_path",
+    ),
+)
 
 options_menu.add_command(
     label="Deluge Injection",
@@ -9209,6 +9241,24 @@ options_menu.add_command(
     accelerator="[Ctrl+C]",
 )
 root.bind("<Control-c>", screen_shot_count_spinbox)
+
+options_menu.add_command(
+    label="Screen Shot Directory",
+    command=lambda: torrent_path_window_func(
+        label_text="Image",
+        config_set_opt1="image_generation_folder",
+        config_set_opt2="path",
+    ),
+    accelerator="[Ctrl+M]",
+)
+root.bind(
+    "<Control-m>",
+    lambda event: torrent_path_window_func(
+        label_text="Image",
+        config_set_opt1="image_generation_folder",
+        config_set_opt2="path",
+    ),
+)
 options_menu.add_separator()
 
 # auto update options menu
