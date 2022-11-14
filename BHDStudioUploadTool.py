@@ -2263,6 +2263,7 @@ def encode_input_function(*args):
             )
             rename_encode_window.resizable(False, False)
             rename_encode_window.grab_set()
+            rename_encode_window.wm_transient(root)
             rename_encode_window.protocol(
                 "WM_DELETE_WINDOW",
                 lambda: [
