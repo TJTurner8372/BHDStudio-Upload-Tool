@@ -626,7 +626,7 @@ def edition_title_extractor(name_to_check):
         extracted_editions = str(extracted_editions).replace("unrated", "Unrated")
 
     # if edition is detected remove it from the name
-    if check_for_edition_lst:
+    if extracted_editions != "":
         for x in check_for_edition_lst:
             movie_input_filtered = re.sub(x, "", movie_input_filtered)
 
