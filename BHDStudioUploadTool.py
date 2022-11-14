@@ -581,9 +581,7 @@ def open_tmdb_link():
 def edition_title_extractor(name_to_check):
     """function to check edition and get title of movie only"""
     check_for_edition_lst = re.findall(
-        "collector(?:'s)?(?:.edition)?|director(?:'s)?(?:.cut)?|extended(?:.cut)?|"
-        "limited(?:.edition)?|special(?:.edition)?|theatrical(?:.cut)?"
-        "|uncut|unrated",
+        "director(?:'s)?(?:.cut)?|extended(?:.cut)?|theatrical(?:.cut)?|unrated",
         name_to_check,
         flags=re.IGNORECASE,
     )
@@ -598,8 +596,34 @@ def edition_title_extractor(name_to_check):
         elif len(check_for_edition_lst) > 1:
             for edition in check_for_edition_lst:
                 extracted_editions = extracted_editions + edition + " "
-            # strip away extra white space on the right side
+            # strip away extra white space on the right side and remove periods
             extracted_editions = extracted_editions.rstrip().replace(".", " ")
+
+    # clean up edition names
+    if any(
+        re.findall(
+            r"director|extended|theatrical|unrated", extracted_editions, re.IGNORECASE
+        )
+    ):
+        extracted_editions = re.sub(
+            r"director(?:'s)?(?:.cut)?",
+            "Director's Cut",
+            extracted_editions,
+            flags=re.IGNORECASE,
+        )
+        extracted_editions = re.sub(
+            r"extended(?:.cut)?",
+            "Extended Cut",
+            extracted_editions,
+            flags=re.IGNORECASE,
+        )
+        extracted_editions = re.sub(
+            r"theatrical(?:.cut)?",
+            "Theatrical Cut",
+            extracted_editions,
+            flags=re.IGNORECASE,
+        )
+        extracted_editions = str(extracted_editions).replace("unrated", "Unrated")
 
     # if edition is detected remove it from the name
     if check_for_edition_lst:
@@ -2242,7 +2266,7 @@ def encode_input_function(*args):
     )
 
     # remove any special characters from the filename
-    suggested_bhd_filename = re.sub(r'[\\\/:*?"<>\|\s]', ".", suggested_bhd_filename)
+    suggested_bhd_filename = re.sub(r'[\\/:*?"<>|\s]', ".", suggested_bhd_filename)
 
     # re-add hyphen that was removed from BHDStudio above
     suggested_bhd_filename = suggested_bhd_filename.replace(".BHDStudio", "-BHDStudio")
@@ -7316,13 +7340,9 @@ def open_uploader_window(job_mode):
 
     edition_choices = {
         "N/A": "",
-        "Collector's Edition": "Collector",
         "Director's Cut": "Director",
         "Extended Cut": "Extended",
-        "Limited Edition": "Limited",
-        "Special Edition": "Special",
         "Theatrical Cut": "Theatrical",
-        "Uncut": "Uncut",
         "Unrated": "Unrated",
     }
     edition_var = StringVar()
@@ -7359,60 +7379,16 @@ def open_uploader_window(job_mode):
             )[0]
 
             if edition_check:
-                if "collector" in str(edition_check).lower():
-                    edition_var.set("Collector's Edition")
-                elif "director" in str(edition_check).lower():
+                if "director" in str(edition_check).lower():
                     edition_var.set("Director's Cut")
                 elif "extended" in str(edition_check).lower():
                     edition_var.set("Extended Cut")
-                elif "limited" in str(edition_check).lower():
-                    edition_var.set("Limited Edition")
-                elif "special" in str(edition_check).lower():
-                    edition_var.set("Special Edition")
                 elif "theatrical" in str(edition_check).lower():
                     edition_var.set("Theatrical Cut")
-                elif "uncut" in str(edition_check).lower():
-                    edition_var.set("Uncut")
                 elif "unrated" in str(edition_check).lower():
                     edition_var.set("Unrated")
 
     check_edition_function()  # run function to check edition upon opening the window automatically
-
-    # custom edition label and entry box
-    edition_label = Label(
-        upload_options_frame,
-        text="Edition\n(Custom)",
-        bd=0,
-        relief=SUNKEN,
-        background=custom_label_colors["background"],
-        fg=custom_label_colors["foreground"],
-        font=(set_font, set_font_size + 1),
-    )
-    edition_label.grid(column=0, row=1, columnspan=1, pady=(5, 0), padx=5, sticky=E)
-
-    edition_entry_box = Entry(
-        upload_options_frame,
-        borderwidth=4,
-        fg=custom_entry_colors["foreground"],
-        bg=custom_entry_colors["background"],
-        disabledforeground=custom_entry_colors["disabledforeground"],
-        disabledbackground=custom_entry_colors["disabledbackground"],
-    )
-    edition_entry_box.grid(
-        row=1, column=1, columnspan=5, padx=5, pady=(5, 0), sticky=E + W
-    )
-
-    # a constant function to check if user types in the custom edition box, this set's edition to N/A and accepts text
-    def reset_disable_set_edition():
-        if edition_entry_box.get().strip() != "":
-            edition_var.set("N/A")
-            edition_var_menu.config(state=DISABLED)
-        else:
-            edition_var_menu.config(state=NORMAL)
-            check_edition_function()
-        upload_window.after(50, reset_disable_set_edition)
-
-    reset_disable_set_edition()  # launch loop to check edition
 
     # IMDB and TMDB frame
     imdb_tmdb_frame = LabelFrame(
@@ -7973,12 +7949,6 @@ def open_uploader_window(job_mode):
         if edition_var.get() != "N/A":
             upload_payload_params.update(
                 {"edition": edition_choices[edition_var.get()]}
-            )
-
-        # if a custom edition is typed add the params and value
-        if edition_entry_box.get().strip() != "":
-            upload_payload_params.update(
-                {"custom_edition": edition_entry_box.get().strip()}
             )
 
         try:  # try to upload
