@@ -127,6 +127,12 @@ if not config.has_section("last_used_folder"):
 if not config.has_option("last_used_folder", "path"):
     config.set("last_used_folder", "path", "")
 
+# image generation directory
+if not config.has_section("image_generation_folder"):
+    config.add_section("image_generation_folder")
+if not config.has_option("image_generation_folder", "path"):
+    config.set("image_generation_folder", "path", "")
+
 # themes
 if not config.has_section("themes"):
     config.add_section("themes")
