@@ -1141,6 +1141,7 @@ def search_movie_global_function(*args):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     search_entry_box2.grid(
         row=1, column=0, columnspan=5, padx=5, pady=(5, 3), sticky=E + W
@@ -1253,6 +1254,7 @@ def search_movie_global_function(*args):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
 
@@ -1278,6 +1280,7 @@ def search_movie_global_function(*args):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=W)
 
@@ -1635,7 +1638,7 @@ def source_input_function(*args):
                 activeforeground=custom_button_colors["activeforeground"],
                 background=custom_button_colors["background"],
                 foreground=custom_button_colors["foreground"],
-                font=(set_font, set_font_size - 1),
+                font=(set_font, set_font_size),
             )
             audio_pop_up_menu.grid(
                 row=1, column=0, columnspan=3, padx=10, pady=6, sticky=N + W + E
@@ -1645,7 +1648,7 @@ def source_input_function(*args):
                 activeforeground=custom_button_colors["activeforeground"],
                 background=custom_button_colors["background"],
                 foreground=custom_button_colors["foreground"],
-                font=(set_font, set_font_size - 1),
+                font=(set_font, set_font_size),
             )
 
             # create 'OK' button
@@ -2521,6 +2524,7 @@ def encode_input_function(*args):
                 borderwidth=4,
                 fg=custom_entry_colors["foreground"],
                 bg=custom_entry_colors["background"],
+                font=(set_fixed_font, set_font_size),
             )
             custom_entry_box.grid(
                 row=6, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
@@ -2718,6 +2722,7 @@ source_entry_box = Entry(
     bg=custom_entry_colors["background"],
     disabledforeground=custom_entry_colors["disabledforeground"],
     disabledbackground=custom_entry_colors["disabledbackground"],
+    font=(set_fixed_font, set_font_size),
 )
 source_entry_box.grid(
     row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N
@@ -2859,6 +2864,7 @@ encode_entry_box = Entry(
     bg=custom_entry_colors["background"],
     disabledforeground=custom_entry_colors["disabledforeground"],
     disabledbackground=custom_entry_colors["disabledbackground"],
+    font=(set_fixed_font, set_font_size),
 )
 encode_entry_box.grid(
     row=0, column=1, columnspan=2, padx=5, pady=(7, 0), sticky=E + W + N
@@ -3332,6 +3338,7 @@ release_notes_scrolled = scrolledtextwidget.ScrolledText(
     bg=custom_scrolled_text_widget_color["background"],
     fg=custom_scrolled_text_widget_color["foreground"],
     state=DISABLED,
+    font=(set_fixed_font, set_font_size),
 )
 release_notes_scrolled.grid(
     row=1, column=0, columnspan=4, pady=(0, 2), padx=5, sticky=E + W
@@ -3966,6 +3973,7 @@ def check_crop_values():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     left_entry_box.grid(row=0, column=1, padx=5, pady=(7, 10), sticky=W + S)
 
@@ -3988,6 +3996,7 @@ def check_crop_values():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     right_entry_box.grid(row=0, column=3, padx=5, pady=(7, 10), sticky=E + S)
 
@@ -4010,6 +4019,7 @@ def check_crop_values():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     top_entry_box.grid(row=1, column=1, padx=5, pady=(7, 0), sticky=W + N)
 
@@ -4032,6 +4042,7 @@ def check_crop_values():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     bottom_entry_box.grid(row=1, column=3, padx=5, pady=(7, 0), sticky=E + N)
 
@@ -6449,6 +6460,7 @@ def torrent_function_window():
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
         width=60,
+        font=(set_fixed_font, set_font_size),
     )
     torrent_entry_box.grid(
         row=0, column=1, columnspan=9, padx=5, pady=(5, 5), sticky=N + S + E + W
@@ -6629,6 +6641,7 @@ def torrent_function_window():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     torrent_tracker_url_entry_box.grid(
         row=0, column=1, columnspan=7, padx=(2, 5), pady=(5, 0), sticky=N + S + E + W
@@ -6668,6 +6681,7 @@ def torrent_function_window():
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     torrent_source_entry_box.grid(
         row=1, column=1, columnspan=5, padx=(2, 5), pady=5, sticky=N + S + E + W
@@ -7185,6 +7199,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     torrent_input_entry_box.grid(
         row=0, column=1, columnspan=3, padx=5, pady=(5, 0), sticky=E + W
@@ -7213,6 +7228,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     title_input_entry_box.grid(
         row=0, column=0, columnspan=4, padx=5, pady=(5, 3), sticky=E + W
@@ -7441,6 +7457,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     search_entry_box.grid(
         row=0, column=0, columnspan=3, padx=5, pady=(5, 0), sticky=E + W
@@ -7503,6 +7520,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     imdb_entry_box.grid(
         row=1, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W
@@ -7546,6 +7564,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     tmdb_entry_box.grid(
         row=2, column=1, columnspan=6, padx=5, pady=(5, 0), sticky=E + W
@@ -7688,6 +7707,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     media_info_entry.grid(
         row=0, column=1, columnspan=1, padx=5, pady=(5, 0), sticky=E + W
@@ -7749,6 +7769,7 @@ def open_uploader_window(job_mode):
         bg=custom_entry_colors["background"],
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
     )
     nfo_desc_entry.grid(
         row=0, column=3, columnspan=1, padx=5, pady=(5, 0), sticky=E + W
@@ -8358,6 +8379,7 @@ def custom_input_prompt(
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
         width=30,
+        font=(set_fixed_font, set_font_size),
     )
     custom_entry_box.grid(
         row=1, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W
@@ -8576,6 +8598,7 @@ def torrent_path_window_function(*t_args):
         disabledforeground=custom_entry_colors["disabledforeground"],
         disabledbackground=custom_entry_colors["disabledbackground"],
         width=30,
+        font=(set_fixed_font, set_font_size),
     )
     torrent_path_entry_box.grid(
         row=1, column=1, columnspan=2, padx=5, pady=5, sticky=E + W
@@ -8724,6 +8747,7 @@ def bhd_co_login_window():
         fg=custom_entry_colors["foreground"],
         bg=custom_entry_colors["background"],
         width=30,
+        font=(set_fixed_font, set_font_size),
     )
     user_entry_box.grid(
         row=1, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
@@ -8747,6 +8771,7 @@ def bhd_co_login_window():
         bg=custom_entry_colors["background"],
         show="*",
         width=30,
+        font=(set_fixed_font, set_font_size),
     )
     pass_entry_box.grid(
         row=3, column=0, columnspan=5, padx=10, pady=(0, 5), sticky=E + W
