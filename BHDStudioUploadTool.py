@@ -109,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.58"
+main_root_title = "BHDStudio Upload Tool v1.59"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1758,9 +1758,8 @@ def source_input_function(*args):
         extracted_edition = f" {source_name[0]}"
 
     # add 'UHD' to filename if it's 2160p
-    source_file_width = video_track.width
     uhd_string = ""
-    if int(source_file_width) <= 3840:
+    if 1920 < int(video_track.width) <= 3840:
         uhd_string = " UHD"
 
     # add full final name and year to the dictionary
