@@ -1762,7 +1762,7 @@ def source_input_function(*args):
     if int(source_file_width) <= 1920:
         uhd_string = ""
     elif int(source_file_width) <= 3840:
-        uhd_string = "UHD"
+        uhd_string = " UHD"
 
     # add full final name and year to the dictionary
     try:
