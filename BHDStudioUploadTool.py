@@ -1759,9 +1759,8 @@ def source_input_function(*args):
 
     # add 'UHD' to filename if it's 2160p
     source_file_width = video_track.width
-    if int(source_file_width) <= 1920:
-        uhd_string = ""
-    elif int(source_file_width) <= 3840:
+    uhd_string = ""
+    if int(source_file_width) <= 3840:
         uhd_string = " UHD"
 
     # add full final name and year to the dictionary
