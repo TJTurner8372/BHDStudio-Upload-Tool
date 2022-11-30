@@ -8022,6 +8022,7 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\nUpload has been successfully "
                     "saved as a draft on site",
                 )
+                reset_gui()
 
             # if upload is released live on site
             elif upload_job.json()["status_code"] == 2 and upload_job.json()["success"]:
@@ -8030,6 +8031,7 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\nUpload has been successfully "
                     f"released live on site\n\nDownload URL:\n{upload_job.json()['status_message']}",
                 )
+                reset_gui()
 
             # if there was an error
             elif upload_job.json()["status_code"] == 0:
