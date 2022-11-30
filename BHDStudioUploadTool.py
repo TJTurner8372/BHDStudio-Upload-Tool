@@ -109,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.59"
+main_root_title = "BHDStudio Upload Tool v1.60"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -2283,7 +2283,7 @@ def encode_input_function(*args):
             rename_encode_window.title("Confirm Filename")
             rename_encode_window.configure(background=custom_window_bg_color)
             rename_encode_window.geometry(
-                f'{600}x{360}+{str(int(root.geometry().split("+")[1]) + 60)}+'
+                f'{600}x{460}+{str(int(root.geometry().split("+")[1]) + 60)}+'
                 f'{str(int(root.geometry().split("+")[2]) + 230)}'
             )
             rename_encode_window.resizable(False, False)
@@ -2313,7 +2313,7 @@ def encode_input_function(*args):
             rename_enc_frame.grid(column=0, row=0, columnspan=3, sticky=N + S + E + W)
             for col_e_f in range(3):
                 rename_enc_frame.grid_columnconfigure(col_e_f, weight=1)
-            for row_e_f in range(7):
+            for row_e_f in range(10):
                 rename_enc_frame.grid_rowconfigure(row_e_f, weight=1)
 
             # create label
@@ -2379,7 +2379,7 @@ def encode_input_function(*args):
                     return search_index
 
             def update_generated_name(chk_btn):
-                """determine which check button was pressed and update the title based on the selction"""
+                """determine which check button was pressed and update the title based on the selection"""
                 nonlocal custom_entry_box, suggested_bhd_filename, imax_var, subbed_var, dubbed_var
 
                 # if check button is IMAX
@@ -2433,10 +2433,64 @@ def encode_input_function(*args):
                             + suggested_bhd_filename[inject_index:]
                         )
 
-                    elif not dubbed_var.get():
-                        subbed_check_button.config(state=NORMAL)
+                # if check button is director's cut
+                elif chk_btn == "director":
+                    if director_var.get():
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Director's.Cut."
+                            + suggested_bhd_filename[inject_index:]
+                        )
+
+                    elif not director_var.get():
                         suggested_bhd_filename = suggested_bhd_filename.replace(
-                            "Dubbed.", ""
+                            "Director's.Cut.", ""
+                        )
+
+                # if check button is extended cut
+                elif chk_btn == "extended":
+                    if extended_var.get():
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Extended.Cut."
+                            + suggested_bhd_filename[inject_index:]
+                        )
+
+                    elif not extended_var.get():
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Extended.Cut.", ""
+                        )
+
+                # if check button is theatrical cut
+                elif chk_btn == "theatrical":
+                    if theatrical_var.get():
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Theatrical.Cut."
+                            + suggested_bhd_filename[inject_index:]
+                        )
+
+                    elif not theatrical_var.get():
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Theatrical.Cut.", ""
+                        )
+
+                # if check button is unrated
+                elif chk_btn == "unrated":
+                    if unrated_var.get():
+                        inject_index = injection_point(suggested_bhd_filename)
+                        suggested_bhd_filename = (
+                            suggested_bhd_filename[:inject_index]
+                            + "Unrated."
+                            + suggested_bhd_filename[inject_index:]
+                        )
+
+                    elif not unrated_var.get():
+                        suggested_bhd_filename = suggested_bhd_filename.replace(
+                            "Unrated.", ""
                         )
 
                 custom_entry_box.delete(0, END)
@@ -2462,6 +2516,8 @@ def encode_input_function(*args):
             imax_check_button.grid(
                 row=4, column=0, padx=5, pady=0, sticky=S + E + W + N
             )
+            if "imax" in suggested_bhd_filename.lower():
+                imax_var.set(1)
 
             # subbed check button
             subbed_var = IntVar()
@@ -2483,6 +2539,8 @@ def encode_input_function(*args):
             subbed_check_button.grid(
                 row=4, column=1, padx=5, pady=0, sticky=S + E + W + N
             )
+            if "subbed" in suggested_bhd_filename.lower():
+                subbed_var.set(1)
 
             # dubbed check button
             dubbed_var = IntVar()
@@ -2504,7 +2562,100 @@ def encode_input_function(*args):
             dubbed_check_button.grid(
                 row=4, column=2, padx=5, pady=0, sticky=S + E + W + N
             )
-            #
+            if "dubbed" in suggested_bhd_filename.lower():
+                dubbed_var.set(1)
+
+            # director's cut check button
+            director_var = IntVar()
+            director_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Director's Cut",
+                takefocus=False,
+                variable=director_var,
+                command=lambda: update_generated_name("director"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            director_check_button.grid(
+                row=5, column=0, padx=5, pady=0, sticky=S + E + W + N
+            )
+            if "director" in suggested_bhd_filename.lower():
+                director_var.set(1)
+
+            # extended cut check button
+            extended_var = IntVar()
+            extended_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Extended Cut",
+                takefocus=False,
+                variable=extended_var,
+                command=lambda: update_generated_name("extended"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            extended_check_button.grid(
+                row=5, column=1, padx=5, pady=0, sticky=S + E + W + N
+            )
+            if "extended" in suggested_bhd_filename.lower():
+                extended_var.set(1)
+
+            # theatrical cut check button
+            theatrical_var = IntVar()
+            theatrical_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Theatrical Cut",
+                takefocus=False,
+                variable=theatrical_var,
+                command=lambda: update_generated_name("theatrical"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            theatrical_check_button.grid(
+                row=5, column=2, padx=5, pady=0, sticky=S + E + W + N
+            )
+            if "theatrical" in suggested_bhd_filename.lower():
+                theatrical_var.set(1)
+
+            # unrated check button
+            unrated_var = IntVar()
+            unrated_check_button = Checkbutton(
+                rename_enc_frame,
+                text="Unrated",
+                takefocus=False,
+                variable=unrated_var,
+                command=lambda: update_generated_name("unrated"),
+                onvalue=1,
+                offvalue=0,
+                background=custom_window_bg_color,
+                foreground=custom_button_colors["foreground"],
+                activebackground=custom_window_bg_color,
+                activeforeground=custom_button_colors["foreground"],
+                selectcolor=custom_frame_bg_colors["specialbg"],
+                font=(set_font, set_font_size + 1),
+            )
+            unrated_check_button.grid(
+                row=6, column=0, padx=5, pady=0, sticky=S + E + W + N
+            )
+            if "unrated" in suggested_bhd_filename.lower():
+                unrated_var.set(1)
 
             # create label
             rename_info_lbl3 = Label(
@@ -2514,7 +2665,7 @@ def encode_input_function(*args):
                 fg=custom_label_colors["foreground"],
                 font=(set_font, set_font_size, "bold"),
             )
-            rename_info_lbl3.grid(row=5, column=0, sticky=W + S, padx=5, pady=(2, 0))
+            rename_info_lbl3.grid(row=7, column=0, sticky=W + S, padx=5, pady=(2, 0))
 
             # create entry box
             custom_entry_box = Entry(
@@ -2525,7 +2676,7 @@ def encode_input_function(*args):
                 font=(set_fixed_font, set_font_size),
             )
             custom_entry_box.grid(
-                row=6, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
+                row=8, column=0, columnspan=3, padx=10, pady=(0, 5), sticky=E + W + N
             )
             custom_entry_box.insert(END, str(suggested_bhd_filename))
 
@@ -2575,7 +2726,7 @@ def encode_input_function(*args):
                 disabledforeground=custom_button_colors["disabledforeground"],
             )
             rename_okay_btn.grid(
-                row=7, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
+                row=9, column=2, columnspan=1, padx=7, pady=5, sticky=S + E
             )
 
             # create 'Cancel' button
@@ -2595,7 +2746,7 @@ def encode_input_function(*args):
                 disabledforeground=custom_button_colors["disabledforeground"],
             )
             rename_cancel_btn.grid(
-                row=7, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
+                row=9, column=0, columnspan=1, padx=7, pady=5, sticky=S + W
             )
 
             rename_encode_window.wait_window()  # wait for window to be closed
