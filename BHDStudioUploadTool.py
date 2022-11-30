@@ -8041,6 +8041,12 @@ def open_uploader_window(job_mode):
                 # if there was an error exit this function
                 return
 
+            else:
+                upload_status_info.insert(
+                    END,
+                    f"There was an error:\n\n{upload_job.json()['status_message']}",
+                )
+
             # inject torrent to qBittorrent if injection is enabled
             if (
                 api_parser["qbit_client"]["qbit_injection_toggle"] == "true"
@@ -8064,11 +8070,6 @@ def open_uploader_window(job_mode):
 
                 # update status window
                 upload_status_info.insert(END, f"\n\n{auto_injection}")
-            else:
-                upload_status_info.insert(
-                    END,
-                    f"There was an error:\n\n{upload_job.json()['status_message']}",
-                )
 
         # if upload returns a status code '400', site error
         elif upload_job.status_code == 404:
