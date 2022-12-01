@@ -109,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.60"
+main_root_title = "BHDStudio Upload Tool v1.61"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -8159,6 +8159,37 @@ def open_uploader_window(job_mode):
         upload_status_info.config(state=NORMAL)  # enable scrolled text box
         upload_status_info.delete("1.0", END)  # delete all contents of the box
 
+        def successful_upload_func():
+            """function to inject if it's enabled and reset the GUI after a successful upload"""
+            api2_parser = ConfigParser()
+            api2_parser.read(config_file)
+
+            # inject torrent to qBittorrent/deluge if injection is enabled
+            if (
+                api2_parser["qbit_client"]["qbit_injection_toggle"] == "true"
+                or api2_parser["deluge_client"]["deluge_injection_toggle"] == "true"
+            ):
+                # create Clients() instance
+                injection_client = Clients()
+
+                if api2_parser["qbit_client"]["qbit_injection_toggle"] == "true":
+                    # use qBittorrent method
+                    auto_injection = injection_client.qbittorrent(
+                        encode_file_path=encode_file_path.get(),
+                        torrent_file_path=torrent_file_path.get(),
+                    )
+
+                elif api2_parser["deluge_client"]["deluge_injection_toggle"] == "true":
+                    # use Deluge method
+                    auto_injection = injection_client.deluge(
+                        torrent_file_path=torrent_file_path.get()
+                    )
+
+                # update status window
+                upload_status_info.insert(END, f"\n\n{auto_injection}")
+
+            reset_gui()
+
         # if upload returns a status code '200', assume success
         if upload_job.status_code == 200:
 
@@ -8173,7 +8204,7 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\nUpload has been successfully "
                     "saved as a draft on site",
                 )
-                reset_gui()
+                successful_upload_func()
 
             # if upload is released live on site
             elif upload_job.json()["status_code"] == 2 and upload_job.json()["success"]:
@@ -8182,7 +8213,7 @@ def open_uploader_window(job_mode):
                     "Upload is successful!\nUpload has been successfully "
                     f"released live on site\n\nDownload URL:\n{upload_job.json()['status_message']}",
                 )
-                reset_gui()
+                successful_upload_func()
 
             # if there was an error
             elif upload_job.json()["status_code"] == 0:
@@ -8199,30 +8230,6 @@ def open_uploader_window(job_mode):
                     END,
                     f"There was an error:\n\n{upload_job.json()['status_message']}",
                 )
-
-            # inject torrent to qBittorrent if injection is enabled
-            if (
-                api_parser["qbit_client"]["qbit_injection_toggle"] == "true"
-                or api_parser["deluge_client"]["deluge_injection_toggle"] == "true"
-            ):
-                # create Clients() instance
-                injection_client = Clients()
-
-                if api_parser["qbit_client"]["qbit_injection_toggle"] == "true":
-                    # use qBittorrent method
-                    auto_injection = injection_client.qbittorrent(
-                        encode_file_path=encode_file_path.get(),
-                        torrent_file_path=torrent_file_path.get(),
-                    )
-
-                elif api_parser["deluge_client"]["deluge_injection_toggle"] == "true":
-                    # use Deluge method
-                    auto_injection = injection_client.deluge(
-                        torrent_file_path=torrent_file_path.get()
-                    )
-
-                # update status window
-                upload_status_info.insert(END, f"\n\n{auto_injection}")
 
         # if upload returns a status code '400', site error
         elif upload_job.status_code == 404:
