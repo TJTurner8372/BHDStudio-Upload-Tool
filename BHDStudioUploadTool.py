@@ -109,7 +109,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.61"
+main_root_title = "BHDStudio Upload Tool v1.62"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -623,7 +623,12 @@ def edition_title_extractor(name_to_check):
             extracted_editions,
             flags=re.IGNORECASE,
         )
-        extracted_editions = str(extracted_editions).replace("unrated", "Unrated")
+        extracted_editions = re.sub(
+            r"unrated",
+            "Unrated",
+            extracted_editions,
+            flags=re.IGNORECASE,
+        )
 
     # if edition is detected remove it from the name
     if extracted_editions != "":
