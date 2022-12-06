@@ -110,7 +110,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.63"
+main_root_title = "BHDStudio Upload Tool v1.64"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1755,8 +1755,8 @@ def source_input_function(*args):
 
     # check for existing source data
     pickle_location = pathlib.Path(
-        pathlib.Path(input_script_path.get()).parent
-        / pathlib.Path(pathlib.Path(input_script_path.get()).name).with_suffix(".dat")
+        pathlib.Path(source_file_information["source_path"]).parent
+        / pathlib.Path(pathlib.Path(source_file_information["source_path"]).name).with_suffix(".dat")
     )
 
     # if pickle file exists clear source_file_information and get data from source file
