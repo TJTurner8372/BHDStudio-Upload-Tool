@@ -1761,8 +1761,34 @@ def source_input_function(*args):
 
     # if pickle file exists clear source_file_information and get data from source file
     if pickle_location.is_file():
-        source_file_information.clear()
-        source_file_information.update(get_saved_source_info(pickle_location))
+        # prompt the user if they'd like re-use existing data
+        use_existing_source_data = messagebox.askyesno(
+            parent=root,
+            title="Use Existing Data?",
+            message="Existing source data detected, would you like to load it?",
+        )
+
+        # if user selects "yes"
+        if use_existing_source_data:
+            # clear source file information
+            source_file_information.clear()
+
+            # update source file information with pickle data
+            source_file_information.update(get_saved_source_info(pickle_location))
+
+        # if user selects "no
+        elif not use_existing_source_data:
+            # delete old pickle data
+            pathlib.Path(pickle_location).unlink(missing_ok=True)
+
+            # clear source file information
+            source_file_information.clear()
+
+            # re-run source input function
+            source_input_function(*args)
+
+            # exit this function
+            return
 
     # if pickle file does not exist, collect the data and save to file for use later
     elif not pickle_location.is_file():
