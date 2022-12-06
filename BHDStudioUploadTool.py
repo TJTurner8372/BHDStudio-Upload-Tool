@@ -9978,7 +9978,10 @@ def check_for_latest_program_updates():
         # if download was successful
         if request_download.ok:
             # delete old exe if it exists (it shouldn't)
-            pathlib.Path("OLD.exe").unlink(missing_ok=True)
+            try:
+                pathlib.Path("OLD.exe").unlink(missing_ok=True)
+            except PermissionError:
+                pass
 
             # rename current running exe
             pathlib.Path("BHDStudioUploadTool.exe").rename("OLD.exe")
