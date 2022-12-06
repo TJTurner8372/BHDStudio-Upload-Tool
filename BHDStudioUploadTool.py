@@ -84,6 +84,7 @@ from packages.icon import (
 from packages.image_viewer import ImageViewer
 from packages.qbittorrent_window import QBittorrentWindow
 from packages.show_streams import stream_menu
+from packages.source_pickle import get_saved_source_info, save_source_info
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
 from packages.user_pw_key import crypto_key
@@ -109,7 +110,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.62"
+main_root_title = "BHDStudio Upload Tool v1.63"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1752,40 +1753,57 @@ def source_input_function(*args):
     # run function to get filename only
     source_name = edition_title_extractor(str(pathlib.Path(loaded_source_file).name))
 
-    # use imdb to check to double-check detected title
-    root.withdraw()  # hide root window
-    search_movie_global_function(source_name[1])  # run movie search function
-    advanced_root_deiconify()  # re-open root window
+    # check for existing source data
+    pickle_location = pathlib.Path(
+        pathlib.Path(input_script_path.get()).parent
+        / pathlib.Path(pathlib.Path(input_script_path.get()).name).with_suffix(".dat")
+    )
 
-    # get edition from source name results
-    extracted_edition = ""
-    if source_name[0] != "":
-        extracted_edition = f" {source_name[0]}"
+    # if pickle file exists clear source_file_information and get data from source file
+    if pickle_location.is_file():
+        source_file_information.clear()
+        source_file_information.update(get_saved_source_info(pickle_location))
 
-    # add 'UHD' to filename if it's 2160p
-    uhd_string = ""
-    if 1920 < int(video_track.width) <= 3840:
-        uhd_string = " UHD"
+    # if pickle file does not exist, collect the data and save to file for use later
+    elif not pickle_location.is_file():
 
-    # add full final name and year to the dictionary
-    try:
-        if source_file_information["imdb_movie_name"] != "None":
-            source_file_information.update(
-                {
-                    "source_file_name": f"{source_file_information['imdb_movie_name']}"
-                    f"{uhd_string}{extracted_edition} BluRay"
-                }
-            )
-        # if there was a connection error key 'imdb_movie_name' will be 'None', get title name manually
-        elif source_file_information["imdb_movie_name"] == "None":
-            source_file_information.update(
-                {
-                    "source_file_name": f"{source_name}{uhd_string}"
-                    f"{extracted_edition} BluRay"
-                }
-            )
-    except KeyError:
-        return  # exit this function
+        # use imdb to check to double-check detected title
+        root.withdraw()  # hide root window
+        search_movie_global_function(source_name[1])  # run movie search function
+        advanced_root_deiconify()  # re-open root window
+
+        # get edition from source name results
+        extracted_edition = ""
+        if source_name[0] != "":
+            extracted_edition = f" {source_name[0]}"
+
+        # add 'UHD' to filename if it's 2160p
+        uhd_string = ""
+        if 1920 < int(video_track.width) <= 3840:
+            uhd_string = " UHD"
+
+        # add full final name and year to the dictionary
+        try:
+            if source_file_information["imdb_movie_name"] != "None":
+                source_file_information.update(
+                    {
+                        "source_file_name": f"{source_file_information['imdb_movie_name']}"
+                        f"{uhd_string}{extracted_edition} BluRay"
+                    }
+                )
+            # if there was a connection error key 'imdb_movie_name' will be 'None', get title name manually
+            elif source_file_information["imdb_movie_name"] == "None":
+                source_file_information.update(
+                    {
+                        "source_file_name": f"{source_name}{uhd_string}"
+                        f"{extracted_edition} BluRay"
+                    }
+                )
+        except KeyError:
+            return  # exit this function
+
+        # save source_file_information to pickle file for use later
+        save_source_info(pickle_location, source_file_information)
 
     # update labels
     source_label.config(text=update_source_label)
