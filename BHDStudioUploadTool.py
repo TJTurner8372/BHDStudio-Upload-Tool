@@ -72,6 +72,8 @@ from torf import Torrent
 from packages.About import openaboutwindow
 from packages.default_config_params import *
 from packages.deluge_window import DelugeWindow
+from packages.dupe_checker import dupe_check
+from packages.filter_title import edition_title_extractor
 from packages.github_token import github_token
 from packages.hoverbutton import HoverButton
 from packages.icon import (
@@ -80,6 +82,7 @@ from packages.icon import (
     tmdb_icon,
     bhd_upload_icon,
     bhd_upload_icon_disabled,
+    seed_leech_arrow,
 )
 from packages.image_viewer import ImageViewer
 from packages.qbittorrent_window import QBittorrentWindow
@@ -110,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.64"
+main_root_title = "BHDStudio Upload Tool v1.65"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -515,6 +518,7 @@ encode_media_info = StringVar()
 encode_file_audio = StringVar()
 encode_hdr_string = StringVar()
 torrent_file_path = StringVar()
+torrent_error_var = BooleanVar()
 nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
 live_boolean = BooleanVar()
@@ -545,6 +549,7 @@ def clear_all_variables():
     encode_file_audio.set("")
     encode_hdr_string.set("")
     torrent_file_path.set("")
+    torrent_error_var.set(False)
     nfo_info_var.set("")
     automatic_workflow_boolean.set(False)
     live_boolean.set(False)
@@ -577,114 +582,6 @@ def open_tmdb_link():
         webbrowser.open(f"https://www.themoviedb.org/movie/{tmdb_id_var.get()}")
     else:
         webbrowser.open("https://www.themoviedb.org/movie")
-
-
-def edition_title_extractor(name_to_check):
-    """function to check edition and get title of movie only"""
-    check_for_edition_lst = re.findall(
-        "director(?:'s)?(?:.cut)?|extended(?:.cut)?|theatrical(?:.cut)?|unrated",
-        name_to_check,
-        flags=re.IGNORECASE,
-    )
-
-    extracted_editions = ""
-    movie_input_filtered = name_to_check
-
-    # extracted edition(s)
-    if check_for_edition_lst:
-        if len(check_for_edition_lst) == 1:
-            extracted_editions = check_for_edition_lst[0]
-        elif len(check_for_edition_lst) > 1:
-            for edition in check_for_edition_lst:
-                extracted_editions = extracted_editions + edition + " "
-            # strip away extra white space on the right side and remove periods
-            extracted_editions = extracted_editions.rstrip().replace(".", " ")
-
-    # clean up edition names
-    if any(
-        re.findall(
-            r"director|extended|theatrical|unrated", extracted_editions, re.IGNORECASE
-        )
-    ):
-        extracted_editions = re.sub(
-            r"director(?:'s)?(?:.cut)?",
-            "Director's Cut",
-            extracted_editions,
-            flags=re.IGNORECASE,
-        )
-        extracted_editions = re.sub(
-            r"extended(?:.cut)?",
-            "Extended Cut",
-            extracted_editions,
-            flags=re.IGNORECASE,
-        )
-        extracted_editions = re.sub(
-            r"theatrical(?:.cut)?",
-            "Theatrical Cut",
-            extracted_editions,
-            flags=re.IGNORECASE,
-        )
-        extracted_editions = re.sub(
-            r"unrated",
-            "Unrated",
-            extracted_editions,
-            flags=re.IGNORECASE,
-        )
-
-    # if edition is detected remove it from the name
-    if extracted_editions != "":
-        for x in check_for_edition_lst:
-            movie_input_filtered = re.sub(x, "", movie_input_filtered)
-
-    # detect as much extra stuff from title as possible
-    remove_extra_stuff = re.findall(
-        r"\brepack\b|\b2160p\b|\b1080p\b|\bdts.?hd.?ma\b|\btrue.?hd\b|\batmos\b|\bhybrid\b"
-        r"|\bavc\b|\bvc.?.?\b|\b5\.1\b|\b7\.1\b|\b2\.0\b|\b1\.0\b|\bremux\b|\buhd\b|\bdv\b"
-        r"|\bflac\b|\bdovi\b|\b.?pcm\b|\bmpeg.?.?\b|\bhevc\b|\b1080i\b|\bproper\b",
-        movie_input_filtered,
-        flags=re.IGNORECASE,
-    )
-
-    # if extra stuff is detected loop through and remove it from the string
-    if remove_extra_stuff:
-        for rem in remove_extra_stuff:
-            movie_input_filtered = re.sub(rem, "", movie_input_filtered)
-
-    # change all variants of bluray to a basic bluray string
-    movie_input_filtered = re.sub(
-        r"blu.?ray", "bluray", movie_input_filtered, flags=re.IGNORECASE
-    )
-
-    # remove all non word characters
-    movie_input_filtered = re.sub(r"\W", ".", movie_input_filtered)
-
-    # remove all spaces
-    movie_input_filtered = re.sub(r"\s", ".", movie_input_filtered)
-
-    # remove extra '.'s
-    movie_input_filtered = re.sub(r"\.{2,}", ".", movie_input_filtered)
-
-    # attempt to get only the movie title year
-    collect_year = re.findall(r"(?<!\d)\d{4}(?!\d)", movie_input_filtered)
-
-    # if any 4 digits are detected in the string
-    if collect_year:
-        # get only the last set of digits
-        search_index = movie_input_filtered.find(str(collect_year[-1]))
-        movie_input_filtered = movie_input_filtered[: search_index + 4]
-
-    # search for bluray string and get everything to the left of it
-    elif "bluray" in movie_input_filtered:
-        search_index = movie_input_filtered.find("bluray")
-        movie_input_filtered = movie_input_filtered[:search_index]
-
-    # split string
-    movie_input_filtered = movie_input_filtered.split(".")
-
-    # rejoin string and strip off any excess white space
-    movie_input_filtered = " ".join(movie_input_filtered).strip()
-
-    return extracted_editions, movie_input_filtered
 
 
 # function to search tmdb for information
@@ -1122,14 +1019,19 @@ def search_movie_global_function(*args):
         row=0, column=0, columnspan=1, padx=(5, 0), pady=(5, 3), sticky=W
     )
 
-    source_input_lbl_ms2 = Label(
-        movie_selection_lbl_frame,
-        wraplength=960,
-        text=str(
+    try:
+        source_path_name = str(
             pathlib.Path(
                 pathlib.Path(source_file_information["source_path"]).name
             ).with_suffix("")
-        ),
+        )
+    except KeyError:
+        source_path_name = ""
+
+    source_input_lbl_ms2 = Label(
+        movie_selection_lbl_frame,
+        wraplength=960,
+        text=str(source_path_name),
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size - 1),
@@ -1154,13 +1056,7 @@ def search_movie_global_function(*args):
     )
 
     # run function to get title name only
-    movie_input_filtered = edition_title_extractor(
-        str(
-            pathlib.Path(
-                pathlib.Path(source_file_information["source_path"]).name
-            ).with_suffix("")
-        )
-    )[1]
+    movie_input_filtered = edition_title_extractor(str(source_path_name))[1]
 
     # insert movie into entry box/update var
     movie_search_var.set(movie_input_filtered)
@@ -1354,7 +1250,8 @@ def search_movie_global_function(*args):
     stop_thread.clear()
 
     # start thread to search for movie title
-    start_search()
+    if source_path_name != "":
+        start_search()
 
     # wait for window to close
     movie_info_window.wait_window()
@@ -1756,7 +1653,9 @@ def source_input_function(*args):
     # check for existing source data
     pickle_location = pathlib.Path(
         pathlib.Path(source_file_information["source_path"]).parent
-        / pathlib.Path(pathlib.Path(source_file_information["source_path"]).name).with_suffix(".dat")
+        / pathlib.Path(
+            pathlib.Path(source_file_information["source_path"]).name
+        ).with_suffix(".dat")
     )
 
     # if pickle file exists clear source_file_information and get data from source file
@@ -1996,6 +1895,21 @@ def encode_input_function(*args):
             f'"{", ".join(allowed_encode_resolutions)}"',
         )
         return  # exit function
+
+    # check for duplicates on BeyondHD --------------------------------------------------------------------------------
+    check_for_dupe = dupe_check(
+        api_key=encode_input_function_parser["bhd_upload_api"]["key"],
+        title=source_file_information["imdb_movie_name"],
+        resolution=encoded_source_resolution,
+    )
+
+    if check_for_dupe:
+        messagebox.showinfo(
+            parent=root,
+            title="Potential Duplicate",
+            message="Detected potential duplicate releases, review these before continuing.",
+        )
+        dupe_check_window(check_for_dupe)
 
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
@@ -6868,9 +6782,9 @@ def torrent_function_window():
     )
 
     # if tracker url from config.ini is not empty, set it
-    if config["torrent_settings"]["tracker_url"] != "":
+    if torrent_config["torrent_settings"]["tracker_url"] != "":
         torrent_tracker_url_entry_box.insert(
-            END, config["torrent_settings"]["tracker_url"]
+            END, torrent_config["torrent_settings"]["tracker_url"]
         )
 
     # torrent source label
@@ -6907,14 +6821,22 @@ def torrent_function_window():
     # create queue instance
     torrent_queue = Queue()
 
-    # variable to update if there is an error and to cancel torrent generation safely
-    torrent_error = BooleanVar()
-
     def create_torrent(tor_queue):
-        nonlocal torrent_error
         """create torrent in a separate thread"""
 
-        torrent_error.set(False)  # set temporary torrent_error variable
+        # parser
+        quick_parser = ConfigParser()
+        quick_parser.read(config_file)
+
+        # set temporary torrent_error_var variable
+        torrent_error_var.set(False)
+
+        # check if path exists before attempting to use it
+        if not pathlib.Path(quick_parser["torrent_settings"]["default_path"]).is_dir():
+            pathlib.Path(quick_parser["torrent_settings"]["default_path"]).mkdir(
+                parents=True
+            )
+
         try:
             build_torrent = Torrent(
                 path=pathlib.Path(encode_file_path.get()),
@@ -6925,15 +6847,15 @@ def torrent_function_window():
             )
         except torf.URLError:  # if tracker url is invalid
             tor_queue.put("Error Tracker URL is invalid, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
         except torf.PathError:  # if path to encoded file is invalid
             tor_queue.put("Error Path to encoded file is invalid, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
         except torf.PieceSizeError:  # if piece size is incorrect
             tor_queue.put("Error Piece size is incorrect, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
 
-        if torrent_error.get():  # if torrent_error is true
+        if torrent_error_var.get():  # if torrent_error_var is true
             return  # exit the function
 
         class WaitForTorrent:
@@ -6964,7 +6886,7 @@ def torrent_function_window():
                 check_for_tor = WaitForTorrent()
                 check_for_tor.wait_for_torrent_output()
 
-            if torrent_error.get():
+            if torrent_error_var.get():
                 return "exit!"
 
         # if callback torrent_progress returns anything other than None, exit the function
@@ -7024,8 +6946,13 @@ def torrent_function_window():
                         text=f"{str(torrent_queue_data).split()[1].strip()}",
                     )
 
-                    # call task_done() on the queue
-                    torrent_queue.task_done()
+                    # clear the queue and join the thread
+                    while torrent_queue.qsize() > 0:
+                        try:
+                            torrent_queue.task_done()
+                        except ValueError:
+                            torrent_queue.join()
+                            break
 
                 except TclError:
                     # call task done and exit queue
@@ -7163,7 +7090,7 @@ def torrent_function_window():
         command=lambda: [
             automatic_workflow_boolean.set(False),
             torrent_queue.put("Cancel"),
-            torrent_error.set(True),
+            torrent_error_var.set(True),
         ],
         borderwidth="3",
         width=12,
@@ -8079,6 +8006,9 @@ def open_uploader_window(job_mode):
         api_parser = ConfigParser()
         api_parser.read(config_file)
 
+        # successful upload var
+        successful_upload_var = False
+
         # upload status window
         upload_status_window = Toplevel()
         upload_status_window.configure(background=custom_window_bg_color)
@@ -8128,6 +8058,10 @@ def open_uploader_window(job_mode):
         def encoder_okay_func():
             upload_window.wm_attributes("-alpha", 1.0)  # restore transparency
             upload_status_window.destroy()  # close window
+
+            # if upload was succesful exit uploader window too
+            if successful_upload_var:
+                upload_window_exit_function()
 
         # create 'OK' button
         uploader_okay_btn = HoverButton(
@@ -8254,6 +8188,7 @@ def open_uploader_window(job_mode):
                     "saved as a draft on site",
                 )
                 successful_upload_func()
+                successful_upload_var = True
 
             # if upload is released live on site
             elif upload_job.json()["status_code"] == 2 and upload_job.json()["success"]:
@@ -8263,6 +8198,7 @@ def open_uploader_window(job_mode):
                     f"released live on site\n\nDownload URL:\n{upload_job.json()['status_message']}",
                 )
                 successful_upload_func()
+                successful_upload_var = True
 
             # if there was an error
             elif upload_job.json()["status_code"] == 0:
@@ -8383,7 +8319,7 @@ def open_uploader_window(job_mode):
     enable_disable_upload_button()
 
 
-# open torrent window button
+# open uploader window button
 open_uploader_button = HoverButton(
     manual_workflow,
     text="Uploader",
@@ -9710,6 +9646,56 @@ options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
 
+# tools menu
+tools_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
+my_menu_bar.add_cascade(label="Tools", menu=tools_menu)
+
+
+# command to check for bhdstudio encodes
+def check_bhd_dupes(*args):
+    """function to get movie and check for BHDStudio encodes"""
+    # parser
+    check_for_dupe_parser = ConfigParser()
+    check_for_dupe_parser.read(config_file)
+
+    # clear some quick variables
+    reset_gui()
+
+    # run the search movie function to get a very clean title
+    search_movie_global_function()
+
+    # check to see if the user selected a name in search_movie_global_function()
+    try:
+        source_file_name = source_file_information["imdb_movie_name"]
+    except KeyError:
+        return
+
+    # run function to check for dupes on beyondhd
+    check_bhd = dupe_check(
+        api_key=check_for_dupe_parser["bhd_upload_api"]["key"],
+        title=source_file_name,
+    )
+
+    # if check_bhd returns anything display it
+    if check_bhd:
+        dupe_check_window(check_bhd)
+    elif not check_bhd:
+        messagebox.showinfo(
+            parent=root,
+            title="No BHDStudio Release Found",
+            message="No BHDStudio encodes found for title:\n\n"
+            + '"'
+            + str(source_file_information["imdb_movie_name"])
+            + '"',
+        )
+
+
+tools_menu.add_command(
+    label="BHDStudio Encodes", command=check_bhd_dupes, accelerator="[Ctrl+B]"
+)
+root.bind("<Control-b>", lambda event: check_bhd_dupes())
+
+# help menu
 help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Help", menu=help_menu)
 help_menu.add_command(
@@ -9723,7 +9709,7 @@ root.bind(
     lambda event: webbrowser.open(
         "https://github.com/jlw4049/BHDStudio-Upload-Tool/wiki"
     ),
-)  # hotkey
+)
 help_menu.add_command(
     label="Project Page",  # Open GitHub project page
     command=lambda: webbrowser.open("https://github.com/jlw4049/BHDStudio-Upload-Tool"),
@@ -9786,6 +9772,345 @@ def generate_button_checker():
 
 # start button checker loop
 generate_button_checker()
+
+
+# duplicate check window
+def dupe_check_window(dup_release_dict):
+    """window to display duplicate releases"""
+
+    # set parser
+    movie_window_parser = ConfigParser()
+    movie_window_parser.read(config_file)
+
+    # decode imdb img for use with the buttons
+    decode_resize_imdb_image = Image.open(BytesIO(base64.b64decode(imdb_icon))).resize(
+        (35, 35)
+    )
+    imdb_img = ImageTk.PhotoImage(decode_resize_imdb_image)
+
+    # decode tmdb img for use with the buttons
+    decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(tmdb_icon))).resize(
+        (35, 35)
+    )
+    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+
+    # decode seed/leech arrow img for use with a label
+    decode_resize_seeds_image = Image.open(
+        BytesIO(base64.b64decode(seed_leech_arrow))
+    ).resize((35, 35))
+    seed_leech_img = ImageTk.PhotoImage(decode_resize_seeds_image)
+
+    def movie_info_exit_function():
+        """movie window exit function"""
+
+        # set parser
+        exit_movie_window_parser = ConfigParser()
+        exit_movie_window_parser.read(config_file)
+
+        # save window position/geometry
+        if movie_info_window.wm_state() == "normal":
+            if (
+                exit_movie_window_parser["save_window_locations"]["dupe_viewer"]
+                != movie_info_window.geometry()
+            ):
+                exit_movie_window_parser.set(
+                    "save_window_locations",
+                    "dupe_viewer",
+                    movie_info_window.geometry(),
+                )
+                with open(config_file, "w") as root_exit_config_file:
+                    exit_movie_window_parser.write(root_exit_config_file)
+
+        # close movie info window
+        movie_info_window.destroy()
+
+    # movie info window
+    movie_info_window = Toplevel()
+    movie_info_window.configure(
+        background=custom_window_bg_color
+    )  # Set's the background color
+    movie_info_window.title("Duplicate Releases")  # Toplevel Title
+    if movie_window_parser["save_window_locations"]["dupe_viewer"] != "":
+        movie_info_window.geometry(
+            movie_window_parser["save_window_locations"]["dupe_viewer"]
+        )
+    movie_info_window.grab_set()
+    movie_info_window.protocol("WM_DELETE_WINDOW", movie_info_exit_function)
+
+    # Row/Grid configures
+    for m_i_w_c in range(6):
+        movie_info_window.grid_columnconfigure(m_i_w_c, weight=1)
+    for m_i_w_r in range(4):
+        movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
+    # Row/Grid configures
+
+    # Set dynamic listbox frame
+    movie_listbox_frame = Frame(
+        movie_info_window, bg=custom_frame_bg_colors["background"]
+    )
+    movie_listbox_frame.grid(
+        column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W
+    )
+    movie_listbox_frame.grid_rowconfigure(0, weight=1)
+    movie_listbox_frame.grid_columnconfigure(0, weight=1)
+
+    right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
+    bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
+
+    # Create listbox
+    movie_listbox = Listbox(
+        movie_listbox_frame,
+        xscrollcommand=bottom_scrollbar.set,
+        activestyle="none",
+        yscrollcommand=right_scrollbar.set,
+        bd=2,
+        height=10,
+        selectmode=SINGLE,
+        font=(set_font, set_font_size + 2),
+        bg=custom_listbox_color["background"],
+        fg=custom_listbox_color["foreground"],
+        selectbackground=custom_listbox_color["selectbackground"],
+        selectforeground=custom_listbox_color["selectforeground"],
+    )
+    movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
+
+    # add scrollbars to the listbox
+    right_scrollbar.config(command=movie_listbox.yview)
+    right_scrollbar.grid(row=0, column=5, rowspan=2, sticky=N + W + S)
+    bottom_scrollbar.config(command=movie_listbox.xview)
+    bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+    def update_movie_listbox(movie_dict):
+        """update the list box with supplied dictionary"""
+
+        # # loop through the keys (movie titles) and display them in the listbox
+        for key in movie_dict.keys():
+            movie_listbox.insert(END, key)
+
+        # function that is run each time a movie is selected to update all the information in the window
+        def update_movie_info(event):
+            selection = event.widget.curselection()  # get current selection
+            # if there is a selection
+            if selection:
+                # define index of selection
+                movie_listbox_index = selection[0]
+                movie_data = event.widget.get(movie_listbox_index)
+
+                # update link label
+                bhd_link_label.config(
+                    text="Link: " + str(movie_dict[movie_data]["url"])[:60] + "..."
+                )
+                bhd_link_label.bind(
+                    "<Button-1>",
+                    lambda e: webbrowser.open(url=str(movie_dict[movie_data]["url"])),
+                )
+
+                # update resolution label
+                resolution_lbl.config(
+                    text="Resolution: " + str(movie_dict[movie_data]["type"])
+                )
+
+                # update size label
+                math_to_gb = str(
+                    round(float(movie_dict[movie_data]["size"]) / 1000000000, 2)
+                )
+                movie_size_lbl.config(text="Size (GB): " + math_to_gb)
+
+                # update created_on_lbl label
+                created_on_lbl.config(
+                    text="Uploaded: "
+                    + str(movie_dict[movie_data]["created_at"].split(" ")[0])
+                )
+
+                # update seed_leech_label_numbers label
+                seed_leech_label.config(
+                    compound="left",
+                    text=" "
+                    + str(movie_dict[movie_data]["seeders"])
+                    + " / "
+                    + str(movie_dict[movie_data]["leechers"]),
+                )
+
+                # update imdb and tmdb entry box's
+                imdb_id_var.set(movie_dict[movie_data]["imdb_id"])
+                tmdb_id_var.set(movie_dict[movie_data]["tmdb_id"].replace("movie/", ""))
+
+                # update text imdb_button2
+                imdb_button2.config(
+                    text="  " + str(movie_dict[movie_data]["imdb_rating"])
+                )
+
+                # update text tmdb_button2
+                tmdb_button2.config(
+                    text="  " + str(movie_dict[movie_data]["tmdb_rating"])
+                )
+
+        # bind listbox select event to the updater
+        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
+
+    # information frame
+    information_frame = Frame(
+        movie_info_window, bd=0, bg=custom_frame_bg_colors["background"]
+    )
+    information_frame.grid(
+        column=0, row=3, columnspan=3, padx=5, pady=(5, 3), sticky=E + W
+    )
+    for i_f_g_r in range(4):
+        information_frame.grid_rowconfigure(i_f_g_r, weight=1)
+    for i_f_g_c in range(3):
+        information_frame.grid_columnconfigure(i_f_g_c, weight=1)
+
+    # beyondhd clickable label
+    bhd_link_label = Label(
+        information_frame,
+        borderwidth=0,
+        cursor="hand2",
+        background=custom_label_colors["background"],
+        fg="#0000FF",
+        font=(set_fixed_font, set_font_size, "bold"),
+    )
+    bhd_link_label.grid(
+        row=0, column=0, columnspan=3, sticky=W + E, padx=5, pady=(5, 2)
+    )
+
+    # resolution label
+    resolution_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=8,
+        text="Resolution: ",
+    )
+    resolution_lbl.grid(row=1, column=0, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # size label
+    movie_size_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=8,
+        text="Size (GB)",
+    )
+    movie_size_lbl.grid(row=1, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # created on label
+    created_on_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=12,
+        text="Uploaded: ",
+    )
+    created_on_lbl.grid(row=1, column=2, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # seeds label
+    seed_leech_label = Label(
+        information_frame,
+        image=seed_leech_img,
+        borderwidth=0,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size),
+        text="        ",
+    )
+    seed_leech_label.grid(row=2, column=0, sticky=W + E, padx=5, pady=(5, 2))
+    seed_leech_label.image = seed_leech_img
+
+    # downloaded amount label
+    times_downloaded_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+    )
+    times_downloaded_lbl.grid(row=2, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # imdb/tmdb info frame
+    imdb_tmdb_frame = Frame(
+        information_frame, bd=0, bg=custom_frame_bg_colors["background"]
+    )
+    imdb_tmdb_frame.grid(
+        column=0, row=3, columnspan=6, padx=5, pady=(5, 3), sticky=E + W
+    )
+    imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(1, weight=1000)
+    imdb_tmdb_frame.grid_columnconfigure(2, weight=1000)
+    imdb_tmdb_frame.grid_columnconfigure(3, weight=1)
+
+    # imdb clickable icon button
+    imdb_button2 = Button(
+        imdb_tmdb_frame,
+        image=imdb_img,
+        borderwidth=0,
+        cursor="hand2",
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
+        command=open_imdb_link,
+        text="    ",
+        compound="left",
+        fg=custom_label_colors["foreground"],
+    )
+    imdb_button2.grid(row=0, column=0, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+    imdb_button2.photo = imdb_img
+
+    # imdb entry box internal
+    imdb_entry_box2 = Entry(
+        imdb_tmdb_frame,
+        borderwidth=4,
+        textvariable=imdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
+    )
+    imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+    # tmdb clickable icon button
+    tmdb_button2 = Button(
+        imdb_tmdb_frame,
+        image=tmdb_img,
+        borderwidth=0,
+        cursor="hand2",
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
+        command=open_tmdb_link,
+        text="    ",
+        compound="left",
+        fg=custom_label_colors["foreground"],
+    )
+    tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=E)
+    tmdb_button2.photo = tmdb_img
+
+    # tmdb internal entry box
+    tmdb_entry_box2 = Entry(
+        imdb_tmdb_frame,
+        borderwidth=4,
+        textvariable=tmdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
+    )
+    tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=E)
+
+    # focus's id window
+    movie_info_window.focus_set()
+
+    # clear movie list box
+    movie_listbox.delete(0, END)
+
+    # run the function to update the listbox
+    update_movie_listbox(dup_release_dict)
+
+    # wait for window to close
+    movie_info_window.wait_window()
 
 
 def check_for_latest_program_updates():
@@ -10133,7 +10458,8 @@ if cli_command:
 def clean_update_files():
     if pathlib.Path("OLD.exe").is_file():
         try:
-            pathlib.Path("OLD.exe").unlink(missing_ok=True)  # delete old exe
+            # delete old exe
+            pathlib.Path("OLD.exe").unlink(missing_ok=True)
         except PermissionError:
             pass
 

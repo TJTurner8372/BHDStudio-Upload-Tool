@@ -108,6 +108,8 @@ if not config.has_option("save_window_locations", "about_window"):
     config.set("save_window_locations", "about_window", "")
 if not config.has_option("save_window_locations", "image_viewer"):
     config.set("save_window_locations", "image_viewer", "")
+if not config.has_option("save_window_locations", "dupe_viewer"):
+    config.set("save_window_locations", "dupe_viewer", "")
 
 # UI scale
 if not config.has_section("ui_scale"):
