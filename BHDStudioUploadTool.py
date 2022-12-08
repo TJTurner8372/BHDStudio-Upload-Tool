@@ -7991,6 +7991,9 @@ def open_uploader_window(job_mode):
         api_parser = ConfigParser()
         api_parser.read(config_file)
 
+        # successful upload var
+        successful_upload_var = False
+
         # upload status window
         upload_status_window = Toplevel()
         upload_status_window.configure(background=custom_window_bg_color)
@@ -8040,6 +8043,10 @@ def open_uploader_window(job_mode):
         def encoder_okay_func():
             upload_window.wm_attributes("-alpha", 1.0)  # restore transparency
             upload_status_window.destroy()  # close window
+
+            # if upload was succesful exit uploader window too
+            if successful_upload_var:
+                upload_window_exit_function()
 
         # create 'OK' button
         uploader_okay_btn = HoverButton(
@@ -8166,6 +8173,7 @@ def open_uploader_window(job_mode):
                     "saved as a draft on site",
                 )
                 successful_upload_func()
+                successful_upload_var = True
 
             # if upload is released live on site
             elif upload_job.json()["status_code"] == 2 and upload_job.json()["success"]:
@@ -8175,6 +8183,7 @@ def open_uploader_window(job_mode):
                     f"released live on site\n\nDownload URL:\n{upload_job.json()['status_message']}",
                 )
                 successful_upload_func()
+                successful_upload_var = True
 
             # if there was an error
             elif upload_job.json()["status_code"] == 0:
