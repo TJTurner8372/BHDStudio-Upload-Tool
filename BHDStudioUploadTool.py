@@ -1017,14 +1017,19 @@ def search_movie_global_function(*args):
         row=0, column=0, columnspan=1, padx=(5, 0), pady=(5, 3), sticky=W
     )
 
-    source_input_lbl_ms2 = Label(
-        movie_selection_lbl_frame,
-        wraplength=960,
-        text=str(
+    try:
+        source_path_name = str(
             pathlib.Path(
                 pathlib.Path(source_file_information["source_path"]).name
             ).with_suffix("")
-        ),
+        )
+    except KeyError:
+        source_path_name = ""
+
+    source_input_lbl_ms2 = Label(
+        movie_selection_lbl_frame,
+        wraplength=960,
+        text=str(source_path_name),
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size - 1),
@@ -1049,13 +1054,7 @@ def search_movie_global_function(*args):
     )
 
     # run function to get title name only
-    movie_input_filtered = edition_title_extractor(
-        str(
-            pathlib.Path(
-                pathlib.Path(source_file_information["source_path"]).name
-            ).with_suffix("")
-        )
-    )[1]
+    movie_input_filtered = edition_title_extractor(str(source_path_name))[1]
 
     # insert movie into entry box/update var
     movie_search_var.set(movie_input_filtered)
@@ -1249,7 +1248,8 @@ def search_movie_global_function(*args):
     stop_thread.clear()
 
     # start thread to search for movie title
-    start_search()
+    if source_path_name != "":
+        start_search()
 
     # wait for window to close
     movie_info_window.wait_window()
@@ -9622,6 +9622,55 @@ options_menu.add_separator()
 
 options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
 
+# tools menu
+tools_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
+my_menu_bar.add_cascade(label="Tools", menu=tools_menu)
+
+# command to check for bhdstudio encodes
+def check_bhd_dupes(*args):
+    """function to get movie and check for BHDStudio encodes"""
+    # parser
+    check_for_dupe_parser = ConfigParser()
+    check_for_dupe_parser.read(config_file)
+
+    # clear some quick variables
+    reset_gui()
+
+    # run the search movie function to get a very clean title
+    search_movie_global_function()
+
+    # check to see if the user selected a name in search_movie_global_function()
+    try:
+        source_file_name = source_file_information["imdb_movie_name"]
+    except KeyError:
+        return
+
+    # run function to check for dupes on beyondhd
+    check_bhd = dupe_check(
+        api_key=check_for_dupe_parser["bhd_upload_api"]["key"],
+        title=source_file_name,
+    )
+
+    # if check_bhd returns anything display it
+    if check_bhd:
+        dupe_check_window(check_bhd)
+    elif not check_bhd:
+        messagebox.showinfo(
+            parent=root,
+            title="No BHDStudio Release Found",
+            message="No BHDStudio encodes found for title:\n\n"
+            + '"'
+            + str(source_file_information["imdb_movie_name"])
+            + '"',
+        )
+
+
+tools_menu.add_command(
+    label="BHDStudio Encodes", command=check_bhd_dupes, accelerator="[Ctrl+B]"
+)
+root.bind("<Control-b>", lambda event: check_bhd_dupes())
+
+# help menu
 help_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Help", menu=help_menu)
 help_menu.add_command(
@@ -9635,7 +9684,7 @@ root.bind(
     lambda event: webbrowser.open(
         "https://github.com/jlw4049/BHDStudio-Upload-Tool/wiki"
     ),
-)  # hotkey
+)
 help_menu.add_command(
     label="Project Page",  # Open GitHub project page
     command=lambda: webbrowser.open("https://github.com/jlw4049/BHDStudio-Upload-Tool"),
