@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.65"
+main_root_title = "BHDStudio Upload Tool v1.66"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -9663,6 +9663,10 @@ def check_bhd_dupes(*args):
 
     # run the search movie function to get a very clean title
     search_movie_global_function()
+
+    # clear imdb/tmdb id's
+    tmdb_id_var.set("")
+    imdb_id_var.set("")
 
     # check to see if the user selected a name in search_movie_global_function()
     try:
