@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.64"
+main_root_title = "BHDStudio Upload Tool v1.65"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -518,6 +518,7 @@ encode_media_info = StringVar()
 encode_file_audio = StringVar()
 encode_hdr_string = StringVar()
 torrent_file_path = StringVar()
+torrent_error_var = BooleanVar()
 nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
 live_boolean = BooleanVar()
@@ -548,6 +549,7 @@ def clear_all_variables():
     encode_file_audio.set("")
     encode_hdr_string.set("")
     torrent_file_path.set("")
+    torrent_error_var.set(False)
     nfo_info_var.set("")
     automatic_workflow_boolean.set(False)
     live_boolean.set(False)
@@ -6819,14 +6821,22 @@ def torrent_function_window():
     # create queue instance
     torrent_queue = Queue()
 
-    # variable to update if there is an error and to cancel torrent generation safely
-    torrent_error = BooleanVar()
-
     def create_torrent(tor_queue):
-        nonlocal torrent_error
         """create torrent in a separate thread"""
 
-        torrent_error.set(False)  # set temporary torrent_error variable
+        # parser
+        quick_parser = ConfigParser()
+        quick_parser.read(config_file)
+
+        # set temporary torrent_error_var variable
+        torrent_error_var.set(False)
+
+        # check if path exists before attempting to use it
+        if not pathlib.Path(quick_parser["torrent_settings"]["default_path"]).is_dir():
+            pathlib.Path(quick_parser["torrent_settings"]["default_path"]).mkdir(
+                parents=True
+            )
+
         try:
             build_torrent = Torrent(
                 path=pathlib.Path(encode_file_path.get()),
@@ -6837,15 +6847,15 @@ def torrent_function_window():
             )
         except torf.URLError:  # if tracker url is invalid
             tor_queue.put("Error Tracker URL is invalid, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
         except torf.PathError:  # if path to encoded file is invalid
             tor_queue.put("Error Path to encoded file is invalid, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
         except torf.PieceSizeError:  # if piece size is incorrect
             tor_queue.put("Error Piece size is incorrect, exiting")
-            torrent_error.set(True)  # set torrent_error to true
+            torrent_error_var.set(True)  # set torrent_error_var to true
 
-        if torrent_error.get():  # if torrent_error is true
+        if torrent_error_var.get():  # if torrent_error_var is true
             return  # exit the function
 
         class WaitForTorrent:
@@ -6876,7 +6886,7 @@ def torrent_function_window():
                 check_for_tor = WaitForTorrent()
                 check_for_tor.wait_for_torrent_output()
 
-            if torrent_error.get():
+            if torrent_error_var.get():
                 return "exit!"
 
         # if callback torrent_progress returns anything other than None, exit the function
@@ -6936,8 +6946,13 @@ def torrent_function_window():
                         text=f"{str(torrent_queue_data).split()[1].strip()}",
                     )
 
-                    # call task_done() on the queue
-                    torrent_queue.task_done()
+                    # clear the queue and join the thread
+                    while torrent_queue.qsize() > 0:
+                        try:
+                            torrent_queue.task_done()
+                        except ValueError:
+                            torrent_queue.join()
+                            break
 
                 except TclError:
                     # call task done and exit queue
@@ -7075,7 +7090,7 @@ def torrent_function_window():
         command=lambda: [
             automatic_workflow_boolean.set(False),
             torrent_queue.put("Cancel"),
-            torrent_error.set(True),
+            torrent_error_var.set(True),
         ],
         borderwidth="3",
         width=12,
@@ -9634,6 +9649,7 @@ options_menu.add_command(label="Reset All Settings", command=reset_all_settings)
 # tools menu
 tools_menu = Menu(my_menu_bar, tearoff=0, activebackground="dim grey")
 my_menu_bar.add_cascade(label="Tools", menu=tools_menu)
+
 
 # command to check for bhdstudio encodes
 def check_bhd_dupes(*args):
