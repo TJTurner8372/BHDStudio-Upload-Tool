@@ -72,6 +72,8 @@ from torf import Torrent
 from packages.About import openaboutwindow
 from packages.default_config_params import *
 from packages.deluge_window import DelugeWindow
+from packages.dupe_checker import dupe_check
+from packages.filter_title import edition_title_extractor
 from packages.github_token import github_token
 from packages.hoverbutton import HoverButton
 from packages.icon import (
@@ -80,6 +82,7 @@ from packages.icon import (
     tmdb_icon,
     bhd_upload_icon,
     bhd_upload_icon_disabled,
+    seed_leech_arrow,
 )
 from packages.image_viewer import ImageViewer
 from packages.qbittorrent_window import QBittorrentWindow
@@ -88,7 +91,6 @@ from packages.source_pickle import get_saved_source_info, save_source_info
 from packages.tmdb_key import tmdb_api_key
 from packages.torrent_clients import Clients
 from packages.user_pw_key import crypto_key
-from packages.filter_title import edition_title_extractor
 
 # check if program had a file dropped/any commands on the .exe or script upon launch
 try:  # if it does set dropped file/command to a variable
@@ -1649,7 +1651,9 @@ def source_input_function(*args):
     # check for existing source data
     pickle_location = pathlib.Path(
         pathlib.Path(source_file_information["source_path"]).parent
-        / pathlib.Path(pathlib.Path(source_file_information["source_path"]).name).with_suffix(".dat")
+        / pathlib.Path(
+            pathlib.Path(source_file_information["source_path"]).name
+        ).with_suffix(".dat")
     )
 
     # if pickle file exists clear source_file_information and get data from source file
@@ -1889,6 +1893,21 @@ def encode_input_function(*args):
             f'"{", ".join(allowed_encode_resolutions)}"',
         )
         return  # exit function
+
+    # check for duplicates on BeyondHD --------------------------------------------------------------------------------
+    check_for_dupe = dupe_check(
+        api_key=encode_input_function_parser["bhd_upload_api"]["key"],
+        title=source_file_information["imdb_movie_name"],
+        resolution=encoded_source_resolution,
+    )
+
+    if check_for_dupe:
+        messagebox.showinfo(
+            parent=root,
+            title="Potential Duplicate",
+            message="Detected potential duplicate releases, review these before continuing.",
+        )
+        dupe_check_window(check_for_dupe)
 
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
@@ -9679,6 +9698,345 @@ def generate_button_checker():
 
 # start button checker loop
 generate_button_checker()
+
+
+# duplicate check window
+def dupe_check_window(dup_release_dict):
+    """window to display duplicate releases"""
+
+    # set parser
+    movie_window_parser = ConfigParser()
+    movie_window_parser.read(config_file)
+
+    # decode imdb img for use with the buttons
+    decode_resize_imdb_image = Image.open(BytesIO(base64.b64decode(imdb_icon))).resize(
+        (35, 35)
+    )
+    imdb_img = ImageTk.PhotoImage(decode_resize_imdb_image)
+
+    # decode tmdb img for use with the buttons
+    decode_resize_tmdb_image = Image.open(BytesIO(base64.b64decode(tmdb_icon))).resize(
+        (35, 35)
+    )
+    tmdb_img = ImageTk.PhotoImage(decode_resize_tmdb_image)
+
+    # decode seed/leech arrow img for use with a label
+    decode_resize_seeds_image = Image.open(
+        BytesIO(base64.b64decode(seed_leech_arrow))
+    ).resize((35, 35))
+    seed_leech_img = ImageTk.PhotoImage(decode_resize_seeds_image)
+
+    def movie_info_exit_function():
+        """movie window exit function"""
+
+        # set parser
+        exit_movie_window_parser = ConfigParser()
+        exit_movie_window_parser.read(config_file)
+
+        # save window position/geometry
+        if movie_info_window.wm_state() == "normal":
+            if (
+                exit_movie_window_parser["save_window_locations"]["dupe_viewer"]
+                != movie_info_window.geometry()
+            ):
+                exit_movie_window_parser.set(
+                    "save_window_locations",
+                    "dupe_viewer",
+                    movie_info_window.geometry(),
+                )
+                with open(config_file, "w") as root_exit_config_file:
+                    exit_movie_window_parser.write(root_exit_config_file)
+
+        # close movie info window
+        movie_info_window.destroy()
+
+    # movie info window
+    movie_info_window = Toplevel()
+    movie_info_window.configure(
+        background=custom_window_bg_color
+    )  # Set's the background color
+    movie_info_window.title("Duplicate Releases")  # Toplevel Title
+    if movie_window_parser["save_window_locations"]["dupe_viewer"] != "":
+        movie_info_window.geometry(
+            movie_window_parser["save_window_locations"]["dupe_viewer"]
+        )
+    movie_info_window.grab_set()
+    movie_info_window.protocol("WM_DELETE_WINDOW", movie_info_exit_function)
+
+    # Row/Grid configures
+    for m_i_w_c in range(6):
+        movie_info_window.grid_columnconfigure(m_i_w_c, weight=1)
+    for m_i_w_r in range(4):
+        movie_info_window.grid_rowconfigure(m_i_w_r, weight=1)
+    # Row/Grid configures
+
+    # Set dynamic listbox frame
+    movie_listbox_frame = Frame(
+        movie_info_window, bg=custom_frame_bg_colors["background"]
+    )
+    movie_listbox_frame.grid(
+        column=0, columnspan=6, row=0, padx=5, pady=(5, 3), sticky=N + S + E + W
+    )
+    movie_listbox_frame.grid_rowconfigure(0, weight=1)
+    movie_listbox_frame.grid_columnconfigure(0, weight=1)
+
+    right_scrollbar = Scrollbar(movie_listbox_frame, orient=VERTICAL)  # Scrollbars
+    bottom_scrollbar = Scrollbar(movie_listbox_frame, orient=HORIZONTAL)
+
+    # Create listbox
+    movie_listbox = Listbox(
+        movie_listbox_frame,
+        xscrollcommand=bottom_scrollbar.set,
+        activestyle="none",
+        yscrollcommand=right_scrollbar.set,
+        bd=2,
+        height=10,
+        selectmode=SINGLE,
+        font=(set_font, set_font_size + 2),
+        bg=custom_listbox_color["background"],
+        fg=custom_listbox_color["foreground"],
+        selectbackground=custom_listbox_color["selectbackground"],
+        selectforeground=custom_listbox_color["selectforeground"],
+    )
+    movie_listbox.grid(row=0, column=0, columnspan=5, sticky=N + E + S + W)
+
+    # add scrollbars to the listbox
+    right_scrollbar.config(command=movie_listbox.yview)
+    right_scrollbar.grid(row=0, column=5, rowspan=2, sticky=N + W + S)
+    bottom_scrollbar.config(command=movie_listbox.xview)
+    bottom_scrollbar.grid(row=1, column=0, sticky=W + E + N)
+
+    def update_movie_listbox(movie_dict):
+        """update the list box with supplied dictionary"""
+
+        # # loop through the keys (movie titles) and display them in the listbox
+        for key in movie_dict.keys():
+            movie_listbox.insert(END, key)
+
+        # function that is run each time a movie is selected to update all the information in the window
+        def update_movie_info(event):
+            selection = event.widget.curselection()  # get current selection
+            # if there is a selection
+            if selection:
+                # define index of selection
+                movie_listbox_index = selection[0]
+                movie_data = event.widget.get(movie_listbox_index)
+
+                # update link label
+                bhd_link_label.config(
+                    text="Link: " + str(movie_dict[movie_data]["url"])[:60] + "..."
+                )
+                bhd_link_label.bind(
+                    "<Button-1>",
+                    lambda e: webbrowser.open(url=str(movie_dict[movie_data]["url"])),
+                )
+
+                # update resolution label
+                resolution_lbl.config(
+                    text="Resolution: " + str(movie_dict[movie_data]["type"])
+                )
+
+                # update size label
+                math_to_gb = str(
+                    round(float(movie_dict[movie_data]["size"]) / 1000000000, 2)
+                )
+                movie_size_lbl.config(text="Size (GB): " + math_to_gb)
+
+                # update created_on_lbl label
+                created_on_lbl.config(
+                    text="Uploaded: "
+                    + str(movie_dict[movie_data]["created_at"].split(" ")[0])
+                )
+
+                # update seed_leech_label_numbers label
+                seed_leech_label.config(
+                    compound="left",
+                    text=" "
+                    + str(movie_dict[movie_data]["seeders"])
+                    + " / "
+                    + str(movie_dict[movie_data]["leechers"]),
+                )
+
+                # update imdb and tmdb entry box's
+                imdb_id_var.set(movie_dict[movie_data]["imdb_id"])
+                tmdb_id_var.set(movie_dict[movie_data]["tmdb_id"].replace("movie/", ""))
+
+                # update text imdb_button2
+                imdb_button2.config(
+                    text="  " + str(movie_dict[movie_data]["imdb_rating"])
+                )
+
+                # update text tmdb_button2
+                tmdb_button2.config(
+                    text="  " + str(movie_dict[movie_data]["tmdb_rating"])
+                )
+
+        # bind listbox select event to the updater
+        movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
+
+    # information frame
+    information_frame = Frame(
+        movie_info_window, bd=0, bg=custom_frame_bg_colors["background"]
+    )
+    information_frame.grid(
+        column=0, row=3, columnspan=3, padx=5, pady=(5, 3), sticky=E + W
+    )
+    for i_f_g_r in range(4):
+        information_frame.grid_rowconfigure(i_f_g_r, weight=1)
+    for i_f_g_c in range(3):
+        information_frame.grid_columnconfigure(i_f_g_c, weight=1)
+
+    # beyondhd clickable label
+    bhd_link_label = Label(
+        information_frame,
+        borderwidth=0,
+        cursor="hand2",
+        background=custom_label_colors["background"],
+        fg="#0000FF",
+        font=(set_fixed_font, set_font_size, "bold"),
+    )
+    bhd_link_label.grid(
+        row=0, column=0, columnspan=3, sticky=W + E, padx=5, pady=(5, 2)
+    )
+
+    # resolution label
+    resolution_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=8,
+        text="Resolution: ",
+    )
+    resolution_lbl.grid(row=1, column=0, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # size label
+    movie_size_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=8,
+        text="Size (GB)",
+    )
+    movie_size_lbl.grid(row=1, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # created on label
+    created_on_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+        width=12,
+        text="Uploaded: ",
+    )
+    created_on_lbl.grid(row=1, column=2, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # seeds label
+    seed_leech_label = Label(
+        information_frame,
+        image=seed_leech_img,
+        borderwidth=0,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size),
+        text="        ",
+    )
+    seed_leech_label.grid(row=2, column=0, sticky=W + E, padx=5, pady=(5, 2))
+    seed_leech_label.image = seed_leech_img
+
+    # downloaded amount label
+    times_downloaded_lbl = Label(
+        information_frame,
+        background=custom_label_colors["background"],
+        fg=custom_label_colors["foreground"],
+        font=(set_fixed_font, set_font_size + 1),
+    )
+    times_downloaded_lbl.grid(row=2, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
+
+    # imdb/tmdb info frame
+    imdb_tmdb_frame = Frame(
+        information_frame, bd=0, bg=custom_frame_bg_colors["background"]
+    )
+    imdb_tmdb_frame.grid(
+        column=0, row=3, columnspan=6, padx=5, pady=(5, 3), sticky=E + W
+    )
+    imdb_tmdb_frame.grid_rowconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_rowconfigure(1, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(0, weight=1)
+    imdb_tmdb_frame.grid_columnconfigure(1, weight=1000)
+    imdb_tmdb_frame.grid_columnconfigure(2, weight=1000)
+    imdb_tmdb_frame.grid_columnconfigure(3, weight=1)
+
+    # imdb clickable icon button
+    imdb_button2 = Button(
+        imdb_tmdb_frame,
+        image=imdb_img,
+        borderwidth=0,
+        cursor="hand2",
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
+        command=open_imdb_link,
+        text="    ",
+        compound="left",
+        fg=custom_label_colors["foreground"],
+    )
+    imdb_button2.grid(row=0, column=0, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+    imdb_button2.photo = imdb_img
+
+    # imdb entry box internal
+    imdb_entry_box2 = Entry(
+        imdb_tmdb_frame,
+        borderwidth=4,
+        textvariable=imdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
+    )
+    imdb_entry_box2.grid(row=0, column=1, rowspan=2, padx=5, pady=(5, 2), sticky=W)
+
+    # tmdb clickable icon button
+    tmdb_button2 = Button(
+        imdb_tmdb_frame,
+        image=tmdb_img,
+        borderwidth=0,
+        cursor="hand2",
+        bg=custom_window_bg_color,
+        activebackground=custom_window_bg_color,
+        command=open_tmdb_link,
+        text="    ",
+        compound="left",
+        fg=custom_label_colors["foreground"],
+    )
+    tmdb_button2.grid(row=0, column=2, rowspan=2, padx=5, pady=(5, 2), sticky=E)
+    tmdb_button2.photo = tmdb_img
+
+    # tmdb internal entry box
+    tmdb_entry_box2 = Entry(
+        imdb_tmdb_frame,
+        borderwidth=4,
+        textvariable=tmdb_id_var,
+        fg=custom_entry_colors["foreground"],
+        bg=custom_entry_colors["background"],
+        disabledforeground=custom_entry_colors["disabledforeground"],
+        disabledbackground=custom_entry_colors["disabledbackground"],
+        font=(set_fixed_font, set_font_size),
+    )
+    tmdb_entry_box2.grid(row=0, column=3, rowspan=2, padx=5, pady=(5, 2), sticky=E)
+
+    # focus's id window
+    movie_info_window.focus_set()
+
+    # clear movie list box
+    movie_listbox.delete(0, END)
+
+    # run the function to update the listbox
+    update_movie_listbox(dup_release_dict)
+
+    # wait for window to close
+    movie_info_window.wait_window()
 
 
 def check_for_latest_program_updates():
