@@ -6780,9 +6780,9 @@ def torrent_function_window():
     )
 
     # if tracker url from config.ini is not empty, set it
-    if config["torrent_settings"]["tracker_url"] != "":
+    if torrent_config["torrent_settings"]["tracker_url"] != "":
         torrent_tracker_url_entry_box.insert(
-            END, config["torrent_settings"]["tracker_url"]
+            END, torrent_config["torrent_settings"]["tracker_url"]
         )
 
     # torrent source label
@@ -8304,7 +8304,7 @@ def open_uploader_window(job_mode):
     enable_disable_upload_button()
 
 
-# open torrent window button
+# open uploader window button
 open_uploader_button = HoverButton(
     manual_workflow,
     text="Uploader",
