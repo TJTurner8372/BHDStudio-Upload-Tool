@@ -1,6 +1,12 @@
 import requests
 
 
+class ApiKeyError(Exception):
+    """Custom exception for ApiKeyError"""
+
+    pass
+
+
 def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
     """
     Checks BeyondHD for duplicate titles.
@@ -31,7 +37,13 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
             "https://beyond-hd.me/api/torrents/" + api_key, params=payload, timeout=60
         )
     except requests.exceptions.ConnectionError:
-        return "Connection Error"
+        raise ConnectionError(
+            "There was a connection error when attempting to connection to beyond-hd"
+        )
+
+    # check for valid API key
+    if "invalid api key" in str(run_check.json()["status_message"]).lower():
+        raise ApiKeyError("Invalid API Key")
 
     # release dict
     release_dict = {}
@@ -49,9 +61,9 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
 
 
 if __name__ == "__main__":
-    wow = dupe_check(api_key="KEYHERE", title="Gone In 60 Seconds")
-
-    if wow and wow != "Connection Error":
-        print(wow)
-    else:
-        print("Connection Error")
+    try:
+        wow = dupe_check(api_key="KEYHERE", title="Gone In 60 Seconds")
+    except ConnectionError:
+        print("Connection Error!")
+    except ApiKeyError:
+        print("Invalid API Key")
