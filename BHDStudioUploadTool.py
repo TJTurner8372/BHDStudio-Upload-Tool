@@ -1903,13 +1903,20 @@ def encode_input_function(*args):
         resolution=encoded_source_resolution,
     )
 
-    if check_for_dupe:
+    if check_for_dupe and check_for_dupe != "Connection Error":
         messagebox.showinfo(
             parent=root,
             title="Potential Duplicate",
             message="Detected potential duplicate releases, review these before continuing.",
         )
         dupe_check_window(check_for_dupe)
+    elif check_for_dupe and check_for_dupe == "Connection Error":
+        messagebox.showinfo(
+            parent=root,
+            title="Duplicate Check Failed",
+            message="Connection to BeyondHD failed. Be sure that you have checked for "
+            "duplicates before you upload.",
+        )
 
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
