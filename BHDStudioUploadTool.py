@@ -9975,7 +9975,7 @@ def dupe_check_window(dup_release_dict):
         borderwidth=0,
         cursor="hand2",
         background=custom_label_colors["background"],
-        fg="#0000FF",
+        fg="#006FD1",
         font=(set_fixed_font, set_font_size, "bold"),
     )
     bhd_link_label.grid(
