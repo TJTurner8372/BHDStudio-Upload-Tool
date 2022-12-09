@@ -7,6 +7,12 @@ class ApiKeyError(Exception):
     pass
 
 
+class BhdApiError(Exception):
+    """All generic BHD errors"""
+
+    pass
+
+
 def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
     """
     Checks BeyondHD for duplicate titles.
@@ -41,9 +47,16 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
             "There was a connection error when attempting to connection to beyond-hd"
         )
 
-    # check for valid API key
-    if "invalid api key" in str(run_check.json()["status_message"]).lower():
-        raise ApiKeyError("Invalid API Key")
+    # check for api errors
+    if not run_check.json()["status_code"]:
+
+        # if there is an invalid API key
+        if "invalid api key" in str(run_check.json()["status_message"]).lower():
+            raise ApiKeyError("Invalid API Key")
+
+        # all other api errors
+        else:
+            raise BhdApiError(str(run_check.json()["status_message"]))
 
     # release dict
     release_dict = {}
@@ -63,7 +76,17 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
 if __name__ == "__main__":
     try:
         wow = dupe_check(api_key="KEYHERE", title="Gone In 60 Seconds")
+
+        if wow:
+            print("Do something with results:\n" + str(wow))
+        elif not wow:
+            print("No results")
+
     except ConnectionError:
         print("Connection Error!")
+
     except ApiKeyError:
         print("Invalid API Key")
+
+    except BhdApiError as bhd_error:
+        print(str(bhd_error))
