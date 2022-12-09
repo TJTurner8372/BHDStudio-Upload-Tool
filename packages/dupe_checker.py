@@ -16,8 +16,8 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
     payload = {
         "action": "search",
         "search": title,
-        "stream": 1,
-        "internal": 1,
+        # "stream": 1,
+        # "internal": 1,
         "groups": "BHDStudio",
     }
 
