@@ -9935,6 +9935,11 @@ def dupe_check_window(dup_release_dict):
                     + str(movie_dict[movie_data]["leechers"]),
                 )
 
+                # update times_downloaded_lbl label
+                times_downloaded_lbl.config(
+                    text="Snatches: " + str(movie_dict[movie_data]["times_completed"])
+                )
+
                 # update imdb and tmdb entry box's
                 imdb_id_var.set(movie_dict[movie_data]["imdb_id"])
                 tmdb_id_var.set(movie_dict[movie_data]["tmdb_id"].replace("movie/", ""))
