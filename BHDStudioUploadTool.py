@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.68"
+main_root_title = "BHDStudio Upload Tool v1.69"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1897,26 +1897,31 @@ def encode_input_function(*args):
         return  # exit function
 
     # check for duplicates on BeyondHD --------------------------------------------------------------------------------
-    check_for_dupe = dupe_check(
-        api_key=encode_input_function_parser["bhd_upload_api"]["key"],
-        title=source_file_information["imdb_movie_name"],
-        resolution=encoded_source_resolution,
-    )
+    if encode_input_function_parser["bhd_upload_api"]["key"] != "":
+        # check for dupes
+        check_for_dupe = dupe_check(
+            api_key=encode_input_function_parser["bhd_upload_api"]["key"],
+            title=source_file_information["imdb_movie_name"],
+            resolution=encoded_source_resolution,
+        )
 
-    if check_for_dupe and check_for_dupe != "Connection Error":
-        messagebox.showinfo(
-            parent=root,
-            title="Potential Duplicate",
-            message="Detected potential duplicate releases, review these before continuing.",
-        )
-        dupe_check_window(check_for_dupe)
-    elif check_for_dupe and check_for_dupe == "Connection Error":
-        messagebox.showinfo(
-            parent=root,
-            title="Duplicate Check Failed",
-            message="Connection to BeyondHD failed. Be sure that you have checked for "
-            "duplicates before you upload.",
-        )
+        # if check_for_dupe returns results
+        if check_for_dupe and check_for_dupe != "Connection Error":
+            messagebox.showinfo(
+                parent=root,
+                title="Potential Duplicate",
+                message="Detected potential duplicate releases, review these before continuing.",
+            )
+            dupe_check_window(check_for_dupe)
+
+        # if check_for_dupes returns a connection error
+        elif check_for_dupe and check_for_dupe == "Connection Error":
+            messagebox.showinfo(
+                parent=root,
+                title="Duplicate Check Failed",
+                message="Connection to BeyondHD failed. Be sure that you have checked for "
+                "duplicates before you upload.",
+            )
 
     # audio checks ----------------------------------------------------------------------------------------------------
     # if encode is missing the audio track
@@ -9665,6 +9670,15 @@ def check_bhd_dupes(*args):
     check_for_dupe_parser = ConfigParser()
     check_for_dupe_parser.read(config_file)
 
+    # check for beyondhd api key
+    if check_for_dupe_parser["bhd_upload_api"]["key"] == "":
+        messagebox.showinfo(
+            parent=root,
+            title="Missing BeyondHD API Key",
+            message="BeyondHD API Key is missing. Please add this in 'Options > API Key' and try again.",
+        )
+        return
+
     # clear some quick variables
     reset_gui()
 
@@ -9688,13 +9702,24 @@ def check_bhd_dupes(*args):
     )
 
     # if check_bhd returns anything display it
-    if check_bhd:
+    if check_bhd and check_bhd != "Connection Error":
         dupe_check_window(check_bhd)
+
+    # if check_bhd returns a connection error
+    elif check_bhd and check_bhd == "Connection Error":
+        messagebox.showinfo(
+            parent=root,
+            title="Duplicate Check Failed",
+            message="Connection to BeyondHD failed. Be sure that you have checked for "
+            "duplicates before you upload.",
+        )
+
+    # if check_bhd returns nothing
     elif not check_bhd:
         messagebox.showinfo(
             parent=root,
-            title="No BHDStudio Release Found",
-            message="No BHDStudio encodes found for title:\n\n"
+            title="No BHDStudio Releases Found",
+            message="No BHDStudio releases found for title:\n\n"
             + '"'
             + str(source_file_information["imdb_movie_name"])
             + '"',
