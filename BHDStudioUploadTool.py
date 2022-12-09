@@ -72,7 +72,7 @@ from torf import Torrent
 from packages.About import openaboutwindow
 from packages.default_config_params import *
 from packages.deluge_window import DelugeWindow
-from packages.dupe_checker import dupe_check
+from packages.dupe_checker import dupe_check, ApiKeyError, BhdApiError
 from packages.filter_title import edition_title_extractor
 from packages.github_token import github_token
 from packages.hoverbutton import HoverButton
@@ -1898,27 +1898,43 @@ def encode_input_function(*args):
 
     # check for duplicates on BeyondHD --------------------------------------------------------------------------------
     if encode_input_function_parser["bhd_upload_api"]["key"] != "":
-        # check for dupes
-        check_for_dupe = dupe_check(
-            api_key=encode_input_function_parser["bhd_upload_api"]["key"],
-            title=source_file_information["imdb_movie_name"],
-            resolution=encoded_source_resolution,
-        )
-
-        # if check_for_dupe returns results
-        if check_for_dupe and check_for_dupe != "Connection Error":
-            messagebox.showinfo(
-                parent=root,
-                title="Potential Duplicate",
-                message="Detected potential duplicate releases, review these before continuing.",
+        try:
+            check_for_dupe = dupe_check(
+                api_key=encode_input_function_parser["bhd_upload_api"]["key"],
+                title=source_file_information["imdb_movie_name"],
+                resolution=encoded_source_resolution,
             )
-            dupe_check_window(check_for_dupe)
 
-        # if check_for_dupes returns a connection error
-        elif check_for_dupe and check_for_dupe == "Connection Error":
+            # if check_for_dupe returns results
+            if check_for_dupe:
+                messagebox.showinfo(
+                    parent=root,
+                    title="Potential Duplicate",
+                    message="Detected potential duplicate releases, review these before continuing.",
+                )
+                dupe_check_window(check_for_dupe)
+
+        # Api Key Error
+        except ApiKeyError:
             messagebox.showinfo(
                 parent=root,
-                title="Duplicate Check Failed",
+                title="Invalid BeyondHD API Key",
+                message="Invalid BeyondHD API Key. Please add this in\n'Options > API Key' and try again.",
+            )
+
+        # Api Error
+        except BhdApiError as bhd_api_error:
+            messagebox.showinfo(
+                parent=root,
+                title="API Error",
+                message=str(bhd_api_error),
+            )
+
+            # Connection Error
+        except ConnectionError:
+            messagebox.showinfo(
+                parent=root,
+                title="Connection Error",
                 message="Connection to BeyondHD failed. Be sure that you have checked for "
                 "duplicates before you upload.",
             )
@@ -9696,33 +9712,50 @@ def check_bhd_dupes(*args):
         return
 
     # run function to check for dupes on beyondhd
-    check_bhd = dupe_check(
-        api_key=check_for_dupe_parser["bhd_upload_api"]["key"],
-        title=source_file_name,
-    )
-
-    # if check_bhd returns anything display it
-    if check_bhd and check_bhd != "Connection Error":
-        dupe_check_window(check_bhd)
-
-    # if check_bhd returns a connection error
-    elif check_bhd and check_bhd == "Connection Error":
-        messagebox.showinfo(
-            parent=root,
-            title="Duplicate Check Failed",
-            message="Connection to BeyondHD failed. Be sure that you have checked for "
-            "duplicates before you upload.",
+    try:
+        check_bhd = dupe_check(
+            api_key=check_for_dupe_parser["bhd_upload_api"]["key"],
+            title=source_file_name,
         )
 
-    # if check_bhd returns nothing
-    elif not check_bhd:
+        # if check_bhd returns results
+        if check_bhd:
+            dupe_check_window(check_bhd)
+
+        # if check_bhd returns nothing
+        elif not check_bhd:
+            messagebox.showinfo(
+                parent=root,
+                title="No BHDStudio Releases Found",
+                message="No BHDStudio releases found for title:\n\n"
+                + '"'
+                + str(source_file_information["imdb_movie_name"])
+                + '"',
+            )
+
+    # Api Key Error
+    except ApiKeyError:
         messagebox.showinfo(
             parent=root,
-            title="No BHDStudio Releases Found",
-            message="No BHDStudio releases found for title:\n\n"
-            + '"'
-            + str(source_file_information["imdb_movie_name"])
-            + '"',
+            title="Invalid BeyondHD API Key",
+            message="Invalid BeyondHD API Key. Please add this in\n'Options > API Key' and try again.",
+        )
+
+    # Api Error
+    except BhdApiError as bhd_api_error:
+        messagebox.showinfo(
+            parent=root,
+            title="API Error",
+            message=str(bhd_api_error),
+        )
+
+    # Connection Error
+    except ConnectionError:
+        messagebox.showinfo(
+            parent=root,
+            title="Connection Error",
+            message="Connection to BeyondHD failed. Be sure that you have checked for "
+            "duplicates before you upload.",
         )
 
 
