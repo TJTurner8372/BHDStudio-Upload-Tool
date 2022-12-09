@@ -9958,7 +9958,9 @@ def dupe_check_window(dup_release_dict):
 
         # function that is run each time a movie is selected to update all the information in the window
         def update_movie_info(event):
-            selection = event.widget.curselection()  # get current selection
+            # get current selection
+            selection = event.widget.curselection()
+
             # if there is a selection
             if selection:
                 # define index of selection
@@ -10022,6 +10024,12 @@ def dupe_check_window(dup_release_dict):
         # bind listbox select event to the updater
         movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
 
+        # select first option in listbox
+        movie_listbox.selection_set(0)
+
+    # get first key in dictionary
+    first_key = list(dup_release_dict.keys())[0]
+
     # information frame
     information_frame = Frame(
         movie_info_window, bd=0, bg=custom_frame_bg_colors["background"]
@@ -10042,9 +10050,14 @@ def dupe_check_window(dup_release_dict):
         background=custom_label_colors["background"],
         fg="#006FD1",
         font=(set_fixed_font, set_font_size, "bold"),
+        text="  " + str(dup_release_dict[first_key]["url"]),
     )
     bhd_link_label.grid(
         row=0, column=0, columnspan=3, sticky=W + E, padx=5, pady=(5, 2)
+    )
+    bhd_link_label.bind(
+        "<Button-1>",
+        lambda e: webbrowser.open(url=str(dup_release_dict[first_key]["url"])),
     )
 
     # resolution label
@@ -10054,18 +10067,19 @@ def dupe_check_window(dup_release_dict):
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size + 1),
         width=8,
-        text="Resolution: ",
+        text="Resolution: " + str(dup_release_dict[first_key]["type"]),
     )
     resolution_lbl.grid(row=1, column=0, sticky=W + E, padx=(1, 5), pady=(5, 2))
 
     # size label
+    math_to_gb = str(round(float(dup_release_dict[first_key]["size"]) / 1000000000, 2))
     movie_size_lbl = Label(
         information_frame,
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size + 1),
         width=8,
-        text="Size (GB)",
+        text="Size (GB): " + math_to_gb,
     )
     movie_size_lbl.grid(row=1, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
 
@@ -10076,7 +10090,8 @@ def dupe_check_window(dup_release_dict):
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size + 1),
         width=14,
-        text="Uploaded: ",
+        text="Uploaded: "
+        + str(dup_release_dict[first_key]["created_at"].split(" ")[0]),
     )
     created_on_lbl.grid(row=1, column=2, sticky=W + E, padx=(1, 5), pady=(5, 2))
 
@@ -10088,7 +10103,11 @@ def dupe_check_window(dup_release_dict):
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size),
-        text="        ",
+        compound="left",
+        text=" "
+        + str(dup_release_dict[first_key]["seeders"])
+        + " / "
+        + str(dup_release_dict[first_key]["leechers"]),
     )
     seed_leech_label.grid(row=2, column=0, sticky=W + E, padx=5, pady=(5, 2))
     seed_leech_label.image = seed_leech_img
@@ -10099,6 +10118,7 @@ def dupe_check_window(dup_release_dict):
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size + 1),
+        text="Snatches: " + str(dup_release_dict[first_key]["times_completed"]),
     )
     times_downloaded_lbl.grid(row=2, column=1, sticky=W + E, padx=(1, 5), pady=(5, 2))
 
@@ -10116,6 +10136,10 @@ def dupe_check_window(dup_release_dict):
     imdb_tmdb_frame.grid_columnconfigure(2, weight=1000)
     imdb_tmdb_frame.grid_columnconfigure(3, weight=1)
 
+    # update imdb and tmdb entry box's
+    imdb_id_var.set(dup_release_dict[first_key]["imdb_id"])
+    tmdb_id_var.set(dup_release_dict[first_key]["tmdb_id"].replace("movie/", ""))
+
     # imdb clickable icon button
     imdb_button2 = Button(
         imdb_tmdb_frame,
@@ -10125,7 +10149,7 @@ def dupe_check_window(dup_release_dict):
         bg=custom_window_bg_color,
         activebackground=custom_window_bg_color,
         command=open_imdb_link,
-        text="    ",
+        text="  " + str(dup_release_dict[first_key]["imdb_rating"]),
         compound="left",
         fg=custom_label_colors["foreground"],
     )
@@ -10154,7 +10178,7 @@ def dupe_check_window(dup_release_dict):
         bg=custom_window_bg_color,
         activebackground=custom_window_bg_color,
         command=open_tmdb_link,
-        text="    ",
+        text="  " + str(dup_release_dict[first_key]["tmdb_rating"]),
         compound="left",
         fg=custom_label_colors["foreground"],
     )
