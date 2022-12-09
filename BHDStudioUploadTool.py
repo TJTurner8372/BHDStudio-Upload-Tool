@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.66"
+main_root_title = "BHDStudio Upload Tool v1.68"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -8110,7 +8110,7 @@ def open_uploader_window(job_mode):
             "nfo": nfo_info_var.get(),
             "live": live_release,
             "anon": anonymous_release,
-            "stream": "optimized",
+            "stream": 1,
             "promo": 2,
         }
 
@@ -10005,7 +10005,7 @@ def dupe_check_window(dup_release_dict):
         background=custom_label_colors["background"],
         fg=custom_label_colors["foreground"],
         font=(set_fixed_font, set_font_size + 1),
-        width=12,
+        width=14,
         text="Uploaded: ",
     )
     created_on_lbl.grid(row=1, column=2, sticky=W + E, padx=(1, 5), pady=(5, 2))
