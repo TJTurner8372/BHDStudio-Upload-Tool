@@ -44,7 +44,7 @@ def dupe_check(api_key: str, title: str, page: int = 0, resolution: str = None):
         )
     except requests.exceptions.ConnectionError:
         raise ConnectionError(
-            "There was a connection error when attempting to connection to beyond-hd"
+            "There was a connection error when attempting to connect to beyond-hd"
         )
 
     # check for api errors
