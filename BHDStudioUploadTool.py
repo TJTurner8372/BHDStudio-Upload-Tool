@@ -785,8 +785,6 @@ def search_movie_global_function(*args):
                 f"{movie_dict[list(movie_dict.keys())[0]]['vote_average']} / 10"
             )
 
-
-
     def api_thread_poll_loop():
         """loop to poll the queue and update the GUI for the api search function"""
 
@@ -1359,7 +1357,6 @@ def source_input_function(*args):
             # search file for info
             search_file = encode_script.read()
             get_source_file = re.search(r'FFVideoSource\("(.+?)",', search_file)
-            get_crop = re.search(r"Crop\((.+)\)", search_file)
 
             # load search file to global string var to be used by encode function
             loaded_script_info.set(search_file)
@@ -1372,7 +1369,6 @@ def source_input_function(*args):
             get_source_file = re.search(
                 r'else core\.ffms2\.Source\(r"(.+?)",', search_file
             )
-            get_crop = re.search(r"Crop\(clip,\s(.+)\)", search_file)
 
             # load search file to global string var to be used by encode function
             loaded_script_info.set(search_file)
@@ -1643,43 +1639,6 @@ def source_input_function(*args):
         {"resolution": f"{str(video_track.width)}x{str(video_track.height)}"}
     )
 
-    # crop
-    if get_crop:
-        # vars
-        get_left = None
-        get_right = None
-        get_top = None
-        get_bottom = None
-
-        # convert crop for VapourSynth
-        if script_mode.get() == "vpy":
-            get_left = get_crop.group(1).split(",")[0].strip()
-            get_right = get_crop.group(1).split(",")[1].strip()
-            get_top = get_crop.group(1).split(",")[2].strip()
-            get_bottom = get_crop.group(1).split(",")[3].strip()
-
-        # convert crop for AviSynth
-        elif script_mode.get() == "avs":
-            get_left = get_crop.group(1).split(",")[0].replace("-", "").strip()
-            get_right = get_crop.group(1).split(",")[2].replace("-", "").strip()
-            get_top = get_crop.group(1).split(",")[1].replace("-", "").strip()
-            get_bottom = get_crop.group(1).split(",")[3].replace("-", "").strip()
-
-        # add converted crop info to dictionary
-        source_file_information.update(
-            {
-                "crop": {
-                    "left": get_left,
-                    "right": get_right,
-                    "top": get_top,
-                    "bottom": get_bottom,
-                }
-            }
-        )
-    # if crop is None
-    if not get_crop:
-        source_file_information.update({"crop": "None"})
-
     # hdr
     if hdr_string != "":
         source_file_information.update({"hdr": "True"})
@@ -1712,6 +1671,8 @@ def source_input_function(*args):
 
         # if user selects "yes"
         if use_existing_source_data:
+            # retain specific info for script
+
             # clear source file information
             source_file_information.clear()
 
@@ -2145,6 +2106,9 @@ def encode_input_function(*args):
     # create empty list
     script_info_list = []
 
+    # get crop
+    get_crop = None
+
     # search each line of the opened file in memory
     for each_line in loaded_script_info.get().splitlines():
         # remove any commented lines
@@ -2156,6 +2120,12 @@ def encode_input_function(*args):
 
     # parse list to update release notes for vapoursynth scripts
     if script_mode.get() == "vpy":
+        # get crop info
+        for info in script_info_list:
+            get_crop = re.search(r"Crop\(clip,\s(.+)\)", info)
+            if get_crop:
+                break
+
         # find fill border info
         for info in script_info_list:
             fill_border_info = re.search(r"fillborders\((.+)\)", info, re.IGNORECASE)
@@ -2245,6 +2215,12 @@ def encode_input_function(*args):
 
     # parse list to update release notes for avisynth scripts
     elif script_mode.get() == "avs":
+        # get crop info
+        for info in script_info_list:
+            get_crop = re.search(r"Crop\((.+)\)", info)
+            if get_crop:
+                break
+
         # find fill border info
         for info in script_info_list:
             fill_border_info = re.search(r"fill.+\(([\s\d,]*)\)", info, re.IGNORECASE)
@@ -2298,6 +2274,43 @@ def encode_input_function(*args):
                     update_balanced_borders()
                 # break from the loop
                 break
+
+    # crop
+    if get_crop:
+        # vars
+        get_left = None
+        get_right = None
+        get_top = None
+        get_bottom = None
+
+        # convert crop for VapourSynth
+        if script_mode.get() == "vpy":
+            get_left = get_crop.group(1).split(",")[0].strip()
+            get_right = get_crop.group(1).split(",")[1].strip()
+            get_top = get_crop.group(1).split(",")[2].strip()
+            get_bottom = get_crop.group(1).split(",")[3].strip()
+
+        # convert crop for AviSynth
+        elif script_mode.get() == "avs":
+            get_left = get_crop.group(1).split(",")[0].replace("-", "").strip()
+            get_right = get_crop.group(1).split(",")[2].replace("-", "").strip()
+            get_top = get_crop.group(1).split(",")[1].replace("-", "").strip()
+            get_bottom = get_crop.group(1).split(",")[3].replace("-", "").strip()
+
+        # add converted crop info to dictionary
+        source_file_information.update(
+            {
+                "crop": {
+                    "left": get_left,
+                    "right": get_right,
+                    "top": get_top,
+                    "bottom": get_bottom,
+                }
+            }
+        )
+    # if crop is None
+    elif not get_crop:
+        source_file_information.update({"crop": "None"})
 
     # check if advance resize was used
     source_file_information.update({"advanced_resize": "None"})
