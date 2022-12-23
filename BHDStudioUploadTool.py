@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.70"
+main_root_title = "BHDStudio Upload Tool v1.71"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -629,7 +629,7 @@ def search_movie_global_function(*args):
         # close movie info window
         movie_info_window.destroy()
 
-    def get_imdb_update_filename():
+    def get_imdb_update_filename(*_):
         """function to get imdb title name as well as id's for both imdb and tmdb"""
         # check if imdb id is missing
         if imdb_id_var.get() == "None":
@@ -759,6 +759,33 @@ def search_movie_global_function(*args):
 
         # bind listbox select event to the updater
         movie_listbox.bind("<<ListboxSelect>>", update_movie_info)
+
+        # code to select first movie in list and update everything
+        if movie_dict:
+            # select first option in listbox
+            movie_listbox.selection_set(0)
+
+            # delete plot text and update it
+            plot_scrolled_text.delete("1.0", END)
+            plot_scrolled_text.insert(
+                END, movie_dict[list(movie_dict.keys())[0]]["plot"]
+            )
+
+            # update imdb and tmdb entry box's
+            imdb_id_var.set(movie_dict[list(movie_dict.keys())[0]]["imdb_id"])
+            tmdb_id_var.set(movie_dict[list(movie_dict.keys())[0]]["tvdb_id"])
+
+            # update release date label
+            release_date_var.set(
+                movie_dict[list(movie_dict.keys())[0]]["full_release_date"]
+            )
+
+            # update rating label
+            rating_var.set(
+                f"{movie_dict[list(movie_dict.keys())[0]]['vote_average']} / 10"
+            )
+
+
 
     def api_thread_poll_loop():
         """loop to poll the queue and update the GUI for the api search function"""
@@ -1064,6 +1091,13 @@ def search_movie_global_function(*args):
     def start_search(*enter_args):
         """thread the search for the movie title"""
 
+        # clear vars
+        plot_scrolled_text.delete("1.0", END)
+        imdb_id_var.set("")
+        tmdb_id_var.set("")
+        release_date_var.set("")
+        rating_var.set("")
+
         # set stop thread to false
         stop_thread.clear()
 
@@ -1240,8 +1274,10 @@ def search_movie_global_function(*args):
         disabledforeground=custom_button_colors["disabledforeground"],
     )
     confirm_movie_btn.grid(row=1, column=6, padx=5, pady=(5, 2), sticky=E)
+    movie_info_window.bind("<Return>", lambda event: get_imdb_update_filename())
 
-    movie_info_window.focus_set()  # focus's id window
+    # focus's id window
+    movie_info_window.focus_set()
 
     # clear movie list box
     movie_listbox.delete(0, END)
@@ -2195,16 +2231,17 @@ def encode_input_function(*args):
                 if src_height_search:
                     src_height = float(src_height_search.group(1))
 
-                source_file_information.update(
-                    {
-                        "advanced_resize": {
-                            "src_left": src_left,
-                            "src_top": src_top,
-                            "src_width": src_width,
-                            "src_height": src_height,
+                if src_left or src_top or src_width or src_height:
+                    source_file_information.update(
+                        {
+                            "advanced_resize": {
+                                "src_left": src_left,
+                                "src_top": src_top,
+                                "src_width": src_width,
+                                "src_height": src_height,
+                            }
                         }
-                    }
-                )
+                    )
 
     # parse list to update release notes for avisynth scripts
     elif script_mode.get() == "avs":
@@ -4579,29 +4616,43 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
 
             # if no existing index is found index source file
             else:
+                cache_path = pathlib.Path(
+                    pathlib.Path(source_file_path.get()).with_suffix(".lwi")
+                )
                 try:
                     # create index
-                    source_file = core.lsmas.LWLibavSource(source_file_path.get())
+                    source_file = core.lsmas.LWLibavSource(
+                        source_file_path.get(), cachefile=cache_path
+                    )
                 except vs.Error:
                     # delete index
                     pathlib.Path(source_file_path.get() + ".lwi").unlink(
                         missing_ok=True
                     )
                     # create index
-                    source_file = core.lsmas.LWLibavSource(source_file_path.get())
+                    source_file = core.lsmas.LWLibavSource(
+                        source_file_path.get(), cachefile=cache_path
+                    )
 
             # update queue with information
             ss_queue.put(" Done!\nIndexing encode...")
 
             # index encode file
+            cache_path_enc = pathlib.Path(
+                pathlib.Path(encode_file_path.get()).with_suffix(".lwi")
+            )
             try:
                 # create index
-                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+                encode_file = core.lsmas.LWLibavSource(
+                    encode_file_path.get(), cachefile=cache_path_enc
+                )
             except vs.Error:
                 # delete index
                 pathlib.Path(encode_file_path.get() + ".lwi").unlink(missing_ok=True)
                 # create index
-                encode_file = core.lsmas.LWLibavSource(encode_file_path.get())
+                encode_file = core.lsmas.LWLibavSource(
+                    encode_file_path.get(), cachefile=cache_path_enc
+                )
 
         # index the source file with ffms
         elif get_indexer == "ffms":
@@ -4795,6 +4846,7 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
         if (
             source_file.width != encode_file.width
             and source_file.height != encode_file.height
+            or source_file_information["advanced_resize"] != "None"
         ):
 
             # advanced resize offset vars
