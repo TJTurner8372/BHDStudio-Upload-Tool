@@ -646,6 +646,8 @@ def search_movie_global_function(*_):
 
     def get_imdb_update_filename(*_):
         """function to get imdb title name as well as id's for both imdb and tmdb"""
+        movie_info_window.title("Loading...")
+
         # check if imdb id is missing
         if imdb_id_var.get() == "None":
             messagebox.showerror(
