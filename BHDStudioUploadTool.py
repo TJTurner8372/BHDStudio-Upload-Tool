@@ -2170,6 +2170,42 @@ def encode_input_function(*args):
                 # break from the loop
                 break
 
+        # check if advance resize was used
+        source_file_information.update({"advanced_resize": "None"})
+        for info in script_info_list:
+            check_for_advanced_resize = re.findall(
+                r"src_left|src_top|src_width|src_height", info
+            )
+            if check_for_advanced_resize:
+                src_left = None
+                src_top = None
+                src_width = None
+                src_height = None
+
+                src_left_search = re.search(r"src_left\s?=\s?-?(\d\.?\d?)", info)
+                if src_left_search:
+                    src_left = float(src_left_search.group(1))
+                src_top_search = re.search(r"src_top\s?=\s?-?(\d\.?\d?)", info)
+                if src_top_search:
+                    src_top = float(src_top_search.group(1))
+                src_width_search = re.search(r"src_width\s?=\s?-?(\d\.?\d?)", info)
+                if src_width_search:
+                    src_width = float(src_width_search.group(1))
+                src_height_search = re.search(r"src_height\s?=\s?-?(\d\.?\d?)", info)
+                if src_height_search:
+                    src_height = float(src_height_search.group(1))
+
+                source_file_information.update(
+                    {
+                        "advanced_resize": {
+                            "src_left": src_left,
+                            "src_top": src_top,
+                            "src_width": src_width,
+                            "src_height": src_height,
+                        }
+                    }
+                )
+
     # parse list to update release notes for avisynth scripts
     elif script_mode.get() == "avs":
         # find fill border info
@@ -2226,41 +2262,57 @@ def encode_input_function(*args):
                 # break from the loop
                 break
 
-        # check if advance resize was used
-        source_file_information.update({"advanced_resize": "None"})
-        for info in script_info_list:
-            check_for_advanced_resize = re.findall(
-                r"src_left|src_top|src_width|src_height", info
+    # check if advance resize was used
+    source_file_information.update({"advanced_resize": "None"})
+    for info in script_info_list:
+        check_for_advanced_resize = re.findall(
+            r"src_left|src_top|src_width|src_height", info
+        )
+        if check_for_advanced_resize:
+            src_left = None
+            src_top = None
+            src_width = None
+            src_height = None
+
+            src_left_search = re.search(r"src_left\s?=(\s?\d*\.*\d*)?", info)
+            if src_left_search:
+                src_left = float(src_left_search.group(1))
+            src_top_search = re.search(r"src_top\s?=(\s?\d*\.*\d*)?", info)
+            if src_top_search:
+                src_top = float(src_top_search.group(1))
+            src_width_search = re.search(
+                r"src_width\s?=\s?(\bclip?\.?\bwidth?\s?-?\s?\d*\.*\d*)?\s?-?\s?(\d*\.*\d*)?",
+                info,
             )
-            if check_for_advanced_resize:
-                src_left = None
-                src_top = None
-                src_width = None
-                src_height = None
+            if src_width_search:
+                if script_mode.get() == "vpy":
+                    src_width = float(
+                        src_width_search.group(1).replace("clip.width - ", "")
+                    )
+                else:
+                    src_width = float(src_width_search.group(2))
+            src_height_search = re.search(
+                r"src_height\s?=\s?(\bclip?\.?\bheight?\s?-?\s?\d*\.*\d*)?\s?-?\s?(\d*\.*\d*)?",
+                info,
+            )
+            if src_height_search:
+                if script_mode.get() == "vpy":
+                    src_height = float(
+                        src_height_search.group(1).replace("clip.height - ", "")
+                    )
+                else:
+                    src_height = float(src_height_search.group(2))
 
-                src_left_search = re.search(r"src_left\s?=\s?-?(\d\.?\d?)", info)
-                if src_left_search:
-                    src_left = float(src_left_search.group(1))
-                src_top_search = re.search(r"src_top\s?=\s?-?(\d\.?\d?)", info)
-                if src_top_search:
-                    src_top = float(src_top_search.group(1))
-                src_width_search = re.search(r"src_width\s?=\s?-?(\d\.?\d?)", info)
-                if src_width_search:
-                    src_width = float(src_width_search.group(1))
-                src_height_search = re.search(r"src_height\s?=\s?-?(\d\.?\d?)", info)
-                if src_height_search:
-                    src_height = float(src_height_search.group(1))
-
-                source_file_information.update(
-                    {
-                        "advanced_resize": {
-                            "src_left": src_left,
-                            "src_top": src_top,
-                            "src_width": src_width,
-                            "src_height": src_height,
-                        }
+            source_file_information.update(
+                {
+                    "advanced_resize": {
+                        "src_left": src_left,
+                        "src_top": src_top,
+                        "src_width": src_width,
+                        "src_height": src_height,
                     }
-                )
+                }
+            )
 
     # set torrent name
     if encode_input_function_parser["torrent_settings"]["default_path"] != "":
