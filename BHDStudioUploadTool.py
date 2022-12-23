@@ -105,12 +105,12 @@ else:
     app_type = "script"
 
 # Set variable to True if you want errors to pop up in window + console, False for console only
+# Enable this to true for debugging in dev environment
+enable_error_logger = False
 if app_type == "bundled":
     enable_error_logger = (
         True  # Change this to false if you don't want to log errors to pop up window
     )
-elif app_type == "script":
-    enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
 main_root_title = "BHDStudio Upload Tool v1.71"
@@ -119,6 +119,17 @@ main_root_title = "BHDStudio Upload Tool v1.71"
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
 
 # define theme colors based on user selection
+# empty vars
+custom_window_bg_color = None
+custom_frame_bg_colors = None
+custom_listbox_color = None
+custom_button_colors = None
+custom_label_frame_colors = None
+custom_entry_colors = None
+custom_label_colors = None
+custom_scrolled_text_widget_color = None
+
+# update vars
 if (
     config["themes"]["selected_theme"] == "bhd_theme"
     or config["themes"]["selected_theme"] == ""
@@ -392,8 +403,10 @@ if config["themes"]["selected_theme"] != "system_theme":
 
     # ------------------------------------------ Custom Tkinter Theme
 
-
 # Logger class, handles all traceback/stdout errors for program, writes to file and to window -------------------------
+error_info_scrolled = None
+
+
 class Logger(
     object
 ):  # Logger class, this class puts stderr errors into a window and file at the same time
@@ -401,16 +414,16 @@ class Logger(
         self.terminal = sys.stderr  # Redirects sys.stderr
 
     def write(self, message):
-        global info_scrolled
+        global error_info_scrolled
         self.terminal.write(message)
         try:
-            info_scrolled.config(state=NORMAL)
+            error_info_scrolled.config(state=NORMAL)
             if str(message).rstrip():
-                info_scrolled.insert(END, str(message).strip())
+                error_info_scrolled.insert(END, str(message).strip())
             if not str(message).rstrip():
-                info_scrolled.insert(END, f"{str(message)}\n")
-            info_scrolled.see(END)
-            info_scrolled.config(state=DISABLED)
+                error_info_scrolled.insert(END, f"{str(message)}\n")
+            error_info_scrolled.see(END)
+            error_info_scrolled.config(state=DISABLED)
         except (NameError, TclError):
             error_window = Toplevel()
             error_window.title("Traceback Error(s)")
@@ -424,20 +437,20 @@ class Logger(
             for e_w in range(4):
                 error_window.grid_columnconfigure(e_w, weight=1)
             error_window.grid_rowconfigure(0, weight=1)
-            info_scrolled = scrolledtextwidget.ScrolledText(
+            error_info_scrolled = scrolledtextwidget.ScrolledText(
                 error_window,
                 wrap=WORD,
                 bd=8,
                 bg=custom_scrolled_text_widget_color["background"],
                 fg=custom_scrolled_text_widget_color["foreground"],
             )
-            info_scrolled.grid(
+            error_info_scrolled.grid(
                 row=0, column=0, columnspan=4, pady=5, padx=5, sticky=E + W + N + S
             )
 
-            info_scrolled.insert(END, message)
-            info_scrolled.see(END)
-            info_scrolled.config(state=DISABLED)
+            error_info_scrolled.insert(END, message)
+            error_info_scrolled.see(END)
+            error_info_scrolled.config(state=DISABLED)
 
             report_error = HoverButton(
                 error_window,
@@ -480,17 +493,19 @@ class Logger(
                 right_click_menu.tk_popup(x_y_pos.x_root, x_y_pos.y_root)
 
             right_click_menu = Menu(
-                info_scrolled, tearoff=False
+                error_info_scrolled, tearoff=False
             )  # This is the right click menu
             right_click_menu.add_command(
                 label="Copy to clipboard",
-                command=lambda: pyperclip.copy(info_scrolled.get(1.0, END).strip()),
+                command=lambda: pyperclip.copy(
+                    error_info_scrolled.get(1.0, END).strip()
+                ),
             )
-            info_scrolled.bind(
+            error_info_scrolled.bind(
                 "<Button-3>", right_click_menu_func
             )  # Uses mouse button 3 to open the menu
             CustomTooltipLabel(
-                info_scrolled, "Right click to copy", hover_delay=800
+                error_info_scrolled, "Right click to copy", hover_delay=800
             )  # Hover tip tool-tip
             error_window.grab_set()  # Brings attention to this window until it's closed
             root.bell()  # Error bell sound
@@ -521,8 +536,8 @@ torrent_file_path = StringVar()
 torrent_error_var = BooleanVar()
 nfo_info_var = StringVar()
 automatic_workflow_boolean = BooleanVar()
-live_boolean = BooleanVar()
-anonymous_boolean = BooleanVar()
+live_boolean = IntVar()
+anonymous_boolean = IntVar()
 movie_search_var = StringVar()
 movie_search_active = BooleanVar()
 tmdb_id_var = StringVar()
@@ -552,8 +567,8 @@ def clear_all_variables():
     torrent_error_var.set(False)
     nfo_info_var.set("")
     automatic_workflow_boolean.set(False)
-    live_boolean.set(False)
-    anonymous_boolean.set(False)
+    live_boolean.set(0)
+    anonymous_boolean.set(0)
     movie_search_var.set("")
     movie_search_active.set(False)
     tmdb_id_var.set("")
@@ -585,7 +600,7 @@ def open_tmdb_link():
 
 
 # function to search tmdb for information
-def search_movie_global_function(*args):
+def search_movie_global_function(*_):
     # set parser
     movie_window_parser = ConfigParser()
     movie_window_parser.read(config_file)
@@ -1086,7 +1101,7 @@ def search_movie_global_function(*args):
     # insert movie into entry box/update var
     movie_search_var.set(movie_input_filtered)
 
-    def start_search(*enter_args):
+    def start_search(*_):
         """thread the search for the movie title"""
 
         # clear vars
@@ -1325,7 +1340,7 @@ def source_input_function(*args):
     image_listbox.config(state=NORMAL)  # enable image list box
     image_listbox.delete(0, END)  # delete image list box contents
     image_listbox.config(state=DISABLED)  # disable image list box
-    screenshot_scrolledtext.delete("1.0", END)  # clear contents of url notebook tab
+    screenshot_scrolled_text.delete("1.0", END)  # clear contents of url notebook tab
     tabs.select(image_tab)  # select first tab in the image box
     delete_encode_entry()  # clear encode entry
     source_file_information.clear()  # clear dictionary
@@ -1374,6 +1389,7 @@ def source_input_function(*args):
             loaded_script_info.set(search_file)
 
     # if we cannot locate the source file
+    loaded_source_file = None
     if not get_source_file or not pathlib.Path(get_source_file.group(1)).is_file():
         find_source = messagebox.askyesno(
             parent=root,
@@ -1479,7 +1495,7 @@ def source_input_function(*args):
         elif audio_missing:
             manual_audio_input = filedialog.askopenfilename(
                 parent=root,
-                title="Select Soure Audio File",
+                title="Select Source Audio File",
                 initialdir=s_i_f_initial_dir,
                 filetypes=[("Source Audio", "*.*")],
             )
@@ -1852,6 +1868,7 @@ def encode_input_function(*args):
         )
         return  # exit the function
 
+    encoded_source_resolution = ""
     if video_track.width <= 1280:  # 720p
         encoded_source_resolution = "720p"
         if encode_settings_used_bit_rate != 4000:
@@ -1883,6 +1900,8 @@ def encode_input_function(*args):
 
     # check for source resolution vs encode resolution (do not allow 2160p encode on a 1080p source)
     source_width = str(source_file_information["resolution"]).split("x")[0]
+    allowed_encode_resolutions = []
+    source_resolution = ""
     if int(source_width) <= 1920:  # 1080p
         source_resolution = "1080p"
         allowed_encode_resolutions = ["720p", "1080p"]
@@ -1977,6 +1996,7 @@ def encode_input_function(*args):
     source_audio_channels = int(
         source_file_information["source_selected_audio_info"]["channel_s"]
     )
+    bhd_accepted_audio_channels = None
     # 720p check, define accepted bhd audio channels
     if encoded_source_resolution == "720p":
         if source_audio_channels == 1:
@@ -2012,6 +2032,7 @@ def encode_input_function(*args):
             source_audio_string = str(source_audio_channels)
 
         # generate cleaner audio strings for encode
+        encode_audio_string = ""
         if bhd_accepted_audio_channels == 1:
             encode_audio_string = "1.0"
         elif bhd_accepted_audio_channels == 2:
@@ -2992,7 +3013,7 @@ def manual_source_input():
 
 
 # multiple source input button and pop up menu
-def source_input_popup_menu(*args):  # Menu for input button
+def source_input_popup_menu(*_):  # Menu for input button
     source_input_menu = Menu(
         root,
         tearoff=False,
@@ -3293,6 +3314,7 @@ def staxrip_working_directory(stax_dir_path):
             get_encode_path = re.search(r"Saving\s(.+\.mp4):", log_file_loaded)
 
         # if both paths are located load them into the program
+        run_source_func = None
         if get_source_path and get_encode_path:
             # restore transparency
             root.wm_attributes("-alpha", 1.0)
@@ -3924,7 +3946,7 @@ def open_ss_files():
 
 
 # multiple input button and pop up menu
-def input_popup_menu(*args):  # Menu for input button
+def input_popup_menu(*_):  # Menu for input button
     input_menu = Menu(
         image_btn_frame,
         tearoff=False,
@@ -4584,6 +4606,9 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
             f"\n\nThis could take a while depending on your systems storage speed...\n\n"
         )
 
+        source_file = None
+        encode_file = None
+
         # index the source file with lwlibavsource
         if get_indexer == "lwlibav":
             # update queue with information
@@ -4744,7 +4769,7 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
         # get the total number of frames from source file
         num_source_frames = len(source_file)
 
-        # Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic,
+        # Format: Name, Fontname, Font-size, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic,
         # Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL,
         # MarginR, MarginV,
 
@@ -4769,15 +4794,14 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
         )
 
         # detect b frames from encode to generate a list
-        b_frames = (
+        b_frames = list(
             linspace(
                 int(num_source_frames * 0.15),
                 int(num_source_frames * 0.75),
                 int(comparison_img_count),
-            )
-            .astype(int)
-            .tolist()
+            ).astype(int)
         )
+
         for i, frame in enumerate(b_frames):
             while encode_file.get_frame(frame).props["_PictType"].decode() != "B":
                 frame += 1
@@ -4790,7 +4814,6 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
         )
 
         # make new temporary image folder
-        image_output_dir = None
         if (
             img_path_parser["image_generation_folder"]["path"] != ""
             and pathlib.Path(
@@ -5387,10 +5410,10 @@ def upload_to_beyond_hd_co_window():
         """change tabs to 'URLs' and insert the image description string"""
 
         # clear screenshot box
-        screenshot_scrolledtext.delete("1.0", END)
+        screenshot_scrolled_text.delete("1.0", END)
 
         # add description string to screenshot box
-        screenshot_scrolledtext.insert(END, description_info)
+        screenshot_scrolled_text.insert(END, description_info)
 
         # swap tab
         tabs.select(url_tab)
@@ -5620,14 +5643,14 @@ url_tab.grid_columnconfigure(2, weight=20)
 url_tab.grid_columnconfigure(3, weight=1)
 
 # screenshot textbox
-screenshot_scrolledtext = scrolledtextwidget.ScrolledText(
+screenshot_scrolled_text = scrolledtextwidget.ScrolledText(
     url_tab,
     height=6,
     bg=custom_scrolled_text_widget_color["background"],
     fg=custom_scrolled_text_widget_color["foreground"],
     bd=4,
 )
-screenshot_scrolledtext.grid(
+screenshot_scrolled_text.grid(
     row=0, column=0, columnspan=3, pady=(6, 6), padx=4, sticky=E + W
 )
 
@@ -5635,7 +5658,7 @@ screenshot_scrolledtext.grid(
 reset_screenshot_box = HoverButton(
     url_tab,
     text="X",
-    command=lambda: screenshot_scrolledtext.delete("1.0", END),
+    command=lambda: screenshot_scrolled_text.delete("1.0", END),
     borderwidth="3",
     width=4,
     foreground=custom_button_colors["foreground"],
@@ -5669,14 +5692,14 @@ screen_shot_right_click_menu = Menu(
 
 # right click menu cut
 def text_cut():
-    if screenshot_scrolledtext.selection_get():
+    if screenshot_scrolled_text.selection_get():
         # Grab selected text from text box
-        selected_text_cut = screenshot_scrolledtext.selection_get()
+        selected_text_cut = screenshot_scrolled_text.selection_get()
         # Delete Selected Text from text box
-        screenshot_scrolledtext.delete("sel.first", "sel.last")
+        screenshot_scrolled_text.delete("sel.first", "sel.last")
         # Clear the clipboard then append
-        screenshot_scrolledtext.clipboard_clear()
-        screenshot_scrolledtext.clipboard_append(selected_text_cut)
+        screenshot_scrolled_text.clipboard_clear()
+        screenshot_scrolled_text.clipboard_append(selected_text_cut)
 
 
 screen_shot_right_click_menu.add_command(label="Cut", command=text_cut)
@@ -5684,12 +5707,12 @@ screen_shot_right_click_menu.add_command(label="Cut", command=text_cut)
 
 # right click menu copy
 def text_copy():
-    if screenshot_scrolledtext.selection_get():
+    if screenshot_scrolled_text.selection_get():
         # Grab selected text from text box
-        selected_text_copy = screenshot_scrolledtext.selection_get()
+        selected_text_copy = screenshot_scrolled_text.selection_get()
         # Clear the clipboard then append
-        screenshot_scrolledtext.clipboard_clear()
-        screenshot_scrolledtext.clipboard_append(selected_text_copy)
+        screenshot_scrolled_text.clipboard_clear()
+        screenshot_scrolled_text.clipboard_append(selected_text_copy)
 
 
 screen_shot_right_click_menu.add_command(label="Copy", command=text_copy)
@@ -5697,8 +5720,8 @@ screen_shot_right_click_menu.add_command(label="Copy", command=text_copy)
 
 # right click menu paste
 def text_paste():
-    screenshot_scrolledtext.delete("1.0", END)
-    screenshot_scrolledtext.insert(END, screenshot_scrolledtext.clipboard_get())
+    screenshot_scrolled_text.delete("1.0", END)
+    screenshot_scrolled_text.insert(END, screenshot_scrolled_text.clipboard_get())
 
 
 screen_shot_right_click_menu.add_command(label="Paste", command=text_paste)
@@ -5706,12 +5729,12 @@ screen_shot_right_click_menu.add_command(label="Paste", command=text_paste)
 
 # right click menu clear
 def text_delete():
-    screenshot_scrolledtext.delete("1.0", END)
+    screenshot_scrolled_text.delete("1.0", END)
 
 
 screen_shot_right_click_menu.add_command(label="Clear", command=text_delete)
 
-screenshot_scrolledtext.bind(
+screenshot_scrolled_text.bind(
     "<Button-3>", popup_auto_e_b_menu
 )  # Uses mouse button 3 (right click) to open
 
@@ -5719,8 +5742,8 @@ screenshot_scrolledtext.bind(
 # check/return screenshots
 def parse_screen_shots():
     # if screenshot textbox is not empty
-    if screenshot_scrolledtext.compare("end-1c", "!=", "1.0"):
-        new_screenshots = screenshot_scrolledtext.get(1.0, END).split("[/url]")
+    if screenshot_scrolled_text.compare("end-1c", "!=", "1.0"):
+        new_screenshots = screenshot_scrolled_text.get(1.0, END).split("[/url]")
         fresh_list = [str(i).strip() for i in new_screenshots]
         if "" in fresh_list:
             fresh_list.remove("")
@@ -5756,8 +5779,14 @@ manual_workflow.grid_columnconfigure(0, weight=1)
 manual_workflow.grid_columnconfigure(1, weight=1)
 manual_workflow.grid_columnconfigure(2, weight=1)
 
-
 # generate nfo
+nfo_pad = None
+nfo_pad_text_box = None
+nfo = None
+open_status_name = None
+selected = None
+
+
 def open_nfo_viewer():
     global nfo_pad, nfo_pad_text_box, nfo
 
@@ -5959,7 +5988,7 @@ def open_nfo_viewer():
             nfo_pad_text_box.delete("1.0", END)
             nfo_pad_text_box.insert(END, nfo)
             return
-    except NameError:  # if window is not opened
+    except AttributeError:  # if window is not opened
         pass
 
     def nfo_pad_exit_function():
@@ -6146,7 +6175,7 @@ def open_nfo_viewer():
     def bg_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
         if my_color:
-            nfo_pad_text_box.config(bg=my_color)
+            nfo_pad_text_box.config(bg=str(my_color))
 
             # save scheme to config
             bg_parser = ConfigParser()
@@ -6159,7 +6188,7 @@ def open_nfo_viewer():
     def all_text_color():
         my_color = colorchooser.askcolor(parent=nfo_pad)[1]
         if my_color:
-            nfo_pad_text_box.config(fg=my_color)
+            nfo_pad_text_box.config(fg=str(my_color))
 
             # save scheme to config
             txt_parser = ConfigParser()
@@ -6169,7 +6198,7 @@ def open_nfo_viewer():
                 txt_parser.write(bg_config)
 
     # select all text
-    def select_all(e):
+    def select_all(*_):
         # Add sel tag to select all text
         nfo_pad_text_box.tag_add("sel", "1.0", "end")
 
@@ -6193,7 +6222,7 @@ def open_nfo_viewer():
         # set default colors
         nfo_pad_text_box.config(bg="#c0c0c0", fg="black")
 
-    def fixed_font_chooser(*e):
+    def fixed_font_chooser(*_):
         # check if window is already opened
         if fixed_font_chooser_opened.get():
             return  # if opened exit the function
@@ -6221,7 +6250,6 @@ def open_nfo_viewer():
         font_chooser_win.columnconfigure(1, weight=1)
 
         # start font instance
-        font_instance = font.Font()
         available_fonts = font.families()
 
         # create a list of fixed fonts only
@@ -6232,7 +6260,6 @@ def open_nfo_viewer():
                 mono_spaced_fonts.append(fonts)
 
         # some needed font variables
-        default_font_size = font_instance.actual().get("size")  # get default font size
         define_font_type = font.nametofont(
             "TkFixedFont"
         )  # get default font value into Font object
@@ -6322,7 +6349,7 @@ def open_nfo_viewer():
         # set size list
         values_list = []
         for x in range(8, 74, 2):
-            values_list.append(x)
+            values_list.append(str(x))
 
         # fonts frame
         size_frame = LabelFrame(
@@ -6584,9 +6611,9 @@ def open_nfo_viewer():
     edit_menu.add_command(label="Clear", command=clear_all)
 
     # add options menu
-    options_menu = Menu(nfo_main_menu, tearoff=False)
-    nfo_main_menu.add_cascade(label="Options", menu=options_menu)
-    options_menu.add_command(
+    options_menu_nfo = Menu(nfo_main_menu, tearoff=False)
+    nfo_main_menu.add_cascade(label="Options", menu=options_menu_nfo)
+    options_menu_nfo.add_command(
         label="Font Settings", command=fixed_font_chooser, accelerator="(Ctrl+o)"
     )
 
@@ -6796,10 +6823,10 @@ def torrent_function_window():
             torrent_entry_box.config(state=NORMAL)
             torrent_entry_box.delete(0, END)
             torrent_entry_box.insert(
-                END, pathlib.Path(torrent_file_input).with_suffix(".torrent")
+                END, str(pathlib.Path(torrent_file_input).with_suffix(".torrent"))
             )
             torrent_file_path.set(
-                pathlib.Path(torrent_file_input).with_suffix(".torrent")
+                str(pathlib.Path(torrent_file_input).with_suffix(".torrent"))
             )
             torrent_entry_box.config(state=DISABLED)
             return True
@@ -6842,7 +6869,7 @@ def torrent_function_window():
     torrent_entry_box.grid(
         row=0, column=1, columnspan=9, padx=5, pady=(5, 5), sticky=N + S + E + W
     )
-    torrent_entry_box.insert(END, pathlib.Path(torrent_file_path.get()))
+    torrent_entry_box.insert(END, str(pathlib.Path(torrent_file_path.get())))
     torrent_entry_box.config(state=DISABLED)
 
     # torrent piece frame
@@ -6867,7 +6894,7 @@ def torrent_function_window():
     torrent_piece_frame.grid_rowconfigure(1, weight=1)
 
     # calculate piece size for 'piece_size_info_label2'
-    def set_piece_size(*args):
+    def set_piece_size(*_):
         # get size of file with os.stat()
         file = float(os.stat(pathlib.Path(encode_file_path.get())).st_size)
         # if torrent is auto use torf.Torrent() to generate piece size
@@ -7086,6 +7113,7 @@ def torrent_function_window():
                 parents=True
             )
 
+        build_torrent = None
         try:
             build_torrent = Torrent(
                 path=pathlib.Path(encode_file_path.get()),
@@ -7124,7 +7152,7 @@ def torrent_function_window():
                 else:
                     raise ValueError("Cannot locate saved torrent file")
 
-        def torrent_progress(torrent, filepath, pieces_done, pieces_total):
+        def torrent_progress(_torrent, _filepath, pieces_done, pieces_total):
             """call back method to read/abort progress"""
 
             # update progress bar
@@ -7436,13 +7464,13 @@ def open_uploader_window(job_mode):
             api_temp_parser.read(config_file)
             # if bhd key is still nothing, set workflow to False, re-open root and top levels, then exit this function
             if api_temp_parser["bhd_upload_api"]["key"] == "":
-                automatic_workflow_boolean.set(0)
+                automatic_workflow_boolean.set(False)
                 advanced_root_deiconify()
                 open_all_toplevels()
                 return
         # if user presses no, set workflow to False, re-open root and top levels, then exit this function
         if not api_checkpoint:
-            automatic_workflow_boolean.set(0)
+            automatic_workflow_boolean.set(False)
             advanced_root_deiconify()
             open_all_toplevels()
             return
@@ -7867,7 +7895,7 @@ def open_uploader_window(job_mode):
         search_entry_box.insert(END, encode_movie_str)
 
     # # function to search tmdb for information
-    def call_search_command(*enter_args):
+    def call_search_command(*_):
         if search_entry_box.get().strip() != "":
             upload_window.wm_withdraw()
             search_movie_global_function(search_entry_box.get().strip())
@@ -8192,6 +8220,7 @@ def open_uploader_window(job_mode):
     def update_checkbutton_info():
         chk_button_parser = ConfigParser()
         chk_button_parser.read(config_file)
+        save_checkbutton = None
         if live_boolean.get():
             save_checkbutton = 1
         elif not live_boolean.get():
@@ -8308,7 +8337,7 @@ def open_uploader_window(job_mode):
             upload_window.wm_attributes("-alpha", 1.0)  # restore transparency
             upload_status_window.destroy()  # close window
 
-            # if upload was succesful exit uploader window too
+            # if upload was successful exit uploader window too
             if successful_upload_var:
                 upload_window_exit_function()
 
@@ -8327,19 +8356,15 @@ def open_uploader_window(job_mode):
         )
         uploader_okay_btn.grid(row=2, column=2, columnspan=1, padx=7, pady=5, sticky=E)
 
+        live_release = 0
         # if live boolean is True
         if live_boolean.get():
             live_release = 1
-        # if live boolean is False
-        elif not live_boolean.get():
-            live_release = 0
 
+        anonymous_release = 0
         # if anon boolean is True
         if anonymous_boolean.get():
             anonymous_release = 1
-        # if anon boolean is False
-        elif not anonymous_boolean.get():
-            anonymous_release = 0
 
         # api link
         api_link = (
@@ -8403,6 +8428,8 @@ def open_uploader_window(job_mode):
             ):
                 # create Clients() instance
                 injection_client = Clients()
+
+                auto_injection = "No auto injection"
 
                 if api2_parser["qbit_client"]["qbit_injection_toggle"] == "true":
                     # use qBittorrent method
@@ -8669,7 +8696,7 @@ def reset_gui():
     image_listbox.config(state=NORMAL)
     image_listbox.delete(0, END)
     image_listbox.config(state=DISABLED)
-    screenshot_scrolledtext.delete("1.0", END)
+    screenshot_scrolled_text.delete("1.0", END)
     tabs.select(image_tab)
     clear_all_variables()
 
@@ -9329,7 +9356,7 @@ screen_shot_window_opened = False
 
 
 # function to set screenshot count
-def screen_shot_count_spinbox(*e_hotkey):
+def screen_shot_count_spinbox(*_):
     global screen_shot_window_opened
     # check if window is opened
     if screen_shot_window_opened:
@@ -9901,7 +9928,7 @@ my_menu_bar.add_cascade(label="Tools", menu=tools_menu)
 
 
 # command to check for bhdstudio encodes
-def check_bhd_dupes(*args):
+def check_bhd_dupes(*_):
     """function to get movie and check for BHDStudio encodes"""
     # parser
     check_for_dupe_parser = ConfigParser()
@@ -10203,10 +10230,10 @@ def dupe_check_window(dup_release_dict):
                 )
 
                 # update size label
-                math_to_gb = str(
+                math_to_gb_dupe = str(
                     round(float(movie_dict[movie_data]["size"]) / 1000000000, 2)
                 )
-                movie_size_lbl.config(text="Size (GB): " + math_to_gb)
+                movie_size_lbl.config(text="Size (GB): " + math_to_gb_dupe)
 
                 # update created_on_lbl label
                 created_on_lbl.config(
