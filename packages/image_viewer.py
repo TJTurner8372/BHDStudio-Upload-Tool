@@ -21,6 +21,7 @@ from tkinter import (
 )
 
 from PIL import Image, ImageTk
+from custom_hovertip import CustomTooltipLabel
 from pymediainfo import MediaInfo
 
 from packages.default_config_params import *
@@ -78,6 +79,7 @@ class ImageViewer:
         self.image_track_rem = None
         self.media_info_img_add = None
         self.image_track_add = None
+        self.undo_image_list = []
 
         # define parser
         self.auto_screenshot_parser = ConfigParser()
@@ -231,7 +233,7 @@ class ImageViewer:
 
         # create image instance and resize the photo
         self.loaded_image = Image.open(self.comparison_img_list[self.comparison_index])
-        self.loaded_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.loaded_image.thumbnail((1000, 562), Image.LANCZOS)
         self.resized_image = ImageTk.PhotoImage(self.loaded_image)
 
         # put resized image into label
@@ -281,6 +283,16 @@ class ImageViewer:
         # bind right arrow key (on key release) to load the next image
         self.image_viewer.bind("<KeyRelease-Right>", self.load_next_image)
 
+        # hover tip tool-tip
+        CustomTooltipLabel(
+            anchor_widget=self.next_img,
+            hover_delay=1000,
+            background=self.custom_window_bg_color,
+            foreground=self.custom_label_frame_colors["foreground"],
+            font=(self.set_fixed_font, self.set_font_size, "bold"),
+            text="Use hotkey 'Right Arrow' to view next image",
+        )
+
         # button to run last image function
         self.back_img = HoverButton(
             self.img_button_frame,
@@ -298,6 +310,16 @@ class ImageViewer:
 
         # bind the left arrow key (on key release)
         self.image_viewer.bind("<KeyRelease-Left>", self.load_last_image)
+
+        # hover tip tool-tip
+        CustomTooltipLabel(
+            anchor_widget=self.back_img,
+            hover_delay=1000,
+            background=self.custom_window_bg_color,
+            foreground=self.custom_label_frame_colors["foreground"],
+            font=(self.set_fixed_font, self.set_font_size, "bold"),
+            text="Use hotkey 'Left Arrow' to view previous image",
+        )
 
         # info frame for the image viewer
         self.set_info_frame = LabelFrame(
@@ -445,6 +467,20 @@ class ImageViewer:
             disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.minus_btn.grid(row=0, column=0, padx=5, pady=(7, 0), sticky=E)
+        self.image_viewer.bind(
+            "<Shift-Down>", lambda event: self.hotkey_remove_pair_from_listbox()
+        )
+
+        # hover tip tool-tip
+        CustomTooltipLabel(
+            anchor_widget=self.minus_btn,
+            hover_delay=1000,
+            background=self.custom_window_bg_color,
+            foreground=self.custom_label_frame_colors["foreground"],
+            font=(self.set_fixed_font, self.set_font_size, "bold"),
+            wraplength=220,
+            text="Use hotkeys 'Shift + Down Arrow' to remove previously loaded images",
+        )
 
         # move right button
         self.move_right = HoverButton(
@@ -460,6 +496,18 @@ class ImageViewer:
             disabledforeground=self.custom_button_colors["disabledforeground"],
         )
         self.move_right.grid(row=0, column=1, padx=5, pady=(7, 0), sticky=W)
+        self.image_viewer.bind("<Shift-Up>", lambda event: self.add_pair_to_listbox())
+
+        # hover tip tool-tip
+        CustomTooltipLabel(
+            anchor_widget=self.move_right,
+            hover_delay=1000,
+            background=self.custom_window_bg_color,
+            foreground=self.custom_label_frame_colors["foreground"],
+            font=(self.set_fixed_font, self.set_font_size, "bold"),
+            wraplength=220,
+            text="Use hotkeys 'Shift + Up Arrow' to select current set of images",
+        )
 
         # add to image list box button
         self.add_images_to_listbox = HoverButton(
@@ -499,7 +547,7 @@ class ImageViewer:
 
             # open the image in the viewer
             im = Image.open(self.comparison_img_list[self.comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            im.thumbnail((1000, 562), Image.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             self.image_preview_label.config(image=photo)
             self.image_preview_label.image = photo
@@ -537,7 +585,7 @@ class ImageViewer:
 
             # update the image in the image viewer
             im = Image.open(self.comparison_img_list[self.comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            im.thumbnail((1000, 562), Image.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             self.image_preview_label.config(image=photo)
             self.image_preview_label.image = photo
@@ -579,7 +627,7 @@ class ImageViewer:
             thumbnail_img = Image.open(
                 pathlib.Path(pathlib.Path(self.screenshot_selected_var) / img_data)
             )
-            thumbnail_img.thumbnail((348, 158), Image.Resampling.LANCZOS)
+            thumbnail_img.thumbnail((348, 158), Image.LANCZOS)
             self.resized_image1 = ImageTk.PhotoImage(thumbnail_img)
 
             # update the label with the selected image
@@ -591,6 +639,18 @@ class ImageViewer:
                     pathlib.Path(pathlib.Path(self.screenshot_selected_var) / img_data)
                 ).show(),
             )
+
+    def hotkey_remove_pair_from_listbox(self):
+        """Selects last moved image to be removed from listbox"""
+        try:
+            listbox_list = [x for x in self.img_viewer_listbox.get(0, END)].index(
+                self.undo_image_list[-1]
+            )
+            self.img_viewer_listbox.selection_clear(0, END)
+            self.img_viewer_listbox.selection_set(listbox_list)
+            self.remove_pair_from_listbox()
+        except IndexError:
+            return
 
     def remove_pair_from_listbox(self):
         """remove pair from listbox function"""
@@ -621,6 +681,9 @@ class ImageViewer:
                         )
                     )
 
+                    # update undo image list
+                    self.undo_image_list.remove(get_pair[0])
+
             # delete the list box and update it with what ever is left
             self.img_viewer_listbox.delete(0, END)
 
@@ -645,16 +708,20 @@ class ImageViewer:
             if self.comparison_img_list:
                 # find index of current item
                 # refresh the image viewer with the updated list while retaining current position
-                self.comparison_index = int(
-                    self.comparison_img_list.index(
-                        pathlib.Path(
-                            pathlib.Path(self.screenshot_comparison_var)
-                            / self.image_name_label.cget("text")
+                try:
+                    self.comparison_index = int(
+                        self.comparison_img_list.index(
+                            pathlib.Path(
+                                pathlib.Path(self.screenshot_comparison_var)
+                                / self.image_name_label.cget("text")
+                            )
                         )
                     )
-                )
+                except ValueError:
+                    self.comparison_index = 0
+
                 im = Image.open(self.comparison_img_list[self.comparison_index])
-                im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+                im.thumbnail((1000, 562), Image.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
                 self.image_preview_label.grid()
                 self.image_preview_label.config(image=photo)
@@ -690,10 +757,14 @@ class ImageViewer:
         selected_index_var = None
 
         # find the prefix
-        get_file_prefix = re.search(
-            r"(\d{1,3})[a|b]_.+__.+",
-            str(pathlib.Path(self.comparison_img_list[self.comparison_index]).name),
-        )
+        try:
+            get_file_prefix = re.search(
+                r"(\d{1,3})[a|b]_.+__.+",
+                str(pathlib.Path(self.comparison_img_list[self.comparison_index]).name),
+            )
+        except IndexError:
+            return
+
         for full_name in self.comparison_img_list:
             get_pair = re.findall(
                 rf"{get_file_prefix.group(1)}[b|a]_.+__.+\.png", full_name.name
@@ -706,6 +777,9 @@ class ImageViewer:
                     pathlib.Path(self.screenshot_selected_var)
                     / pathlib.Path(get_pair[0]).name
                 )
+
+                # update added images list
+                self.undo_image_list.append(get_pair[0])
 
                 # take the last item that is moved and update the selected index var
                 selected_index_var = (
@@ -745,7 +819,7 @@ class ImageViewer:
             except IndexError:
                 self.comparison_index = selected_index_var - 2
                 im = Image.open(self.comparison_img_list[self.comparison_index])
-            im.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+            im.thumbnail((1000, 562), Image.LANCZOS)
             photo = ImageTk.PhotoImage(im)
             self.image_preview_label.config(image=photo)
             self.image_preview_label.image = photo
@@ -883,7 +957,7 @@ class ImageViewer:
 
         # image label for tab 1
         self.rf1_image = Image.open(self._locate_sync_img_encode(1))
-        self.rf1_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.rf1_image.thumbnail((1000, 562), Image.LANCZOS)
         self.resized_rf1_image = ImageTk.PhotoImage(self.rf1_image)
 
         # put resized image into label
@@ -910,7 +984,7 @@ class ImageViewer:
 
         # image label for tab 2
         self.rf2_image = Image.open(self._locate_sync_img_encode(2))
-        self.rf2_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.rf2_image.thumbnail((1000, 562), Image.LANCZOS)
         self.resized_rf2_image = ImageTk.PhotoImage(self.rf2_image)
 
         # put resized image into label
@@ -1084,7 +1158,7 @@ class ImageViewer:
 
     def _image_swap1(self, _):
         self.rf1_s_image = Image.open(self.rf1_sync_image)
-        self.rf1_s_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.rf1_s_image.thumbnail((1000, 562), Image.LANCZOS)
         self.resized_rf1_s_image = ImageTk.PhotoImage(self.rf1_s_image)
 
         self.image_sync_label1.config(image=self.resized_rf1_s_image)
@@ -1096,7 +1170,7 @@ class ImageViewer:
 
     def _image_swap2(self, _):
         self.rf2_image = Image.open(self.rf2_sync_image)
-        self.rf2_image.thumbnail((1000, 562), Image.Resampling.LANCZOS)
+        self.rf2_image.thumbnail((1000, 562), Image.LANCZOS)
         self.resized_rf2_s_image = ImageTk.PhotoImage(self.rf2_image)
 
         self.image_sync_label2.config(image=self.resized_rf2_s_image)
