@@ -113,7 +113,7 @@ elif app_type == "script":
     enable_error_logger = False  # Enable this to true for debugging in dev environment
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.69"
+main_root_title = "BHDStudio Upload Tool v1.70"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -1609,12 +1609,19 @@ def source_input_function(*args):
 
     # crop
     if get_crop:
+        # vars
+        get_left = None
+        get_right = None
+        get_top = None
+        get_bottom = None
+
         # convert crop for VapourSynth
         if script_mode.get() == "vpy":
             get_left = get_crop.group(1).split(",")[0].strip()
             get_right = get_crop.group(1).split(",")[1].strip()
             get_top = get_crop.group(1).split(",")[2].strip()
             get_bottom = get_crop.group(1).split(",")[3].strip()
+
         # convert crop for AviSynth
         elif script_mode.get() == "avs":
             get_left = get_crop.group(1).split(",")[0].replace("-", "").strip()
@@ -2116,14 +2123,29 @@ def encode_input_function(*args):
         # find fill border info
         for info in script_info_list:
             fill_border_info = re.search(r"fillborders\((.+)\)", info, re.IGNORECASE)
+            source_file_information.update({"fill_borders": "None"})
             if fill_border_info:
                 get_digits = re.findall(r"\d+", fill_border_info.group(1))[:-1]
                 check_if_all_zero = any(int(i) != 0 for i in get_digits)
+
                 # if any numbers are not equal to 0 (meaning fill borders was actually used)
                 if check_if_all_zero:
                     # set fill borders var to 'on' and run fill border update function
                     fill_borders_var.set("on")
                     update_fill_borders()
+
+                    # update source info
+                    source_file_information.update(
+                        {
+                            "fill_borders": {
+                                "left": str(get_digits[0]),
+                                "top": str(get_digits)[3],
+                                "right": str(get_digits)[1],
+                                "bottom": str(get_digits)[2],
+                            }
+                        }
+                    )
+
                 # break from loop
                 break
 
@@ -2153,14 +2175,29 @@ def encode_input_function(*args):
         # find fill border info
         for info in script_info_list:
             fill_border_info = re.search(r"fill.+\(([\s\d,]*)\)", info, re.IGNORECASE)
+            source_file_information.update({"fill_borders": "None"})
             if fill_border_info:
                 get_digits = re.findall(r"\d+", fill_border_info.group(1))
-                check_if_all_zero = any(int(i) != 0 for i in get_digits)
+                check_if_all_not_zero = any(int(i) != 0 for i in get_digits)
+
                 # if any numbers are not equal to 0 (meaning fill borders was actually used)
-                if check_if_all_zero:
+                if check_if_all_not_zero:
                     # set fill borders var to 'on' and run fill border update function
                     fill_borders_var.set("on")
                     update_fill_borders()
+
+                    # update source info
+                    source_file_information.update(
+                        {
+                            "fill_borders": {
+                                "left": str(get_digits[0]),
+                                "top": str(get_digits)[1],
+                                "right": str(get_digits)[2],
+                                "bottom": str(get_digits)[3],
+                            }
+                        }
+                    )
+
                 # break from loop
                 break
 
@@ -2188,6 +2225,42 @@ def encode_input_function(*args):
                     update_balanced_borders()
                 # break from the loop
                 break
+
+        # check if advance resize was used
+        source_file_information.update({"advanced_resize": "None"})
+        for info in script_info_list:
+            check_for_advanced_resize = re.findall(
+                r"src_left|src_top|src_width|src_height", info
+            )
+            if check_for_advanced_resize:
+                src_left = None
+                src_top = None
+                src_width = None
+                src_height = None
+
+                src_left_search = re.search(r"src_left\s?=\s?-?(\d\.?\d?)", info)
+                if src_left_search:
+                    src_left = float(src_left_search.group(1))
+                src_top_search = re.search(r"src_top\s?=\s?-?(\d\.?\d?)", info)
+                if src_top_search:
+                    src_top = float(src_top_search.group(1))
+                src_width_search = re.search(r"src_width\s?=\s?-?(\d\.?\d?)", info)
+                if src_width_search:
+                    src_width = float(src_width_search.group(1))
+                src_height_search = re.search(r"src_height\s?=\s?-?(\d\.?\d?)", info)
+                if src_height_search:
+                    src_height = float(src_height_search.group(1))
+
+                source_file_information.update(
+                    {
+                        "advanced_resize": {
+                            "src_left": src_left,
+                            "src_top": src_top,
+                            "src_width": src_width,
+                            "src_height": src_height,
+                        }
+                    }
+                )
 
     # set torrent name
     if encode_input_function_parser["torrent_settings"]["default_path"] != "":
@@ -4671,10 +4744,41 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
             source_file.width != encode_file.width
             and source_file.height != encode_file.height
         ):
+
+            # advanced resize offset vars
+            advanced_resize_left = 0
+            advanced_resize_top = 0
+            advanced_resize_width = 0
+            advanced_resize_height = 0
+
+            # update advanced resize offsets based off script input
+            if source_file_information["advanced_resize"] != "None":
+                advanced_resize_left = source_file_information["advanced_resize"][
+                    "src_left"
+                ]
+                advanced_resize_top = source_file_information["advanced_resize"][
+                    "src_top"
+                ]
+                advanced_resize_width = source_file_information["advanced_resize"][
+                    "src_width"
+                ]
+                advanced_resize_height = source_file_information["advanced_resize"][
+                    "src_height"
+                ]
+
+            # resize source to match encode for screenshots
             source_file = core.resize.Spline36(
                 source_file,
                 width=int(encode_file.width),
                 height=int(encode_file.height),
+                src_left=advanced_resize_left,
+                src_top=advanced_resize_top,
+                src_width=float(
+                    source_file.width - (advanced_resize_left + advanced_resize_width)
+                ),
+                src_height=float(
+                    source_file.height - (advanced_resize_top + advanced_resize_height)
+                ),
                 dither_type="error_diffusion",
             )
 
