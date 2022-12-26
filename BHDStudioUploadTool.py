@@ -2460,7 +2460,7 @@ def encode_input_function(*args):
     )
 
     # remove any special characters from the filename
-    suggested_bhd_filename = re.sub(r'[\\/:*?"<>|\s]', ".", suggested_bhd_filename)
+    suggested_bhd_filename = re.sub(r'[\\/:*?"<>|\s,]', ".", suggested_bhd_filename)
 
     # re-add hyphen that was removed from BHDStudio above
     suggested_bhd_filename = suggested_bhd_filename.replace(".BHDStudio", "-BHDStudio")
