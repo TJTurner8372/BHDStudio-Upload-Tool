@@ -113,7 +113,7 @@ if app_type == "bundled":
     )
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.71"
+main_root_title = "BHDStudio Upload Tool v1.72"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -2359,9 +2359,11 @@ def encode_input_function(*args):
             )
             if src_width_search:
                 if script_mode.get() == "vpy":
-                    src_width = float(
-                        src_width_search.group(1).replace("clip.width - ", "")
-                    )
+                    detect_src_width = src_width_search.group(1).replace("clip.width - ", "")
+                    if detect_src_width == "":
+                        src_width = 0
+                    else:
+                        src_width = float(detect_src_width)
                 else:
                     src_width = float(src_width_search.group(2))
             src_height_search = re.search(
@@ -2370,9 +2372,11 @@ def encode_input_function(*args):
             )
             if src_height_search:
                 if script_mode.get() == "vpy":
-                    src_height = float(
-                        src_height_search.group(1).replace("clip.height - ", "")
-                    )
+                    detect_src_height = src_height_search.group(1).replace("clip.height - ", "")
+                    if detect_src_height == "":
+                        src_height = 0
+                    else:
+                        src_height = float(detect_src_height)
                 else:
                     src_height = float(src_height_search.group(2))
 
