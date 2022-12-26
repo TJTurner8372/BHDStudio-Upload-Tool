@@ -113,7 +113,7 @@ if app_type == "bundled":
     )
 
 # Set main window title variable
-main_root_title = "BHDStudio Upload Tool v1.73"
+main_root_title = "BHDStudio Upload Tool v1.74"
 
 # create runtime folder if it does not exist
 pathlib.Path(pathlib.Path.cwd() / "runtime").mkdir(parents=True, exist_ok=True)
@@ -4899,18 +4899,18 @@ def auto_screen_shot_status_window(re_sync=0, operator=None):
 
             # update advanced resize offsets based off script input
             if source_file_information["advanced_resize"] != "None":
-                advanced_resize_left = source_file_information["advanced_resize"][
+                advanced_resize_left = float(source_file_information["advanced_resize"][
                     "src_left"
-                ]
-                advanced_resize_top = source_file_information["advanced_resize"][
+                ])
+                advanced_resize_top = float(source_file_information["advanced_resize"][
                     "src_top"
-                ]
-                advanced_resize_width = source_file_information["advanced_resize"][
+                ])
+                advanced_resize_width = float(source_file_information["advanced_resize"][
                     "src_width"
-                ]
-                advanced_resize_height = source_file_information["advanced_resize"][
+                ])
+                advanced_resize_height = float(source_file_information["advanced_resize"][
                     "src_height"
-                ]
+                ])
 
             # resize source to match encode for screenshots
             source_file = core.resize.Spline36(
